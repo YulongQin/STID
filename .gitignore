@@ -1,0 +1,15 @@
+.Rproj.user
+inst/doc
+/Meta/
+/check/
+ISTools_0.0.0.9000.tar.gz
+.Rhistory
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto
+_pkgdown.yml
+README.Rmd
+/R_other/
+
+/doc/

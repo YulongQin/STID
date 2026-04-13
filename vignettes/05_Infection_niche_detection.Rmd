@@ -1,0 +1,107 @@
+---
+title: "05_Infection_niche_detection"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{05_Infection_niche_detection}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Overview
+
+Following infection-positive spot identification, the next step is to delineate **spatially coherent infection niches**. Rather than treating spots independently, ISTtools reconstructs infection regions by grouping neighboring positive spots into continuous spatial domains.
+
+This step transforms discrete detection results into biologically interpretable **infection niches**, enabling region-level analysis.
+
+------------------------------------------------------------------------
+
+# Setup
+
+``` r
+suppressMessages({
+  library(tidyverse)
+  library(ISTools)
+})
+```
+
+------------------------------------------------------------------------
+
+# Niche detection (CE)
+
+Spatial niches are identified using region-based clustering. By default, ISTtools supports geometric reconstruction (e.g., convex hull) to define spatial domains.
+
+``` r
+IST_obj_detect <- NicheDetect_STS(
+  IST_obj = IST_obj_after,
+  meta_key = "M1_SpotDetect_Gene_TB_correct_after_all_gene_white",
+  loop_id = "PI8W_1",
+  method_level = "region",
+  method_region = "convex",
+  update_spots = FALSE,
+  k_kNNdist = 4,
+  pos_colnm = "Label_all_gene_nFeature(sum)",
+  grp_nm = "TB_DBSCAN",
+  dir_nm = "M2_NicheDetect_STS"
+)
+```
+
+This procedure aggregates spatially proximal infection-positive spots into contiguous regions.
+
+------------------------------------------------------------------------
+
+# Niche detection (JEV)
+
+The same framework is applicable to viral datasets.
+
+``` r
+IST_obj_detect <- NicheDetect_STS(
+  IST_obj = IST_obj,
+  meta_key = "M1_SpotDetect_Gene_JEV_correct_before_all_gene_white",
+  method_level = "region",
+  method_region = "convex",
+  update_spots = FALSE,
+  pos_colnm = "Label_all_gene_nFeature(sum)",
+  grp_nm = "STS_JEV_microbe_region",
+  dir_nm = "M2_NicheDetect_STS"
+)
+```
+
+------------------------------------------------------------------------
+
+# Visualization
+
+``` r
+detect_meta <- GetMetaData(
+  IST_obj_detect,
+  meta_key = "M2_NicheDetect_STS_STS_JEV_microbe_region"
+)[[1]]
+
+Plot_Spatial(
+  detect_meta,
+  "x","y","ROI_region",
+  datatype = "discrete"
+)
+```
+
+------------------------------------------------------------------------
+
+# Remarks
+
+-   Region construction imposes spatial continuity on infection signals
+-   The choice of `method_region` influences niche boundary geometry
+-   Output niches serve as the basis for downstream spatial analyses
+
+------------------------------------------------------------------------
+
+# Session information
+
+``` r
+sessionInfo()
+```

@@ -1,0 +1,114 @@
+# Convert Seurat object to STID object
+
+Creates an STID object from a Seurat object with infection-specific
+metadata.
+
+## Usage
+
+``` r
+CreateSTIDObject(
+  seurat_obj = NULL,
+  host_org = NULL,
+  pathogen_grp = NULL,
+  pathogen_org = NULL,
+  samp_colnm = NULL,
+  samp_grp_colnm = NULL,
+  celltype_colnm = NULL,
+  x_colnm = NULL,
+  y_colnm = NULL,
+  pathogen_genes = NULL,
+  data_format = NULL,
+  binsize = NULL,
+  interval = NULL,
+  project_id = NULL,
+  description = NULL,
+  ...
+)
+```
+
+## Arguments
+
+- seurat_obj:
+
+  A Seurat object to be converted
+
+- host_org:
+
+  Character, host organism - "human", "mouse", or "unknown"
+
+- pathogen_grp:
+
+  Character, pathogen group - "virus", "bacteria", "parasite", or
+  "unknown"
+
+- pathogen_org:
+
+  Character, specific pathogen organism name
+
+- samp_colnm:
+
+  Character, column name in metadata containing sample IDs
+
+- samp_grp_colnm:
+
+  Character, column name in metadata containing sample groups
+
+- celltype_colnm:
+
+  Character, column name in metadata containing cell types
+
+- x_colnm:
+
+  Character, column name for x coordinates (optional)
+
+- y_colnm:
+
+  Character, column name for y coordinates (optional)
+
+- pathogen_genes:
+
+  Character vector, names of pathogen genes (optional)
+
+- data_format:
+
+  Character, data format - "StereoSeq" or "Visium"
+
+- binsize:
+
+  Numeric, bin size for spatial data (optional)
+
+- interval:
+
+  Numeric, coordinate interval (optional)
+
+- project_id:
+
+  Character, project identifier (optional)
+
+- description:
+
+  Character, project description (optional)
+
+- ...:
+
+  Additional arguments passed to
+  [`as.STID`](https://yulongqin.github.io/STID/reference/as.STID.md)
+
+## Value
+
+An STID object
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+ist_obj <- CreateSTIDObject(
+  seurat_obj = seurat_object,
+  samp_colnm = "sample_id",
+  celltype_colnm = "cell_type",
+  host_org = "human",
+  pathogen_grp = "virus",
+  data_format = "StereoSeq"
+)
+} # }
+```
