@@ -1,0 +1,119 @@
+---
+title: "04_Infection_spot_detection"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{04_Infection_spot_detection}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+# Overview
+
+Following background correction, infection-positive spatial locations are identified based on aggregated pathogen-derived expression. ISTtools supports both gene-level and gene-set-based detection strategies to accommodate diverse pathogen types.
+
+---
+
+# Setup
+
+``` r
+suppressMessages({
+  library(tidyverse)
+  library(ISTools)
+})
+```
+
+---
+
+# Infection signal aggregation (CE)
+
+To improve robustness, pathogen signals are first aggregated across informative features.
+
+```r
+high_exp_genes <- GetTopGenes(
+  IST_obj,
+  top_n = 10,
+  pattern = "EmuJ-",
+  grp_by_samp = FALSE,
+  grp_by_celltype = FALSE,
+  assay_id = "Spatial",
+  layer_id = "counts"
+)
+
+IST_obj <- GetGeneStat(
+  IST_obj = IST_obj,
+  features = high_exp_genes,
+  prefix = "top10_gene",
+  func = "sum"
+)
+```
+
+---
+
+# Spot classification (CE)
+
+```r
+IST_obj <- SpotDetect_Gene(
+  IST_obj,
+  features = high_exp_genes,
+  feature_colnm = grep("all_gene", colnames(IST_obj@meta.data), value = TRUE),
+  PosThres_prob = 0,
+  PosThres_count = 3,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  pt_size = 1,
+  mode_SpatialPlot = "single",
+  grp_nm = "CE_correct_after_all_gene_white"
+)
+```
+
+---
+
+# Viral infection detection (JEV)
+
+For viral datasets, predefined pathogen gene sets are typically used.
+
+```r
+pathogen_genes <- c("NS5","C","NS3","NS1","E","Prm","NS4aAlt","NS4bAlt","NS2a","NS2b")
+
+IST_obj <- GetGeneStat(
+  IST_obj = IST_obj,
+  features = pathogen_genes,
+  prefix = "all_gene",
+  func = "sum"
+)
+
+IST_obj <- SpotDetect_Gene(
+  IST_obj,
+  features = c("NS5"),
+  feature_colnm = grep("all_gene", colnames(IST_obj@meta.data), value = TRUE),
+  PosThres_prob = 0,
+  PosThres_count = 1,
+  pt_size = 0.25,
+  mode_SpatialPlot = "single",
+  grp_nm = "JEV_correct_before_all_gene_white"
+)
+```
+
+---
+
+# Remarks
+
+* Aggregation reduces sparsity and stabilizes detection
+* Threshold parameters determine classification sensitivity
+* Outputs provide binary or probabilistic infection labels for each spot
+
+---
+
+# Session information
+
+```r
+sessionInfo()
+```

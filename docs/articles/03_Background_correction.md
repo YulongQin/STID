@@ -1,0 +1,73 @@
+# 03_Background_correction
+
+## Overview
+
+Reliable detection of infection signals in spatial transcriptomics data
+requires explicit modeling of background contamination. In ISTtools,
+background correction is performed by leveraging reference samples to
+estimate the distribution of pathogen-associated features and remove
+spurious signals.
+
+This step defines the statistical baseline for all downstream analyses.
+
+------------------------------------------------------------------------
+
+## Setup
+
+``` r
+suppressMessages({
+  library(tidyverse)
+  library(ISTools)
+})
+```
+
+------------------------------------------------------------------------
+
+## Background modeling
+
+Background signals are estimated using designated reference samples that
+represent non-infected or baseline conditions.
+
+``` r
+IST_obj_before <- IST_obj
+
+IST_obj_after <- CorrectBackgroud(
+  IST_obj = IST_obj_before,
+  bg_samp_id = c("DPI_0_1"),
+  bg_features = pathogen_genes,
+  PosThres_prob = 0.95,
+  assay_id = "Spatial",
+  layer_id = "counts",
+  grp_nm = "20251201_CE_0.95",
+  dir_nm = "M1_CorrectBackgroud"
+)
+```
+
+------------------------------------------------------------------------
+
+## Parameterization
+
+- `bg_samp_id`: defines background reference samples
+- `bg_features`: pathogen-associated features used for modeling
+- `PosThres_prob`: probability threshold controlling signal retention
+
+The choice of `PosThres_prob` determines the balance between sensitivity
+and specificity and should be calibrated according to sequencing depth
+and expected pathogen load.
+
+------------------------------------------------------------------------
+
+## Remarks
+
+- Background correction is applied prior to any spatial classification
+- The corrected object preserves original structure while updating
+  signal estimates
+- Outputs are stored for downstream reuse in `meta.data`
+
+------------------------------------------------------------------------
+
+## Session information
+
+``` r
+sessionInfo()
+```

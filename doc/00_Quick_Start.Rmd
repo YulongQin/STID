@@ -1,0 +1,147 @@
+---
+title: "00_Quick_Start"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{00_Quick_Start}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Overview
+
+This vignette provides a minimal workflow to run the core functionalities of **ISTtools**, from infection signal detection to niche-level analysis.
+
+The full pipeline includes:
+
+1.  Background correction
+2.  Infection site identification
+3.  Infection niche detection
+4.  Spatial niche analysis
+
+------------------------------------------------------------------------
+
+# Setup
+
+``` r
+suppressMessages({
+  library(tidyverse)
+  library(ISTools)
+})
+```
+
+------------------------------------------------------------------------
+
+# Load data
+
+``` r
+# replace with your data
+IST_obj <- readRDS("your_data.rds")
+```
+
+------------------------------------------------------------------------
+
+# 1. Background correction
+
+``` r
+IST_obj <- CorrectBackgroud(
+  IST_obj = IST_obj,
+  bg_samp_id = c("DPI_0_1"),
+  bg_features = pathogen_genes,
+  PosThres_prob = 0.95,
+  assay_id = "Spatial",
+  layer_id = "counts"
+)
+```
+
+------------------------------------------------------------------------
+
+# 2. Infection site detection
+
+``` r
+IST_obj <- GetGeneStat(
+  IST_obj = IST_obj,
+  features = pathogen_genes,
+  prefix = "all_gene",
+  func = "sum"
+)
+
+IST_obj <- SpotDetect_Gene(
+  IST_obj,
+  features = pathogen_genes,
+  feature_colnm = grep("all_gene", colnames(IST_obj@meta.data), value = TRUE),
+  PosThres_prob = 0,
+  PosThres_count = 1
+)
+```
+
+------------------------------------------------------------------------
+
+# 3. Infection niche detection
+
+``` r
+IST_obj <- NicheDetect_STS(
+  IST_obj = IST_obj,
+  meta_key = "M1_SpotDetect_Gene",
+  method_level = "region",
+  method_region = "convex",
+  pos_colnm = "Label_all_gene_nFeature(sum)"
+)
+```
+
+------------------------------------------------------------------------
+
+# 4. Single-sample niche analysis
+
+``` r
+Plot_DistLine_Exp(
+  IST_obj = IST_obj,
+  features = c("NS5"),
+  feature_colnm = "all_gene_nFeature(sum)"
+)
+```
+
+------------------------------------------------------------------------
+
+# 5. Multi-sample comparison
+
+``` r
+CompareNiche(
+  IST_obj = IST_obj,
+  meta_key1 = "M2_NicheDetect_STS_region1",
+  meta_key2 = "M2_NicheDetect_STS_region2"
+)
+```
+
+------------------------------------------------------------------------
+
+# Remarks
+
+-   This workflow demonstrates the minimal steps required to run ISTtools
+-   Parameter tuning is dataset-dependent and discussed in detailed vignettes
+-   Intermediate results are stored in `meta.data` for downstream reuse
+
+------------------------------------------------------------------------
+
+# Next steps
+
+For detailed descriptions of each step, see:
+
+-   *Background correction and infection site identification*
+-   *Infection niche detection*
+-   *Single-sample infection niche analysis*
+-   *Multi-sample infection niche analysis*
+
+------------------------------------------------------------------------
+
+# Session information
+
+``` r
+sessionInfo()
+```

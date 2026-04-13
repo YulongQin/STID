@@ -1,0 +1,59 @@
+# 07_MultiSampNiche_analysis
+
+## Overview
+
+Comparative analysis across samples enables identification of conserved
+and condition-specific infection niches. ISTtools provides a unified
+framework for cross-sample niche comparison.
+
+------------------------------------------------------------------------
+
+## Setup
+
+``` r
+suppressMessages({
+  library(tidyverse)
+  library(ISTools)
+})
+```
+
+------------------------------------------------------------------------
+
+## Cross-condition niche comparison (JEV)
+
+``` r
+CompareNiche(
+  IST_obj = IST_obj_detect,
+  meta_key1 = "M2_NicheDetect_STS_STS_JEV_microbe_region",
+  meta_key2 = "M2_NicheDetect_STS_STS_JEV_host_region"
+)
+```
+
+------------------------------------------------------------------------
+
+## Cross-condition niche comparison (CE)
+
+``` r
+CompareNiche(
+  IST_obj = IST_obj_detect,
+  meta_key1 = "M2_NicheDetect_STS_TB_DBSCAN",
+  meta_key2 = "M2_NicheDetect_STS_TB_host_DBSCAN"
+)
+```
+
+------------------------------------------------------------------------
+
+## Remarks
+
+- Enables direct comparison between pathogen-driven and host-driven
+  niches
+- Supports multi-condition and multi-timepoint analysis
+- Facilitates identification of conserved spatial patterns
+
+------------------------------------------------------------------------
+
+## Session information
+
+``` r
+sessionInfo()
+```
