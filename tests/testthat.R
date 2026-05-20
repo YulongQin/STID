@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(ISTools)
+library(STID)
 
-test_check("ISTools")
+test_check("STID")

@@ -5,13 +5,12 @@ Authors@R:
     person("Yulong", "Qin", , "524583919@qq.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0009-0009-2761-0750"))
 Maintainer: Yulong Qin <524583919@qq.com>
-Description: STID is an R-based toolkit designed to provide a unified
-    and efficient framework for spatial transcriptomics analysis in
-    infectious diseases.
+Description: STID is an R-based toolkit designed to provide a unified and
+    efficient framework for spatial transcriptomics analysis of infectious
+    diseases.
 License: MIT + file LICENSE
 URL: https://github.com/YulongQin/STID.git,
-    https://yulongqin.github.io/STID/,
-    https://github.com/YulongQin/STID
+    https://yulongqin.github.io/STID/, https://github.com/YulongQin/STID
 BugReports: https://github.com/YulongQin/STID/issues
 Depends: 
     R (>= 3.6.0)
@@ -20,6 +19,7 @@ Imports:
     AnnotationDbi,
     assertthat,
     AUCell,
+    Biobase,
     Biostrings,
     clusterProfiler,
     concaveman,
@@ -39,10 +39,10 @@ Imports:
     ggh4x,
     ggnewscale,
     ggplot2 (>= 4.0.2),
+    ggprism,
     ggraph,
     ggrepel,
     ggsignif,
-    ggprism,
     ggvenn,
     GO.db,
     GOSemSim,
@@ -51,6 +51,7 @@ Imports:
     magrittr,
     Matrix (>= 1.6.5),
     methods,
+    Mfuzz,
     paletteer,
     patchwork,
     proxy,
@@ -101,15 +102,15 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 Collate: 
-    'MultiSamp_Niche.R'
+    'MultiSampAnalysis.R'
     'NicheDetect.R'
     'Preprocessing.R'
     'RPyCall.R'
-    'STID-package.R'
-    'zzz.R'
-    'STID_Class.R'
-    'SingleSamp_Niche.R'
-    'SpotDetect.R'
     'Utilities.R'
+    'zzz.R'
+    'STID-class.R'
+    'STID-package.R'
+    'SingleSampAnalysis.R'
+    'SpotDetect.R'
     'data.R'
     'globalVariables.R'

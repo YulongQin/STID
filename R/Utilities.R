@@ -290,6 +290,12 @@ clog_error <- function(message, call. = TRUE){
   param_names <- substitute(list(...)) %>% as.character() %>% .[-1]
   ref <- colnames(metadata)
   args <- list(...)
+  if(length(args) == 0){
+    clog_error(paste0("No columns specified to check in '", data_name, "'. Please provide column names as arguments."))
+  }
+  if(is.null(args)){
+    clog_warn("You have provided NULL for column names.")
+  }
   for (i in seq_along(args)) {
     param_name <- param_names[i]
     cols <- args[[i]]

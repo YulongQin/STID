@@ -69,6 +69,9 @@ for downstream analysis.</p>
 <span>  loop_id <span class="op">=</span> <span class="st">"LoopAllSamp"</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="st">"coord"</span>,</span>
 <span>  group_by <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  lasso_para <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>meta_data <span class="op">=</span> <span class="cn">NULL</span>, samp_colnm <span class="op">=</span> <span class="cn">NULL</span>, x_colnm <span class="op">=</span> <span class="st">"x"</span>, y_colnm <span class="op">=</span> <span class="st">"y"</span>,</span>
+<span>    data_format <span class="op">=</span> <span class="st">"square_grid"</span>, data_platform <span class="op">=</span> <span class="st">"StereoSeq"</span>, binsize <span class="op">=</span> <span class="fl">1</span>, coord_interval</span>
+<span>    <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  col <span class="op">=</span> <span class="va">COLOR_LIST</span><span class="op">$</span><span class="va">PALETTE_WHITE_BG</span>,</span>
 <span>  description <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -95,6 +98,18 @@ information (default: "coord")</p></dd>
 
 <dt id="arg-group-by">group_by<a class="anchor" aria-label="anchor" href="#arg-group-by"></a></dt>
 <dd><p>Character, column name for coloring points in the interactive plot</p></dd>
+
+
+<dt id="arg-lasso-para">lasso_para<a class="anchor" aria-label="anchor" href="#arg-lasso-para"></a></dt>
+<dd><p>List, parameters for lasso selection when STID_obj is NULL, including:
+- meta_data: Data frame containing spatial coordinates and metadata (required if STID_obj is NULL)
+- samp_colnm: Column name for sample identifiers in meta_data (required if STID_obj is NULL)
+- x_colnm: Column name for x coordinates in meta_data (default: "x")
+- y_colnm: Column name for y coordinates in meta_data (default: "y")
+- data_format: Format of spatial data, either "square_grid" or "hex_grid" (default: "square_grid")
+- data_platform: Platform of spatial data, either "StereoSeq" or "Visium" (default: "StereoSeq")
+- binsize: Bin size for spatial data (default: 1)
+- coord_interval: Coordinate interval for spatial data (default: 1)</p></dd>
 
 
 <dt id="arg-col">col<a class="anchor" aria-label="anchor" href="#arg-col"></a></dt>

@@ -22,8 +22,10 @@ as.STID(
   y_colnm = NULL,
   pathogen_genes = NULL,
   data_format = NULL,
+  data_platform = NULL,
   binsize = NULL,
-  interval = NULL,
+  coord_interval = NULL,
+  base_unit = NULL,
   project_id = NULL,
   description = NULL,
   ...
@@ -67,35 +69,44 @@ as.STID(
 
 - x_colnm:
 
-  Character, column name for x coordinates (optional)
+  Character, column name for x coordinates
 
 - y_colnm:
 
-  Character, column name for y coordinates (optional)
+  Character, column name for y coordinates
 
 - pathogen_genes:
 
-  Character vector, names of pathogen genes (optional)
+  Character vector, names of pathogen genes
 
 - data_format:
 
-  Character, data format - "StereoSeq" or "Visium"
+  Character, data format - "square_grid" or "hex_grid"
+
+- data_platform:
+
+  Character, data platform - "StereoSeq", "Visium", "VisiumHD",
+  "SlideSeq", or "unknown"
 
 - binsize:
 
-  Numeric, bin size for spatial data (optional)
+  Numeric, bin size for spatial data
 
-- interval:
+- coord_interval:
 
-  Numeric, coordinate interval (optional)
+  Numeric, coordinate coord_interval
+
+- base_unit:
+
+  Numeric, base unit for spatial coordinates, and the unit is mm
 
 - project_id:
 
-  Character, project identifier (optional)
+  Character, project identifier
 
 - description:
 
-  Character, project description (optional)
+  Character, project description
 
 ## Value
 
@@ -114,7 +125,13 @@ ist_obj <- as.STID(
   host_org = "human",
   pathogen_grp = "virus",
   pathogen_org = "SARS-CoV-2",
-  data_format = "StereoSeq"
+  data_format = "square_grid",
+  data_platform = "StereoSeq",
+  binsize = 1,
+  coord_interval = 1,
+  base_unit = 0.5,
+  project_id = "STID_Project_001",
+  description = "This is a test project for converting Seurat to STID."
 )
 } # }
 ```

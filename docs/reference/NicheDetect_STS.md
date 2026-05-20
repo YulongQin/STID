@@ -12,12 +12,12 @@ NicheDetect_STS(
   STID_obj = NULL,
   meta_key = NULL,
   loop_id = "LoopAllSamp",
-  level_method = "region",
-  region_method = "convex",
-  concavity = 2,
-  update_spots = TRUE,
   pos_colnm = NULL,
   neg_value = "neg",
+  spatial_scale_method = "region",
+  region_detect_method = "convex",
+  concavity = 2,
+  update_spots = TRUE,
   density_thres = 0.9,
   ROI_size = 10,
   minPts = NULL,
@@ -42,11 +42,19 @@ NicheDetect_STS(
 
   Character, sample grouping identifier (default: "LoopAllSamp")
 
-- level_method:
+- pos_colnm:
+
+  Character, column name containing positive spot labels
+
+- neg_value:
+
+  Character, value indicating negative/non-ROI spots (default: "neg")
+
+- spatial_scale_method:
 
   Character, detection level - "region" or "spot" (default: "region")
 
-- region_method:
+- region_detect_method:
 
   Character, hull method - "convex" or "concave" (default: "convex")
 
@@ -57,14 +65,6 @@ NicheDetect_STS(
 - update_spots:
 
   Logical, whether to iteratively update positive spots (default: TRUE)
-
-- pos_colnm:
-
-  Character, column name containing positive spot labels
-
-- neg_value:
-
-  Character, value indicating negative/non-ROI spots (default: "neg")
 
 - density_thres:
 

@@ -65,12 +65,12 @@ preprocessing steps like density filtering and iterative spot updating.</p>
 <span>  STID_obj <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  loop_id <span class="op">=</span> <span class="st">"LoopAllSamp"</span>,</span>
-<span>  level_method <span class="op">=</span> <span class="st">"region"</span>,</span>
-<span>  region_method <span class="op">=</span> <span class="st">"convex"</span>,</span>
-<span>  concavity <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>  update_spots <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  pos_colnm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  neg_value <span class="op">=</span> <span class="st">"neg"</span>,</span>
+<span>  spatial_scale_method <span class="op">=</span> <span class="st">"region"</span>,</span>
+<span>  region_detect_method <span class="op">=</span> <span class="st">"convex"</span>,</span>
+<span>  concavity <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  update_spots <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  density_thres <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>  ROI_size <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  minPts <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -97,11 +97,19 @@ preprocessing steps like density filtering and iterative spot updating.</p>
 <dd><p>Character, sample grouping identifier (default: "LoopAllSamp")</p></dd>
 
 
-<dt id="arg-level-method">level_method<a class="anchor" aria-label="anchor" href="#arg-level-method"></a></dt>
+<dt id="arg-pos-colnm">pos_colnm<a class="anchor" aria-label="anchor" href="#arg-pos-colnm"></a></dt>
+<dd><p>Character, column name containing positive spot labels</p></dd>
+
+
+<dt id="arg-neg-value">neg_value<a class="anchor" aria-label="anchor" href="#arg-neg-value"></a></dt>
+<dd><p>Character, value indicating negative/non-ROI spots (default: "neg")</p></dd>
+
+
+<dt id="arg-spatial-scale-method">spatial_scale_method<a class="anchor" aria-label="anchor" href="#arg-spatial-scale-method"></a></dt>
 <dd><p>Character, detection level - "region" or "spot" (default: "region")</p></dd>
 
 
-<dt id="arg-region-method">region_method<a class="anchor" aria-label="anchor" href="#arg-region-method"></a></dt>
+<dt id="arg-region-detect-method">region_detect_method<a class="anchor" aria-label="anchor" href="#arg-region-detect-method"></a></dt>
 <dd><p>Character, hull method - "convex" or "concave" (default: "convex")</p></dd>
 
 
@@ -112,14 +120,6 @@ preprocessing steps like density filtering and iterative spot updating.</p>
 <dt id="arg-update-spots">update_spots<a class="anchor" aria-label="anchor" href="#arg-update-spots"></a></dt>
 <dd><p>Logical, whether to iteratively update positive spots
 (default: TRUE)</p></dd>
-
-
-<dt id="arg-pos-colnm">pos_colnm<a class="anchor" aria-label="anchor" href="#arg-pos-colnm"></a></dt>
-<dd><p>Character, column name containing positive spot labels</p></dd>
-
-
-<dt id="arg-neg-value">neg_value<a class="anchor" aria-label="anchor" href="#arg-neg-value"></a></dt>
-<dd><p>Character, value indicating negative/non-ROI spots (default: "neg")</p></dd>
 
 
 <dt id="arg-density-thres">density_thres<a class="anchor" aria-label="anchor" href="#arg-density-thres"></a></dt>

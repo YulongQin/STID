@@ -32,17 +32,27 @@ Graphic abstract
 
 </div>
 
-### Key Features:
+### Key Features
 
-- Unified Analytical Framework: Provides a standardized pipeline
-  tailored for infection spatial transcriptomics data storage,
-  management, and processing.
-- Accurate Infection Site Detection: Enables precise localization of
-  pathogen-infected regions.
-- Microenvironment Characterization: Facilitates identification and
-  analysis of the infection microenvironment.
-- Niche and Comparative Analysis: Supports single-sample Niche analysis
-  as well as multi-sample comparison or time-series analysis.
+- STID provides a convenient, efficient, and reproducible standardized
+  framework for spatial transcriptomic analysis of infectious diseases
+- STID constructs an infection-specific data structure
+- STID enables accurate identification and characterization of
+  pathogen-infected and host-responsive niches
+- STID supports comparative and temporal analyses of multi-sample
+  spatial transcriptomic data
+
+### Key Functionalities
+
+| Function Category      | Supported Methods                             |
+|:-----------------------|:----------------------------------------------|
+| Data conversion        | `h5ad2rds`, `rds2h5ad`                        |
+| Preprocessing          | `Seurat_pipeline`, `anno_SingleR`             |
+| Background correction  | `CorrectBackgroud`                            |
+| Spot detection         | `SpotDetect_Gene`, `SpotDetect_Geneset`       |
+| Niche identification   | `NicheDetect_Lasso`, `NicheDetect_STS`, etc.  |
+| Single-Sample analysis | `CalSampComp`, `CalSampDEGs`, etc.            |
+| Multi-Sample analysis  | `CalSampPathoTrack`, `CalSampGeneTrend`, etc. |
 
 ## Installation
 
@@ -178,16 +188,28 @@ tutorials:
 - Online Tutorial: For a comprehensive guide on using STID, visit our
   [tutorial website](https://yulongqin.github.io/STID/).
 
-### Raw data
+### Data availability
 
-- Gene_Geneset: A dataset containing gene and gene set information,
-  available in the [R
+- Gene_Geneset
+
+  A dataset containing gene and gene set information, available in the
+  [R
   package](https://github.com/YulongQin/STID/blob/d305ee31337ee7290981a50ed08cd74746a1ff70/data/Gene_Geneset.rda).
-- Raw data: You can access the Raw data used in the tutorial from the
-  [Figshare repository](https://doi.org/10.6084/m9.figshare.31839988).
-  Some data are unavailable or partially available due to constraints
-  set by the original authors. Please contact the original authors for
-  data access requests.
+
+- Raw data
+
+  You can access the Raw data used in the tutorial from the [Figshare
+  repository](https://doi.org/10.6084/m9.figshare.31839988). Some data
+  are unavailable or partially available due to constraints set by the
+  original authors. Please contact the original authors for data access
+  requests.
+
+### Code availability
+
+- The version used in this study has been archived on
+  [Zenodo](https://zenodo.org/records/19678561).
+- All analysis scripts required to reproduce the article results are
+  available at [here](https://github.com/YulongQin/STID/article_code).
 
 ## Citation
 

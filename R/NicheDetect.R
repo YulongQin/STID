@@ -16,6 +16,15 @@
 #' @param meta_key Character, metadata key containing spatial coordinates and grouping
 #'        information (default: "coord")
 #' @param group_by Character, column name for coloring points in the interactive plot
+#' @param lasso_para List, parameters for lasso selection when STID_obj is NULL, including:
+#'       - meta_data: Data frame containing spatial coordinates and metadata (required if STID_obj is NULL)
+#'       - samp_colnm: Column name for sample identifiers in meta_data (required if STID_obj is NULL)
+#'       - x_colnm: Column name for x coordinates in meta_data (default: "x")
+#'       - y_colnm: Column name for y coordinates in meta_data (default: "y")
+#'       - data_format: Format of spatial data, either "square_grid" or "hex_grid" (default: "square_grid")
+#'       - data_platform: Platform of spatial data, either "StereoSeq" or "Visium" (default: "StereoSeq")
+#'       - binsize: Bin size for spatial data (default: 1)
+#'       - coord_interval: Coordinate interval for spatial data (default: 1)
 #' @param col Color palette for visualization (default: COLOR_LIST$PALETTE_WHITE_BG)
 #' @param description Character, description of the analysis (default: NULL)
 #' @param grp_nm Character, group name for output organization (default: NULL, uses timestamp)
@@ -43,9 +52,21 @@
 #' }
 NicheDetect_Lasso <- function(STID_obj = NULL,
                               loop_id = "LoopAllSamp", # must be
-                              meta_key = "coord", group_by = NULL,
+                              meta_key = "coord",
+                              group_by = NULL,
+                              lasso_para = list(
+                                meta_data = NULL,
+                                samp_colnm = NULL,
+                                x_colnm = "x",
+                                y_colnm = "y",
+                                data_format = "square_grid",
+                                data_platform = "StereoSeq",
+                                binsize = 1,
+                                coord_interval = 1
+                              ),
                               col = COLOR_LIST$PALETTE_WHITE_BG,
-                              description = NULL,grp_nm = NULL, dir_nm = "M2_NicheDetect_Lasso"
+                              description = NULL,
+                              grp_nm = NULL, dir_nm = "M2_NicheDetect_Lasso"
                               ){
   on.exit(while(sink.number() > 0){sink()}, add = TRUE)
 
@@ -57,14 +78,25 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
   # >>> Check input patameter
   clog_check()
   if (!inherits(STID_obj, "STID")) {
-    clog_error("Input object is not an STID object.")
+    if(is.null(lasso_para$meta_data)){
+      clog_error("The input STID_obj is not a valid STID object, and the lasso_para$meta_data is also NULL.")
+    }else{
+      clog_warn("The input STID_obj is not a valid STID object, but the lasso_para$meta_data is provided.
+      When you use the lasso_para$meta_data to run the lasso selection, you must provide group_by and lasso_para parameters.")
+    }
   }
   clog_normal(paste0("Your ggplot2 version is: ", packageVersion("ggplot2")))
   .check_null_args(meta_key, group_by)
 
   #>
-  loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
-  all_single <- GetInfo(STID_obj, info_key = "samp_info",sub_key = "samp_id")[[1]]
+  if(inherits(STID_obj, "STID")){
+    loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
+    all_single <- GetInfo(STID_obj, info_key = "samp_info",sub_key = "samp_id")[[1]]
+  }else{
+    meta_data <- lasso_para$meta_data
+    loop_single <- lasso_para$meta_data[[lasso_para$samp_colnm]] %>% unique() %>% as.character()
+    all_single <- lasso_para$meta_data[[lasso_para$samp_colnm]] %>% unique() %>% as.character()
+  }
   # >>> End check
 
   # >>> dir
@@ -74,21 +106,34 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
   grp_nm <- dir_list$grp_nm
 
   # >>> Start main pipeline
-  meta_data <- GetMetaData(STID_obj = STID_obj, meta_key = meta_key)[[1]]
-  samp_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "samp_colnm")[[1]]
-  x_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "x_colnm")[[1]]
-  y_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "y_colnm")[[1]]
-  data_format <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_format")[[1]]
-  binsize <- GetInfo(STID_obj, info_key = "data_info",sub_key = "binsize")[[1]]
-  if(data_format  == "StereoSeq"){
+  if(inherits(STID_obj, "STID")){
+    meta_data <- GetMetaData(STID_obj = STID_obj, meta_key = meta_key)[[1]]
+    samp_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "samp_colnm")[[1]]
+    x_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "x_colnm")[[1]]
+    y_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "y_colnm")[[1]]
+    data_format <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_format")[[1]]
+    data_platform <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_platform")[[1]]
+    binsize <- GetInfo(STID_obj, info_key = "data_info",sub_key = "binsize")[[1]]
+    coord_interval <- GetInfo(STID_obj, info_key = "data_info",sub_key = "coord_interval")[[1]]
+  }else{
+    samp_colnm <- lasso_para$samp_colnm
+    x_colnm <- lasso_para$x_colnm
+    y_colnm <- lasso_para$y_colnm
+    data_format <- lasso_para$data_format
+    data_platform <- lasso_para$data_platform
+    binsize <- lasso_para$binsize
+    coord_interval <- lasso_para$coord_interval
+  }
+  if(data_format  == "square_grid"){
     k <- 8; edge_thres <- 1
-  }else if(data_format == "Visium"){
+  }else if(data_format == "hex_grid" & data_platform == "Visium"){
     k <- 6; edge_thres <- 1
   }
   meta2STID_list <- list()
   n <- 1
   for(i in seq_along(all_single)){
     i_single <- all_single[i]
+    i_coord_interval <- coord_interval[i]
     i_meta_data <- meta_data %>% filter(!!sym(samp_colnm) == i_single)
     if(!i_single %in% loop_single){
       meta2STID_list[[i_single]] <- i_meta_data
@@ -145,7 +190,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
     i_meta_data <- .CalROIcenter(meta_data = i_meta_data,
                                  ROI_label_colnm = "ROI_label",
                                  ROI_center_colnm = "ROI_center",
-                                 binsize = binsize)
+                                 coord_interval = i_coord_interval)
     i_meta_data <- .CalDist2Center(meta_data = i_meta_data,
                                    ROI_label_colnm = "ROI_label",
                                    ROI_center_colnm = "ROI_center",
@@ -153,18 +198,23 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
     meta2STID_list[[i_single]] <- i_meta_data
   }
 
-  # > AddMetaData
+  #> AddMetaData
   meta2STID <- bind_rows(meta2STID_list) %>%
     as.data.frame()
   meta2STID <- meta2STID[rownames(meta_data), , drop = FALSE] # keep order
   new_meta_key <- paste0(dir_nm,"_",grp_nm)
-  STID_obj <- AddMetaData(STID_obj = STID_obj,
-                         meta_key = new_meta_key,
-                         add_data = meta2STID,
-                         dir_nm = dir_nm,
-                         grp_nm = grp_nm,
-                         asso_key = meta_key,
-                         description = description)
+  if (inherits(STID_obj, "STID")) {
+    STID_obj <- AddMetaData(STID_obj = STID_obj,
+                            meta_key = new_meta_key,
+                            add_data = meta2STID,
+                            dir_nm = dir_nm,
+                            grp_nm = grp_nm,
+                            asso_key = meta_key,
+                            description = description)
+  }else{
+    STID_obj <- meta2STID
+  }
+
 
   # >>> Final
   .save_function_params("NicheDetect_Lasso", envir = environment(), file = paste0(output_dir,"Log_function_params_(NicheDetect_Lasso).log") )
@@ -229,7 +279,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
             )
           ),
 
-          # > conditionalPanel
+          #> conditionalPanel
           conditionalPanel(
             condition = "input.dataset != 'upload files'",
             fluidRow(
@@ -286,7 +336,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
           )
         ),
 
-        # > Graphic parameter
+        #> Graphic parameter
         wellPanel(
           h4(strong("Graphic parameter"), style = "margin-top: 0px;"),
           fluidRow(
@@ -318,7 +368,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
           )
         ),
 
-        # > Lasso 操作
+        #> Lasso 操作
         wellPanel(
           h4(strong("Lasso selection"), style = "margin-top: 0px;"),
           fluidRow(
@@ -435,7 +485,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
               width: 97%;
               overflow: auto;
 
-              /* Flex 布局 */
+              /* Flex */
               display: flex;
               flex-direction: column;
               justify-content: start;
@@ -540,7 +590,10 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
       y_range = NULL,
       plot_data = NULL
     )
+    currentData <- NULL
+    currentVars <- NULL
 
+    #>
     observe({
       req(input$dataset) # 值非空就执行，req(input$dataset)发生了变化，所以observe自然就执行了
       currentData <<- switch(input$dataset,
@@ -592,13 +645,13 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
       })
     })
 
-    # > Next Sample
+    #> Next Sample
     observeEvent(input$`Next Sample`, {
       showNotification("App is closing...", type = "message")
       stopApp()
     })
 
-    # > plot
+    #> plot
     observeEvent(input$start_plot, {
       if (input$dataset == "upload files" & is.null(input$custom_file)) {
         showNotification("❌ ERROR: Please upload a file.", type = "error", duration = 5)
@@ -780,7 +833,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
       make_plot()
     })
 
-    # > 处理点击事件 - observeEvent
+    #> 处理点击事件 - observeEvent
     # 添加点到当前套索
     # ggplot2 <3.4和>=3.4的方法不同
     observeEvent(input$plot_click, {
@@ -1128,7 +1181,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 #'
 #' @noRd
 .CalROIcenter <- function(meta_data = NULL,ROI_label_colnm = NULL, ROI_center_colnm = NULL,
-                          binsize = NULL){
+                          coord_interval = NULL){
   clog_normal("Calculate ROI centers...")
   # browser()
   ROI_labels <- meta_data[[ROI_label_colnm]] %>% na.omit() %>% unique()
@@ -1162,11 +1215,13 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
     roi_label <- res_data$roi_label[i]
     min_dist <- res_data$min_dist[i]
     cell_nm <- res_data$cell_nm[i]
-    if(min_dist>5*binsize){
+    if(min_dist>5*coord_interval){
       clog_warn(paste0("The min_dist to center for ROI '",roi_label,"' is ",round(min_dist,2),
-                       ", which is lt 5 times of binsize (",binsize,"). The center coord wil be adjusted."))
+                       ", which is lt 5 times of coord_interval (",coord_interval,"). The center coord wil be adjusted."))
       centroid_x <- res_data$centroid_x[i]
       centroid_y <- res_data$centroid_y[i]
+      clog_warn(paste0("The coord before adjustment: (",meta_data[cell_nm,"x"],",",meta_data[cell_nm,"y"],")"))
+      clog_warn(paste0("The coord after adjustment: (",centroid_x,",",centroid_y,")"))
       meta_data[cell_nm,c(ROI_center_colnm,"is_adjcoord")] <-  c(TRUE,TRUE)
       meta_data[cell_nm,c("x","y")] <-  c(centroid_x,centroid_y)
     }else{
@@ -1264,8 +1319,8 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 #' @param STID_obj An STID object containing spatial transcriptomics data
 #' @param meta_key Character, metadata key containing positive spot information
 #' @param loop_id Character, sample grouping identifier (default: "LoopAllSamp")
-#' @param level_method Character, detection level - "region" or "spot" (default: "region")
-#' @param region_method Character, hull method - "convex" or "concave" (default: "convex")
+#' @param spatial_scale_method Character, detection level - "region" or "spot" (default: "region")
+#' @param region_detect_method Character, hull method - "convex" or "concave" (default: "convex")
 #' @param concavity Numeric, concavity parameter for concave hull (default: 2)
 #' @param update_spots Logical, whether to iteratively update positive spots
 #'        (default: TRUE)
@@ -1301,14 +1356,16 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 #'   ROI_size = 10
 #' )
 #' }
-NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAllSamp",
-                            level_method = "region", region_method = "convex", # convex or concave
+NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL,
+                            loop_id = "LoopAllSamp",
+                            pos_colnm = NULL, neg_value = "neg",
+                            spatial_scale_method = "region", region_detect_method = "convex", # convex or concave
                             concavity = 2,
                             update_spots = TRUE,
-                            pos_colnm = NULL, neg_value = "neg",
                             density_thres = 0.9, ROI_size = 10,
                             minPts = NULL, k_kNNdist = NULL,
-                            description = NULL,grp_nm = NULL, dir_nm = "M2_NicheDetect_STS"
+                            description = NULL,
+                            grp_nm = NULL, dir_nm = "M2_NicheDetect_STS"
                             ){
   on.exit(while(sink.number() > 0){sink()}, add = TRUE)
 
@@ -1323,8 +1380,8 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
     clog_error("Input object is not an STID object.")
   }
   .check_null_args(meta_key, pos_colnm)
-  match.arg(region_method, c('convex', 'concave'))
-  match.arg(level_method, c("region", "spot"))
+  match.arg(region_detect_method, c('convex', 'concave'))
+  match.arg(spatial_scale_method, c("region", "spot"))
 
   # >
   loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
@@ -1347,13 +1404,15 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
   x_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "x_colnm")[[1]]
   y_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "y_colnm")[[1]]
   data_format <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_format")[[1]]
+  data_platform <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_platform")[[1]]
   binsize <- GetInfo(STID_obj, info_key = "data_info",sub_key = "binsize")[[1]]
-  interval <- GetInfo(STID_obj, info_key = "data_info",sub_key = "interval")[[1]]
+  coord_interval <- GetInfo(STID_obj, info_key = "data_info",sub_key = "coord_interval")[[1]]
   meta2STID_list <- list()
   n <- 1
+  raw_ROI_size <- ROI_size
   for(i in seq_along(all_single)){
     i_single <- all_single[i]
-    i_interval <- interval[i]
+    i_coord_interval <- coord_interval[i]
     i_meta_data <- meta_data %>%
       filter(!!sym(samp_colnm) == i_single) %>%
       dplyr::select(!!sym(samp_colnm), !!sym(x_colnm), !!sym(y_colnm), !!sym(pos_colnm))
@@ -1368,15 +1427,16 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
     dir.create(i_output_dir,recursive = TRUE,showWarnings = FALSE)
     dir.create(i_photo_dir,recursive = TRUE,showWarnings = FALSE)
 
-    # > pos_meta_data
+    #> pos_meta_data
     pos_meta_data <- i_meta_data %>%
       filter(.,!!sym(pos_colnm) != neg_value)
     len_pos_value <- nrow(pos_meta_data)
     cells_pct <- len_pos_value/nrow(i_meta_data)
     clog_normal(paste0("Positive cells percentage: ",round(cells_pct*100,2),"% (",
                        len_pos_value,"/", nrow(i_meta_data),")"))
-    if(is.null(ROI_size)){
-      ROI_size <- nrow(pos_meta_data)*0.02
+    if(is.null(raw_ROI_size)){
+      ROI_size <- max(nrow(pos_meta_data)*0.02,10) # 2% of positive cells or 10, whichever is larger
+      clog_normal(paste0("ROI_size is set to ", ROI_size))
     }
     if(len_pos_value < ROI_size){
       clog_warn(paste0("The number of positive spots (",len_pos_value,") is less than ROI_size (",ROI_size,") , skiping..."))
@@ -1400,9 +1460,9 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
     }
 
     #> .updateSigSpots
-    if(data_format  == "StereoSeq"){
+    if(data_format  == "square_grid"){
       k_update <- 8; neg2pos_thres <- 5; pos2neg_thres <- 1; edge_thres <- 1; diff_thres <- len_pos_value*0.001
-    }else if(data_format == "Visium"){
+    }else if(data_format == "hex_grid" & data_platform == "Visium"){
       k_update <- 6; neg2pos_thres <- 4; pos2neg_thres <- 1; edge_thres <- 1; diff_thres <- 0
     }
 
@@ -1451,15 +1511,15 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
       next
     }
 
-    #> level_method
-    if(level_method == "region"){
+    #> spatial_scale_method
+    if(spatial_scale_method == "region"){
       clog_title("Region level detection ...")
-      if(data_format  == "StereoSeq"){
+      if(data_format  == "square_grid"){
         # minPts <- 5; eps <- 3.9
         if(is.null(minPts)){
           minPts <- 5 # 8*0.6 = 5
         }
-      }else if(data_format == "Visium"){
+      }else if(data_format == "hex_grid" & data_platform == "Visium"){
         if(is.null(minPts)){
           minPts <- 4 # 6*0.6 = 4
         }
@@ -1478,18 +1538,18 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
                                              ROI_size = ROI_size,
                                              samp_id = i_single,
                                              photo_dir = i_photo_dir)
-      if(region_method == "convex"){
+      if(region_detect_method == "convex"){
         clog_normal("Using convex hull for ROI detection ...")
         hull_data <- .calculate_hull(meta_data = DBSCAN_meta_data,
                                      ROI_colnm = "cluster",
-                                     region_method = "convex",
+                                     region_detect_method = "convex",
                                      samp_id = i_single,
                                      photo_dir = i_photo_dir)
-      }else if(region_method == "concave"){
+      }else if(region_detect_method == "concave"){
         clog_normal("Using concave hull for ROI detection ...")
         hull_data <- .calculate_hull(meta_data = DBSCAN_meta_data,
                                      ROI_colnm = "cluster",
-                                     region_method = "concave",
+                                     region_detect_method = "concave",
                                      concavity = concavity,
                                      samp_id = i_single,
                                      photo_dir = i_photo_dir)
@@ -1499,7 +1559,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
         meta2STID_list[[i_single]] <- i_meta_data
         next
       }
-      write.table(hull_data, file = paste0(i_output_dir,"/",i_single,"_DBSCAN_",region_method,"_(NicheDetect_STS).txt"),
+      write.table(hull_data, file = paste0(i_output_dir,"/",i_single,"_DBSCAN_",region_detect_method,"_(NicheDetect_STS).txt"),
                   sep = "\t",col.names = NA, row.names = TRUE, quote = FALSE)
       res_meta_data <- .point_in_hull(meta_data = i_meta_data,
                                       hull_data = hull_data,
@@ -1508,12 +1568,12 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
                                       photo_dir = i_photo_dir)
 
 
-    }else if(level_method == "spot"){
+    }else if(spatial_scale_method == "spot"){
       clog_title("Spot level detection ...")
-      if(data_format  == "StereoSeq"){
-        adj_matrix <- .as_adjMatrix(coords = pos_meta_data[c("x","y")], k_neighbors = 8, dist_thres = i_interval*1.25)
-      }else if(data_format == "Visium"){
-        adj_matrix <- .as_adjMatrix(coords = pos_meta_data[c("x","y")], k_neighbors = 6, dist_thres = i_interval*1.25)
+      if(data_format  == "square_grid"){
+        adj_matrix <- .as_adjMatrix(coords = pos_meta_data[c("x","y")], k_neighbors = 8, dist_thres = i_coord_interval*1.25)
+      }else if(data_format == "hex_grid" & data_platform == "Visium"){
+        adj_matrix <- .as_adjMatrix(coords = pos_meta_data[c("x","y")], k_neighbors = 6, dist_thres = i_coord_interval*1.25)
       }
       res_meta_data <- .CalAdjMatrixCluster(adj_matrix = adj_matrix, pos_meta_data = pos_meta_data, ROI_size = ROI_size)
       if(nrow(res_meta_data) == 0){
@@ -1536,7 +1596,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
     i_meta_data <- .CalROIcenter(meta_data = i_meta_data,
                                  ROI_label_colnm = "ROI_label",
                                  ROI_center_colnm = "ROI_center",
-                                 binsize = binsize)
+                                 coord_interval = i_coord_interval)
     i_meta_data <- .CalDist2Center(meta_data = i_meta_data,
                                    ROI_label_colnm = "ROI_label",
                                    ROI_center_colnm = "ROI_center",
@@ -1544,7 +1604,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
     meta2STID_list[[i_single]] <- i_meta_data
   }
 
-  # > AddMetaData
+  #> AddMetaData
   meta2STID <- bind_rows(meta2STID_list) %>%
     as.data.frame()
   meta2STID <- meta2STID[rownames(meta_data), , drop = FALSE] # keep order
@@ -1713,14 +1773,14 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
                                samp_id = NULL,photo_dir = NULL) {
   clog_normal(paste0("DBSCAN clustering ..."))
 
-  # > kNNdistplot
+  #> kNNdistplot
   pdf(file = paste0(photo_dir,"/",samp_id,"_DBSCAN_kNNdistplot_(NicheDetect_STS).pdf"),
       width = 6,height = 5)
   kNNdistplot(meta_data[c("x","y")], k = minPts - 1)
   abline(h = eps, col = "red", lty = 2)
   dev.off()
 
-  # > dbscan
+  #> dbscan
   res_df <- dbscan(meta_data[c("x","y")],
                    eps = eps,
                    minPts = minPts)
@@ -1737,7 +1797,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
     table(meta_data_fil["cluster"])
   )
 
-  # > plot
+  #> plot
   p1 <- ggplot(meta_data, aes(x, y, color = cluster)) +
     geom_point(size = 1) +
     labs(x = "Column", y = "Row", title = samp_id) +
@@ -1778,8 +1838,8 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
 #'
 #' @param meta_data Data frame containing clustered points
 #' @param ROI_colnm Character, column name containing cluster/ROI labels
-#' @param region_method Character, hull method - "convex" or "concave"
-#' @param concavity Numeric, concavity parameter for concave hull (only used if region_method is "concave")
+#' @param region_detect_method Character, hull method - "convex" or "concave"
+#' @param concavity Numeric, concavity parameter for concave hull (only used if region_detect_method is "concave")
 #' @param samp_id Character, sample identifier for plot titles
 #' @param photo_dir Character, directory path for saving plots
 #'
@@ -1792,17 +1852,17 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
 #'
 #' @noRd
 .calculate_hull <- function(meta_data = NULL,ROI_colnm = NULL,
-                            region_method = NULL, concavity = NULL,
+                            region_detect_method = NULL, concavity = NULL,
                             samp_id = NULL,photo_dir = NULL) {
   meta_data <- meta_data[c("x","y",ROI_colnm)]
   hull_list <- list()
   for (cl in unique(meta_data[[ROI_colnm]])) {
     pts <- meta_data[meta_data[[ROI_colnm]] == cl, ]
     if (nrow(pts) >= 3) {
-      if(region_method == "convex"){
+      if(region_detect_method == "convex"){
         idx <- chull(pts$x, pts$y)
         hull_pts <- pts[idx, , drop = FALSE]
-      }else if(region_method == "concave"){
+      }else if(region_detect_method == "concave"){
         pts_matrix <- as.matrix(pts[c("x", "y")])
         hull_pts <- concaveman(pts_matrix, concavity = concavity, length_threshold = 0) %>%
           as.data.frame()
@@ -1815,7 +1875,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
   if (length(hull_list) > 0) {
     hull_data <- bind_rows(hull_list)
   } else {
-    clog_warn(paste0("No cluster has enough points to compute ",region_method," hull."))
+    clog_warn(paste0("No cluster has enough points to compute ",region_detect_method," hull."))
     return(NULL)
   }
 
@@ -1842,7 +1902,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
           plot.subtitle = element_text(hjust = 0.5),
           strip.background = element_rect(fill="white",color = "white")
     )
-  ggsave(filename = paste0(photo_dir,"/",samp_id,"_DBSCAN_",region_method,"_(NicheDetect_STS).pdf"),
+  ggsave(filename = paste0(photo_dir,"/",samp_id,"_DBSCAN_",region_detect_method,"_(NicheDetect_STS).pdf"),
          plot = p1, width =8, height = 8)
 
   return(hull_data)
@@ -2065,6 +2125,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAll
 #' @param STID_obj An STID object containing niche detection results
 #' @param meta_key1 Character, first metadata key for comparison
 #' @param meta_key2 Character, second metadata key for comparison
+#' @param bins Integer, number of bins for distance distribution plots (default: 15)
 #'
 #' @return NULL (invisible), generates plots and prints comparison statistics
 #'
@@ -2264,6 +2325,7 @@ NicheDetect_Spot <- function(STID_obj = NULL, loop_id = "LoopAllSamp",
   x_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "x_colnm")[[1]]
   y_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "y_colnm")[[1]]
   data_format <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_format")[[1]]
+  data_platform <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_platform")[[1]]
   binsize <- GetInfo(STID_obj, info_key = "data_info",sub_key = "binsize")[[1]]
   meta2STID_list <- list()
   n <- 1
@@ -2278,7 +2340,7 @@ NicheDetect_Spot <- function(STID_obj = NULL, loop_id = "LoopAllSamp",
     clog_loop(paste0("Processing samp_id: ", i_single, " (", n, "/", length(loop_single), ")"))
     n <- n + 1
 
-    # > pos_meta_data
+    #> pos_meta_data
     pos_meta_data <- i_meta_data %>%
       filter(.,!!sym(pos_colnm) != neg_value)
     len_pos_value <- nrow(pos_meta_data)
@@ -2298,7 +2360,7 @@ NicheDetect_Spot <- function(STID_obj = NULL, loop_id = "LoopAllSamp",
     meta2STID_list[[i_single]] <- i_meta_data
   }
 
-  # > AddMetaData
+  #> AddMetaData
   meta2STID <- bind_rows(meta2STID_list) %>%
     as.data.frame()
   meta2STID <- meta2STID[rownames(meta_data), , drop = FALSE] # keep order
@@ -2396,9 +2458,9 @@ NicheExpand <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAllSamp
   x_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "x_colnm")[[1]]
   y_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "y_colnm")[[1]]
   data_format <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_format")[[1]]
-  if(data_format  == "StereoSeq"){
+  if(data_format  == "square_grid"){
     k <- 8; edge_thres <- 1
-  }else if(data_format == "Visium"){
+  }else if(data_format == "hex_grid" & data_platform == "Visium"){
     k <- 6; edge_thres <- 1
   }
   meta2STID_list <- list()
@@ -2450,7 +2512,7 @@ NicheExpand <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAllSamp
     meta2STID_list[[i_single]] <- i_meta_data
   }
 
-  # > AddMetaData
+  #> AddMetaData
   meta2STID <- bind_rows(meta2STID_list) %>%
     as.data.frame()
   meta2STID <- meta2STID[rownames(meta_data), , drop = FALSE] # keep order

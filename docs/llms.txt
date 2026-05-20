@@ -21,17 +21,27 @@ transcriptomics data with both rigor and ease.
 
 Graphic abstract
 
-### Key Features:
+### Key Features
 
-- Unified Analytical Framework: Provides a standardized pipeline
-  tailored for infection spatial transcriptomics data storage,
-  management, and processing.
-- Accurate Infection Site Detection: Enables precise localization of
-  pathogen-infected regions.
-- Microenvironment Characterization: Facilitates identification and
-  analysis of the infection microenvironment.
-- Niche and Comparative Analysis: Supports single-sample Niche analysis
-  as well as multi-sample comparison or time-series analysis.
+- STID provides a convenient, efficient, and reproducible standardized
+  framework for spatial transcriptomic analysis of infectious diseases
+- STID constructs an infection-specific data structure
+- STID enables accurate identification and characterization of
+  pathogen-infected and host-responsive niches
+- STID supports comparative and temporal analyses of multi-sample
+  spatial transcriptomic data
+
+### Key Functionalities
+
+| Function Category      | Supported Methods                             |
+|:-----------------------|:----------------------------------------------|
+| Data conversion        | `h5ad2rds`, `rds2h5ad`                        |
+| Preprocessing          | `Seurat_pipeline`, `anno_SingleR`             |
+| Background correction  | `CorrectBackgroud`                            |
+| Spot detection         | `SpotDetect_Gene`, `SpotDetect_Geneset`       |
+| Niche identification   | `NicheDetect_Lasso`, `NicheDetect_STS`, etc.  |
+| Single-Sample analysis | `CalSampComp`, `CalSampDEGs`, etc.            |
+| Multi-Sample analysis  | `CalSampPathoTrack`, `CalSampGeneTrend`, etc. |
 
 ## Installation
 
@@ -167,16 +177,28 @@ tutorials:
 - Online Tutorial: For a comprehensive guide on using STID, visit our
   [tutorial website](https://yulongqin.github.io/STID/).
 
-### Raw data
+### Data availability
 
-- Gene_Geneset: A dataset containing gene and gene set information,
-  available in the [R
+- Gene_Geneset
+
+  A dataset containing gene and gene set information, available in the
+  [R
   package](https://github.com/YulongQin/STID/blob/d305ee31337ee7290981a50ed08cd74746a1ff70/data/Gene_Geneset.rda).
-- Raw data: You can access the Raw data used in the tutorial from the
-  [Figshare repository](https://doi.org/10.6084/m9.figshare.31839988).
-  Some data are unavailable or partially available due to constraints
-  set by the original authors. Please contact the original authors for
-  data access requests.
+
+- Raw data
+
+  You can access the Raw data used in the tutorial from the [Figshare
+  repository](https://doi.org/10.6084/m9.figshare.31839988). Some data
+  are unavailable or partially available due to constraints set by the
+  original authors. Please contact the original authors for data access
+  requests.
+
+### Code availability
+
+- The version used in this study has been archived on
+  [Zenodo](https://zenodo.org/records/19678561).
+- All analysis scripts required to reproduce the article results are
+  available at [here](https://github.com/YulongQin/STID/article_code).
 
 ## Citation
 
@@ -209,30 +231,28 @@ Qin Y (2026). *STID: Infectious Spatiotemporal Transcriptomics Tools*.
   : Convert STID object to Seurat object
 - [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md) :
   Convert Seurat object to STID object
-- [`CalNicheAggIndex()`](https://yulongqin.github.io/STID/reference/CalNicheAggIndex.md)
+- [`CalSampCAI()`](https://yulongqin.github.io/STID/reference/CalSampCAI.md)
   : Calculate Niche Aggregation Index
-- [`CalNicheCellComm()`](https://yulongqin.github.io/STID/reference/CalNicheCellComm.md)
+- [`CalSampCellComm()`](https://yulongqin.github.io/STID/reference/CalSampCellComm.md)
   : Calculate Niche Cell Communication using CellChat
-- [`CalNicheCoLoc()`](https://yulongqin.github.io/STID/reference/CalNicheCoLoc.md)
+- [`CalSampCoLoc()`](https://yulongqin.github.io/STID/reference/CalSampCoLoc.md)
   : Calculate Niche Co-localization using MSTIDyR
-- [`CalNicheComposition()`](https://yulongqin.github.io/STID/reference/CalNicheComposition.md)
+- [`CalSampComp()`](https://yulongqin.github.io/STID/reference/CalSampComp.md)
   : Calculate Niche Cell Type Composition
-- [`CalNicheDEGs()`](https://yulongqin.github.io/STID/reference/CalNicheDEGs.md)
+- [`CalSampDEGs()`](https://yulongqin.github.io/STID/reference/CalSampDEGs.md)
   : Calculate Niche Differential Expression Genes
-- [`CalNicheGeneCor()`](https://yulongqin.github.io/STID/reference/CalNicheGeneCor.md)
+- [`CalSampGeneCor()`](https://yulongqin.github.io/STID/reference/CalSampGeneCor.md)
   : Calculate Niche Gene Expression Correlations
-- [`CalNicheGeneTrend()`](https://yulongqin.github.io/STID/reference/CalNicheGeneTrend.md)
-  : Calculate Gene Expression Trends Across Niche Regions
-- [`CalNicheGRN()`](https://yulongqin.github.io/STID/reference/CalNicheGRN.md)
+- [`CalSampGeneTrend()`](https://yulongqin.github.io/STID/reference/CalSampGeneTrend.md)
+  : Calculate gene expression trends across time points
+- [`CalSampGRN()`](https://yulongqin.github.io/STID/reference/CalSampGRN.md)
   : Calculate Niche Gene Regulatory Networks using NicheNet
-- [`CalNicheOSE()`](https://yulongqin.github.io/STID/reference/CalNicheOSE.md)
-  : Calculate Niche Organization and Spatial Entropy (OSE)
-- [`CalNichePPI()`](https://yulongqin.github.io/STID/reference/CalNichePPI.md)
+- [`CalSampOSE()`](https://yulongqin.github.io/STID/reference/CalSampOSE.md)
+  : Calculate Spatial Organization Entropy (OSE) for samples
+- [`CalSampPathoTrack()`](https://yulongqin.github.io/STID/reference/CalSampPathoTrack.md)
+  : Calculate pathogen tracking across samples
+- [`CalSampPPI()`](https://yulongqin.github.io/STID/reference/CalSampPPI.md)
   : Predict Niche Protein-Protein Interactions
-- [`CalNichePredict()`](https://yulongqin.github.io/STID/reference/CalNichePredict.md)
-  : Predict Niche Types or Properties
-- [`CalNichePseudo()`](https://yulongqin.github.io/STID/reference/CalNichePseudo.md)
-  : Generate Pseudo-time Analysis for Niche Development
 - [`clog()`](https://yulongqin.github.io/STID/reference/clog.md)
   [`clog_start()`](https://yulongqin.github.io/STID/reference/clog.md)
   [`clog_end()`](https://yulongqin.github.io/STID/reference/clog.md)

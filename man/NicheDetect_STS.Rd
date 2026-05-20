@@ -8,12 +8,12 @@ NicheDetect_STS(
   STID_obj = NULL,
   meta_key = NULL,
   loop_id = "LoopAllSamp",
-  level_method = "region",
-  region_method = "convex",
-  concavity = 2,
-  update_spots = TRUE,
   pos_colnm = NULL,
   neg_value = "neg",
+  spatial_scale_method = "region",
+  region_detect_method = "convex",
+  concavity = 2,
+  update_spots = TRUE,
   density_thres = 0.9,
   ROI_size = 10,
   minPts = NULL,
@@ -30,18 +30,18 @@ NicheDetect_STS(
 
 \item{loop_id}{Character, sample grouping identifier (default: "LoopAllSamp")}
 
-\item{level_method}{Character, detection level - "region" or "spot" (default: "region")}
+\item{pos_colnm}{Character, column name containing positive spot labels}
 
-\item{region_method}{Character, hull method - "convex" or "concave" (default: "convex")}
+\item{neg_value}{Character, value indicating negative/non-ROI spots (default: "neg")}
+
+\item{spatial_scale_method}{Character, detection level - "region" or "spot" (default: "region")}
+
+\item{region_detect_method}{Character, hull method - "convex" or "concave" (default: "convex")}
 
 \item{concavity}{Numeric, concavity parameter for concave hull (default: 2)}
 
 \item{update_spots}{Logical, whether to iteratively update positive spots
 (default: TRUE)}
-
-\item{pos_colnm}{Character, column name containing positive spot labels}
-
-\item{neg_value}{Character, value indicating negative/non-ROI spots (default: "neg")}
 
 \item{density_thres}{Numeric, density threshold for filtering (0-1, default: 0.9)}
 

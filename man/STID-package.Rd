@@ -3,7 +3,6 @@
 \docType{package}
 \name{STID-package}
 \alias{STID-package}
-\alias{STID}
 \title{STID: Spatial Transcriptomics toolkit for Infectious Diseases}
 \description{
 A comprehensive toolkit for quality control, analysis, and exploration of spatial transcriptomics data.

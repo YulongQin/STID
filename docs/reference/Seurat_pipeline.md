@@ -10,7 +10,6 @@ spatial feature plots.
 ``` r
 Seurat_pipeline(
   seurat_obj = NULL,
-  data_format = "stereo",
   data_type = "stRNA",
   resolution_index = seq(0.1, 1.3, 0.2),
   runTSNE_index = FALSE,
@@ -23,11 +22,6 @@ Seurat_pipeline(
 - seurat_obj:
 
   A Seurat object containing spatial transcriptomics data
-
-- data_format:
-
-  Character, data format - "stereo" (Stereo-seq) or "visium" (default:
-  "stereo")
 
 - data_type:
 
@@ -58,7 +52,6 @@ if (FALSE) { # \dontrun{
 # Run standard pipeline on spatial data
 seurat_obj <- Seurat_pipeline(
   seurat_obj = my_spatial_data,
-  data_format = "stereo",
   resolution_index = seq(0.2, 1.0, 0.2)
 )
 } # }

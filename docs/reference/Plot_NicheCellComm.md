@@ -8,9 +8,9 @@ circle plots, heatmaps, bubble plots, and spatial signaling plots.
 ``` r
 Plot_NicheCellComm(
   STID_obj = NULL,
-  CellComm_data = NULL,
   samp_mode = "SS",
   loop_id = "LoopAllSamp",
+  CellComm_data = NULL,
   sources.use = NULL,
   targets.use = NULL,
   signaling = NULL,
@@ -25,10 +25,6 @@ Plot_NicheCellComm(
 
   An STID object containing niche analysis results
 
-- CellComm_data:
-
-  List, CellChat results from CalNicheCellComm
-
 - samp_mode:
 
   Character, sample type - "SS" or "MS" (default: "SS")
@@ -36,6 +32,10 @@ Plot_NicheCellComm(
 - loop_id:
 
   Character, sample grouping identifier (default: "LoopAllSamp")
+
+- CellComm_data:
+
+  List, CellChat results from CalSampCellComm
 
 - sources.use:
 

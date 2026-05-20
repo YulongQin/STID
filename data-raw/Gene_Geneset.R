@@ -58,12 +58,4 @@ file_structure <- read_txt_as_df_vroom(
 )
 str(file_structure)
 
-
-
-
-
-
-
-
-
 usethis::use_data(Gene_Geneset, overwrite = TRUE)

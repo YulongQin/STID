@@ -150,7 +150,7 @@ h5ad2rds <- function(
 
   # >>> Check input patameter
   clog_check()
-  match.arg(data_type, choices = c("stRNA","scRNA"))
+  match.arg(data_type, choices = .STID_globals$supported_types)
   match.arg(convert_mode, choices = c("scanpy","seurat"))
   match.arg(X_index, choices = c("X","rawX"))
   .check_py_pkgs(pkgs = c("scanpy","squidpy","pandas","numpy","seaborn","matplotlib"))
@@ -493,7 +493,7 @@ rds2h5ad <- function(
 
   # >>> Check input patameter
   clog_check()
-  match.arg(data_type, choices = c("stRNA","scRNA"))
+  match.arg(data_type, choices = .STID_globals$supported_types)
   match.arg(convert_mode, choices = c("scanpy","seurat"))
   .check_py_pkgs(pkgs = c("scanpy","squidpy","pandas","numpy","seaborn","matplotlib"))
   if(data_type == "stRNA"){
@@ -582,10 +582,7 @@ rds2h5ad <- function(
     meta_key = NULL,
     group_by = NULL,
     group_use = NULL,
-    features = NULL,
-    feature_colnm = NULL,
-    squidpy_params = NULL,
-    interval = NULL,
+    coord_interval = NULL,
     tmp_dir = NULL,
     output_dir = NULL,
     photo_dir = NULL
@@ -594,6 +591,7 @@ rds2h5ad <- function(
   results_list <- list()
   samp_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "samp_colnm")[[1]]
   data_format <- GetInfo(STID_obj, info_key = "data_info", sub_key = "data_format")[[1]]
+  data_platform <- GetInfo(STID_obj, info_key = "data_info", sub_key = "data_platform")[[1]]
 
   #> check
   .check_py_pkgs(pkgs = c("scanpy","squidpy","pandas","numpy","seaborn","matplotlib"))
@@ -638,9 +636,23 @@ rds2h5ad <- function(
   np <- reticulate::import("numpy")
   sns$set_theme(style = "white")  # 设置白色背景主题
   # sc$logging$print_header()
-  sc$set_figure_params(facecolor="white", figsize = c(8,8))
+  sc$set_figure_params(facecolor="white", figsize = c(8,8)) #
   sc$settings$verbosity <- 'hint'
-  plt$rcParams['image.dpi'] <- 900
+  # plt$rcParams['pdf.fonttype'] = 42
+  # plt$rcParams['ps.fonttype'] = 42
+  # plt$rcParams['svg.fonttype'] = 'none'
+  # plt$rcParams['figure.dpi'] = 900
+  # plt$rcParams['savefig.dpi'] = 900
+
+  py_run_string("
+import matplotlib.pyplot as plt
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
+plt.rcParams['svg.fonttype'] = 'none'
+plt.rcParams['figure.dpi'] = 900
+plt.rcParams['savefig.dpi'] = 900
+")
+  # py_run_string("print(plt.rcParams['pdf.fonttype'])")
 
   #
   clog_normal(paste0("read and process h5ad data"))
@@ -672,18 +684,25 @@ rds2h5ad <- function(
       size = 1.15,
       img_key = "hires",
       show = FALSE,
-      save = "_spatial_plot.pdf",
+      # save = "_spatial_plot.pdf",
       palette = "gist_ncar",
-      spot_size = interval[i],
+      spot_size = coord_interval[i],
       scale_factor = 1,
       title = paste0(i_single, " spatial plot")
     )
+    plt$savefig(
+      paste0(photo_subdir, "/spatial_plot_group.pdf"),
+      bbox_inches = "tight",
+      dpi = 900L
+    )
+    plt$close()
 
-    #>nhood_enrichment
+    #> nhood_enrichment
     clog_normal("Start nhood_enrichment")
-    if(data_format == "StereoSeq") {
-      sq$gr$spatial_neighbors(i_adata, coord_type="generic",radius=interval[i]) # added to adata.obsp, adata.uns
-    }else if(data_format == "Visium") {
+    if(data_format == "square_grid") {
+      sq$gr$spatial_neighbors(i_adata, coord_type="generic",radius=coord_interval[i]) # added to adata.obsp, adata.uns
+      # sq$gr$spatial_neighbors(i_adata, n_rings=2, coord_type="grid", n_neighs=4)
+    }else if(data_format == "hex_grid" & data_platform == "Visium") {
       sq$gr$spatial_neighbors(i_adata, n_rings=2, coord_type="grid", n_neighs=6) # added to adata.obsp, adata.uns
     }
     sq$gr$nhood_enrichment(i_adata, cluster_key = group_by,n_perms = 100) # added to adata.uns
@@ -696,10 +715,15 @@ rds2h5ad <- function(
       cluster_key = group_by,
       mode = "zscore",
       vmin = 0, vmax = vmax_value,
-      save = "nhood_enrichment.pdf",
-      cmap = 'Blues',
-      dpi = 900
+      # save = "nhood_enrichment.pdf",
+      cmap = 'Blues'
     )
+    plt$savefig(
+      paste0(photo_subdir, "/nhood_enrichment.pdf"),
+      bbox_inches = "tight",
+      dpi = 900L
+    )
+    plt$close()
 
     #> co_occurrence
     clog_normal("Start co_occurrence")
@@ -717,9 +741,15 @@ rds2h5ad <- function(
         i_adata,
         cluster_key = group_by,
         clusters = j_grp,
-        dpi = 900,
-        save = paste0("co_occurrence/", j_grp, "_co_occurrence.pdf")
+        # save = paste0("co_occurrence/", j_grp, "_co_occurrence.pdf"),
+        dpi = 900
       )
+      plt$savefig(
+        paste0(photo_subdir, "/co_occurrence/", j_grp, "_co_occurrence.pdf"),
+        bbox_inches = "tight",
+        dpi = 900L
+      )
+      plt$close()
     }
   }
   return(results_list)

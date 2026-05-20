@@ -1,7 +1,7 @@
 
 utils::globalVariables(c(
   # 常用操作符和占位符
-  ".", "%:%", "%dopar%", "V<-",
+  ".", "V<-",
 
   # 坐标与空间变量
   "x", "y", "x1", "x2", "y1", "y2", "x_y", "x_len",
@@ -54,6 +54,13 @@ utils::globalVariables(c(
 
   # Seurat 特定对象/选项
   "Seurat.options", "LayerData",
+
+  #
+  "MEM.SHIP", "N_Spots", "N_Spots_raw", "Niche_celltype", "avg_log2FC_cap",
+  "breaks_extended", "cluster", "data_platform", "i_coord_interval", "output_dir",
+  "p_val_adj_cap", "peak_time", "percent", "pos_count", "pos_ratio", "pval",
+  "slope", "slope.positions", "top_gene", "total_burden", "value", "values",
+  "x_end", "x_start", "y_end", "y_start",
 
   # 其他临时或特定变量
   "key", "attribute", "row_nm", "Mg_nm", "is_Mg", "topN", "topNShape",

@@ -12,6 +12,8 @@ CompareNiche(STID_obj = NULL, meta_key1 = NULL, meta_key2 = NULL, bins = 15)
 \item{meta_key1}{Character, first metadata key for comparison}
 
 \item{meta_key2}{Character, second metadata key for comparison}
+
+\item{bins}{Integer, number of bins for distance distribution plots (default: 15)}
 }
 \value{
 NULL (invisible), generates plots and prints comparison statistics

@@ -20,30 +20,28 @@
   : Convert STID object to Seurat object
 - [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md) :
   Convert Seurat object to STID object
-- [`CalNicheAggIndex()`](https://yulongqin.github.io/STID/reference/CalNicheAggIndex.md)
+- [`CalSampCAI()`](https://yulongqin.github.io/STID/reference/CalSampCAI.md)
   : Calculate Niche Aggregation Index
-- [`CalNicheCellComm()`](https://yulongqin.github.io/STID/reference/CalNicheCellComm.md)
+- [`CalSampCellComm()`](https://yulongqin.github.io/STID/reference/CalSampCellComm.md)
   : Calculate Niche Cell Communication using CellChat
-- [`CalNicheCoLoc()`](https://yulongqin.github.io/STID/reference/CalNicheCoLoc.md)
+- [`CalSampCoLoc()`](https://yulongqin.github.io/STID/reference/CalSampCoLoc.md)
   : Calculate Niche Co-localization using MSTIDyR
-- [`CalNicheComposition()`](https://yulongqin.github.io/STID/reference/CalNicheComposition.md)
+- [`CalSampComp()`](https://yulongqin.github.io/STID/reference/CalSampComp.md)
   : Calculate Niche Cell Type Composition
-- [`CalNicheDEGs()`](https://yulongqin.github.io/STID/reference/CalNicheDEGs.md)
+- [`CalSampDEGs()`](https://yulongqin.github.io/STID/reference/CalSampDEGs.md)
   : Calculate Niche Differential Expression Genes
-- [`CalNicheGeneCor()`](https://yulongqin.github.io/STID/reference/CalNicheGeneCor.md)
+- [`CalSampGeneCor()`](https://yulongqin.github.io/STID/reference/CalSampGeneCor.md)
   : Calculate Niche Gene Expression Correlations
-- [`CalNicheGeneTrend()`](https://yulongqin.github.io/STID/reference/CalNicheGeneTrend.md)
-  : Calculate Gene Expression Trends Across Niche Regions
-- [`CalNicheGRN()`](https://yulongqin.github.io/STID/reference/CalNicheGRN.md)
+- [`CalSampGeneTrend()`](https://yulongqin.github.io/STID/reference/CalSampGeneTrend.md)
+  : Calculate gene expression trends across time points
+- [`CalSampGRN()`](https://yulongqin.github.io/STID/reference/CalSampGRN.md)
   : Calculate Niche Gene Regulatory Networks using NicheNet
-- [`CalNicheOSE()`](https://yulongqin.github.io/STID/reference/CalNicheOSE.md)
-  : Calculate Niche Organization and Spatial Entropy (OSE)
-- [`CalNichePPI()`](https://yulongqin.github.io/STID/reference/CalNichePPI.md)
+- [`CalSampOSE()`](https://yulongqin.github.io/STID/reference/CalSampOSE.md)
+  : Calculate Spatial Organization Entropy (OSE) for samples
+- [`CalSampPathoTrack()`](https://yulongqin.github.io/STID/reference/CalSampPathoTrack.md)
+  : Calculate pathogen tracking across samples
+- [`CalSampPPI()`](https://yulongqin.github.io/STID/reference/CalSampPPI.md)
   : Predict Niche Protein-Protein Interactions
-- [`CalNichePredict()`](https://yulongqin.github.io/STID/reference/CalNichePredict.md)
-  : Predict Niche Types or Properties
-- [`CalNichePseudo()`](https://yulongqin.github.io/STID/reference/CalNichePseudo.md)
-  : Generate Pseudo-time Analysis for Niche Development
 - [`clog()`](https://yulongqin.github.io/STID/reference/clog.md)
   [`clog_start()`](https://yulongqin.github.io/STID/reference/clog.md)
   [`clog_end()`](https://yulongqin.github.io/STID/reference/clog.md)

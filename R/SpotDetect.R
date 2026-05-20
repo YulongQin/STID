@@ -198,7 +198,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
     assay_pathogen_after <- mat[valid_features, , drop = FALSE]
     corrected_objects[[i_single]] <- mat
 
-    # > plot distribution
+    #> plot distribution
     stat_pathogen <- data.frame(
       TotalCount_before = rowSums(assay_pathogen_before),
       TotalCount_after = rowSums(assay_pathogen_after)
@@ -238,7 +238,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
            width = 6, height = 7,limitsize = FALSE)
     plot_histgram_list[[i]] <- p1
 
-    # > plot count ratio
+    #> plot count ratio
     stat_pathogen_ratio <- data.frame(
       grp = c("Before","After"),
       count = c(sum(stat_pathogen$TotalCount_before), sum(stat_pathogen$TotalCount_after))
@@ -268,7 +268,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
            width = 2, height = 4,limitsize = FALSE)
     plot_barplot_list[[(2*i-1)]] <- p2
 
-    # > plot spot ratio
+    #> plot spot ratio
     pathogen_spot_ratio <- data.frame(
       grp = c("Before","After"),
       spot_num = c(sum(colSums(assay_pathogen_before)>0), sum(colSums(assay_pathogen_after)>0))
@@ -370,6 +370,8 @@ CorrectBackgroud <- function(STID_obj = NULL,
 #' @import patchwork
 #' @import dplyr
 #' @import stringr
+#' @importFrom furrr future_map furrr_options
+#' @importFrom future nbrOfWorkers plan sequential multisession
 #'
 #' @export
 #'
@@ -453,7 +455,7 @@ SpotDetect_Gene <- function(
          file = paste0(output_dir,"Spot_GeneEXP_(SpotDetect_Gene).txt"),
          sep = "\t", quote = F,col.names = T,row.names = T)
 
-  # > blur
+  #> blur
   if(!is.null(blur_method)){
     match.arg(blur_method, .STID_globals$blur_methods)
     clog_step(paste0("Start spatial smooth for features by mode: ", blur_method))
@@ -475,7 +477,7 @@ SpotDetect_Gene <- function(
            sep = "\t", quote = F,col.names = T,row.names = T)
   }
 
-  # > meta2STID
+  #> meta2STID
   new_meta_key <- paste0(dir_nm,"_",grp_nm)
   meta2STID <- meta_data[,c(samp_colnm,x_colnm,y_colnm,valid_features),drop = F]
   meta2STID_Label <- meta2STID %>%
@@ -552,7 +554,7 @@ SpotDetect_Gene <- function(
     i_meta_data_longer <- meta_data_longer[meta_data_longer[[samp_colnm]] == i_single,]
     i_meta2STID_Label <- meta2STID_Label[meta_data[[samp_colnm]] == i_single, , drop = FALSE]
 
-    # > .Plot_histgram
+    #> .Plot_histgram
     p_hist <- .Plot_histgram(plot_data = i_meta_data_longer, samp_colnm = samp_colnm,col = "#99C5E3",
                              title = paste0("Gene expression distribution in ", i_single),
                              subtitle = subtitle_lable)
@@ -564,7 +566,7 @@ SpotDetect_Gene <- function(
     ggsave(p_hist, filename = paste0(i_photo_dir,i_single,"_histgram_(SpotDetect_Gene).pdf"),
            width = width_value, height = 3.5*ceiling(len_feat/4) + 0.5,limitsize = FALSE)
 
-    # > Plot_Spatial
+    #> Plot_Spatial
     if(plot_method == "single"){
       dir.create(paste0(i_photo_dir,"/SpatialPlot_samp/"),recursive = T, showWarnings = F)
       plot_dis_list <- list()
@@ -598,7 +600,7 @@ SpotDetect_Gene <- function(
         fwrite(plot_SpaialPlot, file = paste0(i_output_dir,i_single,"_",j_feat,"_PosInfo_(SpotDetect_Gene).txt"), # !!!
                sep = "\t", quote = F,col.names = T,row.names = F)
 
-        # > coord_Label
+        #> coord_Label
         coord_Label <- plot_SpaialPlot[,c("Spot_id","feature")] %>%
           mutate(feature = paste0("Label_", feature)) %>%
           as.matrix()
@@ -661,7 +663,7 @@ SpotDetect_Gene <- function(
       fwrite(plot_SpaialPlot, file = paste0(i_output_dir,i_single,"_allgene_PosInfo_(SpotDetect_Gene).txt"),
              sep = "\t", quote = F,col.names = T,row.names = F)
 
-      # > coord_Label
+      #> coord_Label
       coord_Label <- plot_SpaialPlot[,c("Spot_id","feature")] %>%
         mutate(feature = paste0("Label_", feature)) %>%
         as.matrix()
@@ -707,7 +709,7 @@ SpotDetect_Gene <- function(
     }
   }
 
-  # > AddMetaData
+  #> AddMetaData
   meta2STID <- lapply(meta2STID_Label_list, as.data.frame) %>%
     bind_rows() %>%
     mutate(across(c(x,y,all_of(valid_features)), as.numeric))
@@ -961,7 +963,7 @@ SpotDetect_Geneset <- function(
          file = paste0(output_dir,"Spot_GeneSetScore_(SpotDetect_Geneset).txt"),
          sep = "\t", quote = F,col.names = T,row.names = T)
 
-  # > blur
+  #> blur
   if(!is.null(blur_method)){
     match.arg(blur_method, .STID_globals$blur_methods)
     clog_step(paste0("Start spatial smooth for features by mode: ", blur_method))
@@ -983,7 +985,7 @@ SpotDetect_Geneset <- function(
            sep = "\t", quote = F,col.names = T,row.names = T)
   }
 
-  # > meta2STID
+  #> meta2STID
   new_meta_key <- paste0(dir_nm,"_",grp_nm)
   meta2STID <- meta_data[,c(samp_colnm,x_colnm,y_colnm,valid_features),drop = F]
   meta2STID_Label <- meta2STID %>%
@@ -1060,7 +1062,7 @@ SpotDetect_Geneset <- function(
     i_meta_data_longer <- meta_data_longer[meta_data_longer[[samp_colnm]] == i_single,]
     i_meta2STID_Label <- meta2STID_Label[meta_data[[samp_colnm]] == i_single, , drop = FALSE]
 
-    # > .Plot_histgram
+    #> .Plot_histgram
     p_hist <- .Plot_histgram(plot_data = i_meta_data_longer, samp_colnm = samp_colnm,col = "#99C5E3",
                              title = paste0("GeneSet Score distribution in ", i_single),
                              subtitle = subtitle_lable)
@@ -1072,7 +1074,7 @@ SpotDetect_Geneset <- function(
     ggsave(p_hist, filename = paste0(i_photo_dir,i_single,"_histgram_(SpotDetect_Geneset).pdf"),
            width = width_value, height = 3.5*ceiling(len_feat/4) + 0.5,limitsize = FALSE)
 
-    # > Plot_Spatial
+    #> Plot_Spatial
     if(plot_method == "single"){
       dir.create(paste0(i_photo_dir,"/SpatialPlot_samp/"),recursive = T, showWarnings = F)
       plot_dis_list <- list()
@@ -1114,7 +1116,7 @@ SpotDetect_Geneset <- function(
         fwrite(plot_SpaialPlot, file = paste0(i_output_dir,i_single,"_",j_feat_short,"_PosInfo_(SpotDetect_Geneset).txt"), # !!!
                sep = "\t", quote = F,col.names = T,row.names = F)
 
-        # > coord_Label
+        #> coord_Label
         coord_Label <- plot_SpaialPlot[,c("Spot_id","feature")] %>%
           mutate(feature = paste0("Label_", feature)) %>%
           as.matrix()
@@ -1163,7 +1165,7 @@ SpotDetect_Geneset <- function(
       fwrite(plot_SpaialPlot, file = paste0(i_output_dir,i_single,"_allgene_PosInfo_(SpotDetect_Geneset).txt"),
              sep = "\t", quote = F,col.names = T,row.names = F)
 
-      # > coord_Label
+      #> coord_Label
       coord_Label <- plot_SpaialPlot[,c("Spot_id","feature")] %>%
         mutate(feature = paste0("Label_", feature)) %>%
         as.matrix()
@@ -1209,7 +1211,7 @@ SpotDetect_Geneset <- function(
     }
   }
 
-  # > AddMetaData
+  #> AddMetaData
   meta2STID <- lapply(meta2STID_Label_list, as.data.frame) %>%
     bind_rows() %>%
     mutate(across(c(x,y,all_of(valid_features)), as.numeric))

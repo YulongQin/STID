@@ -47,7 +47,7 @@
 #' @keywords internal
 #' @noRd
 .set_STID_options <- function() {
-  for (i in seq_along(.STID_options)) {
+  for (i in seq_along(.STID_options)) { # .STID_options
     op <- names(.STID_options)[i]
     opt_list <- as.list(.STID_options)
     if (is.null(getOption(op))) {
@@ -88,13 +88,15 @@ get_STID_options <- function() {
 #' @keywords internal
 #' @noRd
 .STID_globals <- new.env(parent = emptyenv())
-.STID_globals$supported_formats <- c("StereoSeq", "Visium")
+.STID_globals$supported_types <- c("scRNA", "stRNA")
+.STID_globals$supported_formats <- c("square_grid", "hex_grid")
+.STID_globals$supported_platforms <- c("StereoSeq", "Visium","VisiumHD","SlideSeq","unknown")
 .STID_globals$supported_hosts <- c("human", "mouse", "unknown")
 .STID_globals$supported_pathogens <- c("virus", "bacteria", "parasite", "unknown")
 .STID_globals$score_methods <- c("AddModuleScore", "AUCell", "UCell", "MeanExp", "SumExp")
 .STID_globals$blur_methods <- c("isoblur", "medianblur")
 .STID_globals$plot_methods <- c("merge", "single")
-.STID_globals$samp_mode <- c("SS", "MS")
+.STID_globals$samp_modes <- c("SS", "MS")
 
 
 #' Get STID global constants
@@ -157,17 +159,20 @@ get_STID_globals <- function() {
       "==================================================\n",
       "\n",
       "Welcome to STID package for analyzing \n",
-      "Spatial Transcriptomics for Infectious Disease.\n",
+      "Spatial Transcriptomics of Infectious Disease.\n",
       "\n",
       "Key functionalities:\n",
+      "  - Data conversion (h5ad2rds, rds2h5ad)\n",
+      "  - Preprocessig (Seurat_pipeline, anno_SingleR)\n",
       "  - Background correction (CorrectBackgroud)\n",
       "  - Spot detection (SpotDetect_Gene, SpotDetect_Geneset)\n",
-      "  - Niche detection (NicheDetect_Lasso, NicheDetect_STS)\n",
-      "  - Niche analysis (CalNicheComposition, CalNicheDEGs, CalNicheCellComm)\n",
-      "  - Data conversion (annh5ad2rds, rds2annh5ad)\n",
+      "  - Niche identification (NicheDetect_Lasso, NicheDetect_STS, ...)\n",
+      "  - Single-Sample analysis (CalSampComp, CalSampDEGs, ...)\n",
+      "  - Multi-Sample analysis (CalSampPathoTrack, CalSampGeneTrend, ...)\n",
       "\n",
       "For more information, use ?STID see the package documentation.\n",
       "Github URL: https://github.com/YulongQin/STID \n",
+      "Repo URL: https://yulongqin.github.io/STID \n",
       "==================================================\n"
     )
   )

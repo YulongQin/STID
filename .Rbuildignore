@@ -10,3 +10,4 @@
 ^pkgdown$
 ^\.github$
 ^R_other$
+^STID\.Rproj$

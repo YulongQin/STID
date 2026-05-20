@@ -6,7 +6,6 @@
 \usage{
 Seurat_pipeline(
   seurat_obj = NULL,
-  data_format = "stereo",
   data_type = "stRNA",
   resolution_index = seq(0.1, 1.3, 0.2),
   runTSNE_index = FALSE,
@@ -15,9 +14,6 @@ Seurat_pipeline(
 }
 \arguments{
 \item{seurat_obj}{A Seurat object containing spatial transcriptomics data}
-
-\item{data_format}{Character, data format - "stereo" (Stereo-seq) or "visium"
-(default: "stereo")}
 
 \item{data_type}{Character, data type - "stRNA" (spatial) or "scRNA" (single-cell)
 (default: "stRNA")}
@@ -42,7 +38,6 @@ UMAP/t-SNE dimensionality reduction. Also generates spatial feature plots.
 # Run standard pipeline on spatial data
 seurat_obj <- Seurat_pipeline(
   seurat_obj = my_spatial_data,
-  data_format = "stereo",
   resolution_index = seq(0.2, 1.0, 0.2)
 )
 }

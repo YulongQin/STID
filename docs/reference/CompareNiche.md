@@ -24,6 +24,10 @@ CompareNiche(STID_obj = NULL, meta_key1 = NULL, meta_key2 = NULL, bins = 15)
 
   Character, second metadata key for comparison
 
+- bins:
+
+  Integer, number of bins for distance distribution plots (default: 15)
+
 ## Value
 
 NULL (invisible), generates plots and prints comparison statistics

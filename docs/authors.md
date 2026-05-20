@@ -19,6 +19,5 @@ https://yulongqin.github.io/STID/, https://github.com/YulongQin/STID.
       author = {Yulong Qin},
       year = {2026},
       note = {https://github.com/YulongQin/STID.git,
-        https://yulongqin.github.io/STID/,
-        https://github.com/YulongQin/STID},
+        https://yulongqin.github.io/STID/, https://github.com/YulongQin/STID},
     }

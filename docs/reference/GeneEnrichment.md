@@ -8,13 +8,14 @@ over-representation analysis (GO/KEGG) or Gene Set Enrichment Analysis
 
 ``` r
 GeneEnrichment(
+  STID_obj = NULL,
   up_gene = NULL,
   down_gene = NULL,
   DEGs = NULL,
-  STID_obj = NULL,
   host_org = NULL,
   method = "GO_KEGG",
   plot_pathway_num = 12,
+  internal = FALSE,
   col = viridis(100, option = "H")[15:85] %>% rev(),
   return_data = FALSE,
   grp_nm = NULL,
@@ -24,6 +25,10 @@ GeneEnrichment(
 ```
 
 ## Arguments
+
+- STID_obj:
+
+  STID object (optional, used to extract host organism)
 
 - up_gene:
 
@@ -38,10 +43,6 @@ GeneEnrichment(
   Data frame, differential expression results with columns 'SYMBOL' and
   'LogFC' for GSEA analysis
 
-- STID_obj:
-
-  STID object (optional, used to extract host organism)
-
 - host_org:
 
   Character, host organism - "human" or "mouse" (if NULL, extracted from
@@ -55,6 +56,10 @@ GeneEnrichment(
 - plot_pathway_num:
 
   Integer, number of top pathways to display in plots (default: 12)
+
+- internal:
+
+  Logical, whether to use internal KEGG database (default: FALSE)
 
 - col:
 

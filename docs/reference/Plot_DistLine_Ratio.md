@@ -1,22 +1,22 @@
 # Plot Cell Type Ratio Along Distance from Niche Center
 
 Visualizes the fraction of cell types as a function of distance from
-niche centers, with distance binning based on spatial intervals.
+niche centers, with distance binning based on spatial coord_intervals.
 
 ## Usage
 
 ``` r
 Plot_DistLine_Ratio(
   STID_obj = NULL,
-  celltypes = NULL,
+  loop_id = "LoopAllSamp",
+  meta_key = NULL,
   group_by = NULL,
   facet_grpnm = NULL,
-  meta_key = NULL,
-  loop_id = "LoopAllSamp",
-  interval_ratio = NULL,
-  col = COLOR_List[["PALETTE_WHITE_BG"]],
+  celltypes = NULL,
+  coord_interval_ratio = NULL,
   linewidth = 1,
-  ncol = 4
+  ncol = 4,
+  col = COLOR_LIST[["PALETTE_WHITE_BG"]]
 )
 ```
 
@@ -26,9 +26,13 @@ Plot_DistLine_Ratio(
 
   An STID object containing niche analysis results
 
-- celltypes:
+- loop_id:
 
-  Character vector, cell types to plot
+  Character, sample grouping identifier (default: "LoopAllSamp")
+
+- meta_key:
+
+  Character, metadata key containing distance information
 
 - group_by:
 
@@ -38,21 +42,13 @@ Plot_DistLine_Ratio(
 
   Character, column name for faceting
 
-- meta_key:
+- celltypes:
 
-  Character, metadata key containing distance information
+  Character vector, cell types to plot
 
-- loop_id:
+- coord_interval_ratio:
 
-  Character, sample grouping identifier (default: "LoopAllSamp")
-
-- interval_ratio:
-
-  Numeric, multiplier for interval to set bin width
-
-- col:
-
-  Color palette (default: COLOR_List\$PALETTE_WHITE_BG)
+  Numeric, multiplier for coord_interval to set bin width
 
 - linewidth:
 
@@ -61,6 +57,10 @@ Plot_DistLine_Ratio(
 - ncol:
 
   Integer, number of facet columns (default: 4)
+
+- col:
+
+  Color palette (default: COLOR_LIST\$PALETTE_WHITE_BG)
 
 ## Value
 
@@ -76,7 +76,7 @@ Plot_DistLine_Ratio(
   celltypes = c("Tcell", "Bcell", "Macrophage"),
   group_by = "cell_type",
   meta_key = "M2_NicheDetect_STS_20240101",
-  interval_ratio = 5
+  coord_interval_ratio = 5
 )
 } # }
 ```

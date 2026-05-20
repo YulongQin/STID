@@ -80,14 +80,67 @@
 <p>Graphic abstract</p>
 </div>
 <div class="section level3">
-<h3 id="key-features">Key Features:<a class="anchor" aria-label="anchor" href="#key-features"></a>
+<h3 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
 </h3>
 <ul>
-<li>Unified Analytical Framework: Provides a standardized pipeline tailored for infection spatial transcriptomics data storage, management, and processing.</li>
-<li>Accurate Infection Site Detection: Enables precise localization of pathogen-infected regions.</li>
-<li>Microenvironment Characterization: Facilitates identification and analysis of the infection microenvironment.</li>
-<li>Niche and Comparative Analysis: Supports single-sample Niche analysis as well as multi-sample comparison or time-series analysis.</li>
+<li>STID provides a convenient, efficient, and reproducible standardized framework for spatial transcriptomic analysis of infectious diseases</li>
+<li>STID constructs an infection-specific data structure</li>
+<li>STID enables accurate identification and characterization of pathogen-infected and host-responsive niches</li>
+<li>STID supports comparative and temporal analyses of multi-sample spatial transcriptomic data</li>
 </ul>
+</div>
+<div class="section level3">
+<h3 id="key-functionalities">Key Functionalities<a class="anchor" aria-label="anchor" href="#key-functionalities"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="66%">
+</colgroup>
+<thead><tr>
+<th align="left">Function Category</th>
+<th align="left">Supported Methods</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left">Data conversion</td>
+<td align="left">
+<code>h5ad2rds</code>, <code>rds2h5ad</code>
+</td>
+</tr>
+<tr>
+<td align="left">Preprocessing</td>
+<td align="left">
+<code>Seurat_pipeline</code>, <code>anno_SingleR</code>
+</td>
+</tr>
+<tr>
+<td align="left">Background correction</td>
+<td align="left"><code>CorrectBackgroud</code></td>
+</tr>
+<tr>
+<td align="left">Spot detection</td>
+<td align="left">
+<code>SpotDetect_Gene</code>, <code>SpotDetect_Geneset</code>
+</td>
+</tr>
+<tr>
+<td align="left">Niche identification</td>
+<td align="left">
+<code>NicheDetect_Lasso</code>, <code>NicheDetect_STS</code>, etc.</td>
+</tr>
+<tr>
+<td align="left">Single-Sample analysis</td>
+<td align="left">
+<code>CalSampComp</code>, <code>CalSampDEGs</code>, etc.</td>
+</tr>
+<tr>
+<td align="left">Multi-Sample analysis</td>
+<td align="left">
+<code>CalSampPathoTrack</code>, <code>CalSampGeneTrend</code>, etc.</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 <div class="section level2">
@@ -213,11 +266,25 @@
 </ul>
 </div>
 <div class="section level3">
-<h3 id="raw-data">Raw data<a class="anchor" aria-label="anchor" href="#raw-data"></a>
+<h3 id="data-availability">Data availability<a class="anchor" aria-label="anchor" href="#data-availability"></a>
 </h3>
 <ul>
-<li>Gene_Geneset: A dataset containing gene and gene set information, available in the <a href="https://github.com/YulongQin/STID/blob/d305ee31337ee7290981a50ed08cd74746a1ff70/data/Gene_Geneset.rda" class="external-link">R package</a>.</li>
-<li>Raw data: You can access the Raw data used in the tutorial from the <a href="https://doi.org/10.6084/m9.figshare.31839988" class="external-link">Figshare repository</a>. Some data are unavailable or partially available due to constraints set by the original authors. Please contact the original authors for data access requests.</li>
+<li>
+<p>Gene_Geneset</p>
+<p>A dataset containing gene and gene set information, available in the <a href="https://github.com/YulongQin/STID/blob/d305ee31337ee7290981a50ed08cd74746a1ff70/data/Gene_Geneset.rda" class="external-link">R package</a>.</p>
+</li>
+<li>
+<p>Raw data</p>
+<p>You can access the Raw data used in the tutorial from the <a href="https://doi.org/10.6084/m9.figshare.31839988" class="external-link">Figshare repository</a>. Some data are unavailable or partially available due to constraints set by the original authors. Please contact the original authors for data access requests.</p>
+</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="code-availability">Code availability<a class="anchor" aria-label="anchor" href="#code-availability"></a>
+</h3>
+<ul>
+<li>The version used in this study has been archived on <a href="https://zenodo.org/records/19678561" class="external-link">Zenodo</a>.</li>
+<li>All analysis scripts required to reproduce the article results are available at <a href="https://github.com/YulongQin/STID/article_code" class="external-link">here</a>.</li>
 </ul>
 </div>
 </div>

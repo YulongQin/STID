@@ -19,7 +19,7 @@ CreateSTIDObject(
   pathogen_genes = NULL,
   data_format = NULL,
   binsize = NULL,
-  interval = NULL,
+  coord_interval = NULL,
   project_id = NULL,
   description = NULL,
   ...
@@ -59,35 +59,35 @@ CreateSTIDObject(
 
 - x_colnm:
 
-  Character, column name for x coordinates (optional)
+  Character, column name for x coordinates
 
 - y_colnm:
 
-  Character, column name for y coordinates (optional)
+  Character, column name for y coordinates
 
 - pathogen_genes:
 
-  Character vector, names of pathogen genes (optional)
+  Character vector, names of pathogen genes
 
 - data_format:
 
-  Character, data format - "StereoSeq" or "Visium"
+  Character, data format - "square_grid" or "hex_grid"
 
 - binsize:
 
-  Numeric, bin size for spatial data (optional)
+  Numeric, bin size for spatial data
 
-- interval:
+- coord_interval:
 
-  Numeric, coordinate interval (optional)
+  Numeric, coordinate coord_interval
 
 - project_id:
 
-  Character, project identifier (optional)
+  Character, project identifier
 
 - description:
 
-  Character, project description (optional)
+  Character, project description
 
 - ...:
 
@@ -108,7 +108,9 @@ ist_obj <- CreateSTIDObject(
   celltype_colnm = "cell_type",
   host_org = "human",
   pathogen_grp = "virus",
-  data_format = "StereoSeq"
+  pathogen_org = "SARS-CoV-2",
+  data_format = "square_grid",
+  data_fplatform = "StereoSeq"
 )
 } # }
 ```

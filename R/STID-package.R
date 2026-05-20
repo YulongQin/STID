@@ -70,5 +70,5 @@
 #'   \item Stuart T, Butler A, et al. (2019) "Comprehensive Integration of Single-Cell Data." \emph{Cell}. doi:10.1016/j.cell.2019.05.031 (For Seurat foundation)
 #' }
 #'
-#' @aliases STID-package STID
+#' @aliases STID-package
 "_PACKAGE"
