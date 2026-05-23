@@ -20,9 +20,9 @@ accessible, reproducible, and extensible framework for analyzing
 infection-associated spatial transcriptomic data and for dissecting
 host–pathogen interactions in their native spatial microenvironments.
 
-![](reference/figures/README/Graphic_abstract.png)
+![](reference/figures/README/Graphical_abstract.png)
 
-Graphic abstract
+Graphical abstract
 
 ### Key Features
 

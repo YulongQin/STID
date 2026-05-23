@@ -29,9 +29,9 @@ host–pathogen interactions in their native spatial microenvironments.
 
 <div align="center">
 
-<img src="man/figures/README/Graphic_abstract.png" width="388" />
+<img src="man/figures/README/Graphical_abstract.png" width="388" />
 
-Graphic abstract
+Graphical abstract
 
 </div>
 
