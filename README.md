@@ -210,7 +210,7 @@ tutorials:
 ### Code availability
 
 - The version used in this study has been archived on
-  [Zenodo](https://zenodo.org/records/19678561).
+  [Zenodo](https://doi.org/10.5281/zenodo.20353070).
 - All analysis scripts required to reproduce the article results are
   available at the
   [article_code](https://github.com/YulongQin/STID/tree/main/article_code).
