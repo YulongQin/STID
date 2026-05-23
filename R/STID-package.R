@@ -1,74 +1,80 @@
-#' @title STID: Spatial Transcriptomics toolkit for Infectious Diseases
+#' STID: Spatial Transcriptomics toolkit for Infectious Diseases
 #'
-#' @description
-#' A comprehensive toolkit for quality control, analysis, and exploration of spatial transcriptomics data.
-#' 'STID' aims to enable users to identify spatial niches, interpret cell-cell communication contexts,
-#' and integrate diverse types of spatial omics measurements (e.g., Visium, Slide-seq, MERFISH).
+#' Provides a standardized and extensible framework for infection-associated
+#' spatial transcriptomic analysis. The package integrates with the
+#' \pkg{Seurat} ecosystem and incorporates Python-based modules
+#' to provide a full workflow for infection-related spatial transcriptomic data.
 #'
-#' The package provides a unified workflow extending the \pkg{Seurat} ecosystem, featuring:
+#' STID introduces an infection-specific data structure and supports:
+#' pathogen background correction, infection-associated spot and niche identification,
+#' single-sample and multi-sample analysis, as well as temporal analysis across
+#' infection stages.
+#'
+#' The framework enables systematic characterization of:
+#' structural features of infection niches, cellular composition,
+#' molecular functions, host–pathogen interactions, and
+#' pathogen-infected or host-responsive niches.
+#'
+#' @section Main functionalities:
 #' \itemize{
-#'   \item \strong{Niche Detection}: Robust algorithms to define spatial microenvironments based on cellular composition.
-#'   \item \strong{Spatial Aggregation}: Metrics to quantify cell clustering and spatial organization.
-#'   \item \strong{Contextual Interaction}: Enhanced ligand-receptor analysis incorporating spatial distance constraints.
-#'   \item \strong{Advanced Visualization}: Specialized plotting functions for spatial maps, niche heatmaps, and interaction networks.
+#'   \item Data conversion: \code{h5ad2rds}, \code{rds2h5ad}
+#'   \item Preprocessing: \code{Seurat_pipeline}, \code{anno_SingleR}
+#'   \item Background correction: \code{CorrectBackground}
+#'   \item Spot detection: \code{SpotDetect_Gene}, \code{SpotDetect_Geneset}
+#'   \item Niche identification: \code{NicheDetect_Lasso}, \code{NicheDetect_STS}
+#'   \item Single-sample niche analysis
+#'   \item Multi-sample niche analysis
+#'   \item Customized visualization
 #' }
-#'
-#' See Yulong Qin et al. (Year) doi:10.xxxx/xxxxx for methodological details on niche detection,
 #'
 #' @section Package options:
-#' STID uses the following \code{\link[base]{options}} to configure behaviour:
+#' STID initializes several package-level options during loading.
+#' Current options can be viewed with \code{get_STID_options()}.
 #'
 #' \describe{
-#'   \item{\code{STID.memsafe}}{
-#'     Global option to call \code{gc()} after memory-intensive operations (e.g., large matrix permutations).
-#'     This helps clean up the R session memory and prevents swap space usage.
-#'     Defaults to \code{TRUE}. Setting to \code{FALSE} can speed up computation in high-RAM environments.
+#'   \item{\code{parallel_workers}}{
+#'     Default number of workers for parallel computation:
+#'     \code{min(4, parallel::detectCores()-2)} to avoid excessive CPU usage.
 #'   }
-#'   \item{\code{STID.parallel.threads}}{
-#'     Controls the default number of threads for parallel operations (using \pkg{foreach} and \pkg{parallel}).
-#'     Defaults to half of the available physical cores. Set to \code{1} to disable parallelization.
+#'   \item{\code{default_plan}}{
+#'     Default parallel backend used by \pkg{future}:
+#'     \itemize{
+#'       \item Windows: \code{"multisession"}
+#'       \item Linux/macOS: \code{"multicore"}
+#'     }
 #'   }
-#'   \item{\code{STID.warn.seurat.v5}}{
-#'     Show warning if the input \pkg{Seurat} object is v5 format and specific v4-compatible layers are missing.
-#'   }
-#'   \item{\code{STID.check.dots}}{
-#'     For functions that have \code{...} as a parameter, this controls the behavior when an argument isn't used.
-#'     Can be one of \code{"warn"}, \code{"stop"}, or \code{"silent"}. Defaults to \code{"warn"}.
-#'   }
-#'   \item{\code{STID.msg.nichenet}}{
-#'     Show message about using cached NicheNet networks to speed up initialization.
-#'   }
-#'   \item{\code{STID.msg.cellchat}}{
-#'     Show message about the version of CellChatDB being loaded.
+#'   \item{\code{future.globals.maxSize}}{
+#'     Maximum size of global objects exported in future-based computation:
+#'     default is 1 GB (\code{1 * 1024^3}), can be increased for large datasets.
 #'   }
 #' }
+#'
+#' @section Global constants:
+#' Access internal constants via \code{get_STID_globals()}, including:
+#' supported platforms, hosts, pathogen types, scoring methods,
+#' visualization modes, and sample analysis modes.
 #'
 #' @author
-#' \strong{Maintainer}: Yulong Qin \email{qyl3700@foxmail.com} (ORCID: 0009-0009-2761-0750)
+#' \strong{Maintainer:} Yulong Qin
+#' Email: \email{qyl3700@foxmail.com}
+#' ORCID: \url{https://orcid.org/0009-0009-2761-0750}
 #'
-#' \strong{Contributors}:
-#' \itemize{
-#' }
+#' @references
+#' Qin Y et al. STID: Spatial Transcriptomics toolkit for Infectious Diseases.
+#' Stuart T, Butler A, et al. Comprehensive Integration of Single-Cell Data.
+#' \emph{Cell} 2019. \doi{10.1016/j.cell.2019.05.031}
 #'
-#' \strong{Funders}:
-#' \itemize{
-#' }
-#'
-#' @keywords internal
 #' @seealso
 #' Useful links:
 #' \itemize{
 #'   \item Homepage: \url{https://github.com/YulongQin/STID}
-#'   \item Documentation: \url{https://YulongQin.github.io/STID/}
-#'   \item Report bugs at \url{https://github.com/YulongQin/STID/issues}
+#'   \item Documentation: \url{https://YulongQin.github.io/STID}
+#'   \item Tutorial: \url{https://YulongQin.github.io/STID/articles}
+#'   \item Report bugs: \url{https://github.com/YulongQin/STID/issues}
 #' }
 #'
-#' @references
-#' If you use STID in your publication, please cite:
-#' \itemize{
-#'   \item YulongQin, et al. "STID: Spatial Transcriptomics toolkit for Infectious Diseases." \emph{Journal Name}, Year. DOI: 10.xxxx/xxxxx
-#'   \item Stuart T, Butler A, et al. (2019) "Comprehensive Integration of Single-Cell Data." \emph{Cell}. doi:10.1016/j.cell.2019.05.031 (For Seurat foundation)
-#' }
-#'
-#' @aliases STID-package
+#' @docType package
+#' @name STID-package
+#' @keywords internal
+#' @aliases STID_package
 "_PACKAGE"

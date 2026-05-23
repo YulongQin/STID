@@ -1,7 +1,7 @@
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# CorrectBackgroud
+# CorrectBackground
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' Correct background expression in spatial transcriptomics data
@@ -20,7 +20,7 @@
 #' @param assay_id Character, name of the assay to use (default: "Spatial")
 #' @param layer_id Character, name of the layer/data slot to use (default: "counts")
 #' @param grp_nm Character, group name for output organization (default: NULL, uses timestamp)
-#' @param dir_nm Character, directory name for output (default: "M1_CorrectBackgroud")
+#' @param dir_nm Character, directory name for output (default: "M1_CorrectBackground")
 #'
 #' @return Returns the modified STID object with corrected counts in the Spatial assay
 #'
@@ -38,7 +38,7 @@
 #' @examples
 #' \dontrun{
 #' # Correct background using specified background samples and features
-#' STID_obj <- CorrectBackgroud(
+#' STID_obj <- CorrectBackground(
 #'   STID_obj = STID_object,
 #'   bg_samp_id = c("sample1", "sample2"),
 #'   bg_features = c("gene1", "gene2", "gene3"),
@@ -46,12 +46,12 @@
 #'   adjust_UMI = TRUE
 #' )
 #' }
-CorrectBackgroud <- function(STID_obj = NULL,
+CorrectBackground <- function(STID_obj = NULL,
                              loop_id = "LoopAllSamp", # must be LoopAllSamp
                              bg_samp_id = NULL, bg_features = NULL,
                              PosThres_prob = 0.95, adjust_UMI = TRUE,
                              assay_id = "Spatial", layer_id = "counts",
-                             grp_nm = NULL, dir_nm = "M1_CorrectBackgroud"
+                             grp_nm = NULL, dir_nm = "M1_CorrectBackground"
 ){
   on.exit(while(sink.number() > 0){sink()}, add = TRUE)
 
@@ -149,7 +149,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
     bg_gene_stat_df$nonzero_count <- rowSums(i_count_assay)
     bg_gene_stat_df <- bg_gene_stat_df %>%
       mutate(across(everything(), ~ replace_na(., 0)))
-    fwrite(bg_gene_stat_df, file = paste0(output_dir_bg,i_single,"_bg_gene_stat_(CorrectBackgroud).txt"),
+    fwrite(bg_gene_stat_df, file = paste0(output_dir_bg,i_single,"_bg_gene_stat_(CorrectBackground).txt"),
            sep = "\t", quote = F,col.names = T,row.names = T,na = "NA")
     if(adjust_UMI){
       res_df_C[,i] <- bg_gene_stat_df$nonzero_95_adjust
@@ -204,7 +204,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
       TotalCount_after = rowSums(assay_pathogen_after)
     )
     write.table(stat_pathogen,
-                file = paste0(output_dir_correct,i_single,"_BgCorrect_stat_(CorrectBackgroud).txt"),
+                file = paste0(output_dir_correct,i_single,"_BgCorrect_stat_(CorrectBackground).txt"),
                 sep = "\t", quote = F,col.names = NA,row.names = T,na = "NA")
     plot_data <- stat_pathogen %>%
       filter(rowSums(.)>0) %>%
@@ -234,7 +234,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
             plot.title = element_text(hjust = 0.5),
             plot.subtitle = element_text(hjust = 0.5),
             strip.background = element_rect(fill="grey95"))
-    ggsave(p1, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_histogram_(CorrectBackgroud).pdf"),
+    ggsave(p1, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_histogram_(CorrectBackground).pdf"),
            width = 6, height = 7,limitsize = FALSE)
     plot_histgram_list[[i]] <- p1
 
@@ -244,7 +244,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
       count = c(sum(stat_pathogen$TotalCount_before), sum(stat_pathogen$TotalCount_after))
     )
     write.table(stat_pathogen_ratio,
-                file = paste0(output_dir_correct,i_single,"_BgCorrect_totalcount_(CorrectBackgroud).txt"),
+                file = paste0(output_dir_correct,i_single,"_BgCorrect_totalcount_(CorrectBackground).txt"),
                 sep = "\t", quote = F,col.names = NA,row.names = T,na = "NA")
     plot_data <- stat_pathogen_ratio %>%
       mutate( grp = factor(grp, levels = c("Before","After")))
@@ -264,7 +264,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
             plot.title = element_text(hjust = 0.5),
             plot.subtitle = element_text(hjust = 0.5),
             strip.background = element_rect(fill="grey95"))
-    ggsave(p2, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_totalcount_barplot_(CorrectBackgroud).pdf"),
+    ggsave(p2, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_totalcount_barplot_(CorrectBackground).pdf"),
            width = 2, height = 4,limitsize = FALSE)
     plot_barplot_list[[(2*i-1)]] <- p2
 
@@ -274,7 +274,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
       spot_num = c(sum(colSums(assay_pathogen_before)>0), sum(colSums(assay_pathogen_after)>0))
     )
     write.table(pathogen_spot_ratio,
-                file = paste0(output_dir_correct,i_single,"_BgCorrect_PosSpotNum_(CorrectBackgroud).txt"),
+                file = paste0(output_dir_correct,i_single,"_BgCorrect_PosSpotNum_(CorrectBackground).txt"),
                 sep = "\t", quote = F,col.names = NA,row.names = T,na = "NA")
     plot_data <- pathogen_spot_ratio %>%
       mutate( grp = factor(grp, levels = c("Before","After")))
@@ -294,7 +294,7 @@ CorrectBackgroud <- function(STID_obj = NULL,
             plot.title = element_text(hjust = 0.5),
             plot.subtitle = element_text(hjust = 0.5),
             strip.background = element_rect(fill="grey95"))
-    ggsave(p3, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_PosSpotNum_barplot_(CorrectBackgroud).pdf"),
+    ggsave(p3, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_PosSpotNum_barplot_(CorrectBackground).pdf"),
            width = 2, height = 4,limitsize = FALSE)
     plot_barplot_list[[2*i]] <- p3
   }
@@ -306,9 +306,9 @@ CorrectBackgroud <- function(STID_obj = NULL,
     plot_barplot_list,
     ncol = 6,
   )
-  ggsave(p_histgram_all, filename = paste0(photo_dir,"All_samp_BgCorrect_histogram_(CorrectBackgroud).pdf"),
+  ggsave(p_histgram_all, filename = paste0(photo_dir,"All_samp_BgCorrect_histogram_(CorrectBackground).pdf"),
          width = 18, height = 7*ceiling(length(loop_single)/3),limitsize = FALSE)
-  ggsave(p_barplot_all, filename = paste0(photo_dir,"All_samp_BgCorrect_barplot_(CorrectBackgroud).pdf"),
+  ggsave(p_barplot_all, filename = paste0(photo_dir,"All_samp_BgCorrect_barplot_(CorrectBackground).pdf"),
          width = 12, height = 4*ceiling(length(loop_single)/3),limitsize = FALSE)
 
   # >>> Save corrected data
@@ -317,8 +317,8 @@ CorrectBackgroud <- function(STID_obj = NULL,
   STID_obj@assays[["Spatial"]]["counts"] <- corrected_count_assay
 
   # >>>
-  .save_function_params("CorrectBackgroud", envir = environment(),
-                        file = paste0(output_dir,"Log_function_params_(CorrectBackgroud).log") )
+  .save_function_params("CorrectBackground", envir = environment(),
+                        file = paste0(output_dir,"Log_function_params_(CorrectBackground).log") )
   clog_end()
   sink()
   file.rename(tmp_file, paste0(output_dir,"Log_termial_output_(SpotDetect_Geneset).log")) %>% invisible()

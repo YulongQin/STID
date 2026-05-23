@@ -9,20 +9,23 @@
 
 ## Overview
 
-STID is an R-based toolkit designed to provide a unified and efficient
-framework for spatial transcriptomics analysis in infectious diseases,
-built upon the Seurat object. While spatial transcriptomics is
-increasingly applied to explore disease mechanisms, including infection,
-a standardized analytical framework and user-friendly tools tailored for
-infectious disease research remain lacking. STID addresses this gap by
-defining a comprehensive analytical pipeline specifically for
-infection-related spatial transcriptomics data. The toolkit encompasses
-four main applications: accurate detection of infection sites,
-characterization of the infection microenvironment, single-sample Niche
-analysis, and cross-sample comparative or temporal analysis. By
-integrating these functions into a cohesive framework, STID enhances
-researchers’ ability to interpret and mine infection-related spatial
-transcriptomics data with both rigor and ease.
+Spatial transcriptomic studies of infectious diseases still rely on
+fragmented data analysis processes. Here, we developed STID, a
+standardized framework for spatial transcriptomic analysis of infectious
+diseases, that leverages the Seurat ecosystem and incorporates Python
+based modules. STID provides an extensible infection-specific data
+structure and supports a full suite of analyses, such as pathogen
+background correction, infection-associated spot and niche
+identification, single-sample niche characterization, and multi-sample
+comparative and temporal analyses. Moreover, STID is broadly applicable
+to spatial transcriptomic data from infectious diseases caused by
+bacteria, viruses, and parasites, and enables systematic
+characterization of the structural features, cellular composition,
+molecular functions, and host–pathogen interactions within pathogen
+infected and/or host responsive niches. Overall, STID provides an
+accessible, reproducible, and extensible framework for analyzing
+infection-associated spatial transcriptomic data and for dissecting
+host–pathogen interactions in their native spatial microenvironments.
 
 <div align="center">
 
@@ -48,7 +51,7 @@ Graphic abstract
 |:-----------------------|:----------------------------------------------|
 | Data conversion        | `h5ad2rds`, `rds2h5ad`                        |
 | Preprocessing          | `Seurat_pipeline`, `anno_SingleR`             |
-| Background correction  | `CorrectBackgroud`                            |
+| Background correction  | `CorrectBackground`                           |
 | Spot detection         | `SpotDetect_Gene`, `SpotDetect_Geneset`       |
 | Niche identification   | `NicheDetect_Lasso`, `NicheDetect_STS`, etc.  |
 | Single-Sample analysis | `CalSampComp`, `CalSampDEGs`, etc.            |
@@ -209,13 +212,15 @@ tutorials:
 - The version used in this study has been archived on
   [Zenodo](https://zenodo.org/records/19678561).
 - All analysis scripts required to reproduce the article results are
-  available at [here](https://github.com/YulongQin/STID/article_code).
+  available at the
+  [article_code](https://github.com/YulongQin/STID/tree/main/article_code).
 
 ## Citation
 
 If you use STID in your research, please cite:
 
-Qin Y (2026). *STID: Infectious Spatiotemporal Transcriptomics Tools*.
+Qin Y (2026). *STID: A Standardized Spatial Transcriptomics Analysis
+Framework for Infectious Diseases*.
 <https://github.com/YulongQin/STID.git>,
 <https://yulongqin.github.io/STID/>,
 <https://github.com/YulongQin/STID>.

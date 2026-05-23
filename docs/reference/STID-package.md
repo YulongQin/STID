@@ -1,78 +1,78 @@
 # STID: Spatial Transcriptomics toolkit for Infectious Diseases
 
-A comprehensive toolkit for quality control, analysis, and exploration
-of spatial transcriptomics data. 'STID' aims to enable users to identify
-spatial niches, interpret cell-cell communication contexts, and
-integrate diverse types of spatial omics measurements (e.g., Visium,
-Slide-seq, MERFISH).
+Provides a standardized and extensible framework for
+infection-associated spatial transcriptomic analysis. The package
+integrates with the Seurat ecosystem and incorporates Python-based
+modules to provide a full workflow for infection-related spatial
+transcriptomic data.
 
-The package provides a unified workflow extending the Seurat ecosystem,
-featuring:
+## Details
 
-- **Niche Detection**: Robust algorithms to define spatial
-  microenvironments based on cellular composition.
+STID introduces an infection-specific data structure and supports:
+pathogen background correction, infection-associated spot and niche
+identification, single-sample and multi-sample analysis, as well as
+temporal analysis across infection stages.
 
-- **Spatial Aggregation**: Metrics to quantify cell clustering and
-  spatial organization.
+The framework enables systematic characterization of: structural
+features of infection niches, cellular composition, molecular functions,
+host–pathogen interactions, and pathogen-infected or host-responsive
+niches.
 
-- **Contextual Interaction**: Enhanced ligand-receptor analysis
-  incorporating spatial distance constraints.
+## Main functionalities
 
-- **Advanced Visualization**: Specialized plotting functions for spatial
-  maps, niche heatmaps, and interaction networks.
+- Data conversion: `h5ad2rds`, `rds2h5ad`
 
-See Yulong Qin et al. (Year) doi:10.xxxx/xxxxx for methodological
-details on niche detection,
+- Preprocessing: `Seurat_pipeline`, `anno_SingleR`
+
+- Background correction: `CorrectBackground`
+
+- Spot detection: `SpotDetect_Gene`, `SpotDetect_Geneset`
+
+- Niche identification: `NicheDetect_Lasso`, `NicheDetect_STS`
+
+- Single-sample niche analysis
+
+- Multi-sample niche analysis
+
+- Customized visualization
 
 ## Package options
 
-STID uses the following [`options`](https://rdrr.io/r/base/options.html)
-to configure behaviour:
+STID initializes several package-level options during loading. Current
+options can be viewed with
+[`get_STID_options()`](https://yulongqin.github.io/STID/reference/get_STID_options.md).
 
-- `STID.memsafe`:
+- `parallel_workers`:
 
-  Global option to call [`gc()`](https://rdrr.io/r/base/gc.html) after
-  memory-intensive operations (e.g., large matrix permutations). This
-  helps clean up the R session memory and prevents swap space usage.
-  Defaults to `TRUE`. Setting to `FALSE` can speed up computation in
-  high-RAM environments.
+  Default number of workers for parallel computation:
+  `min(4, parallel::detectCores()-2)` to avoid excessive CPU usage.
 
-- `STID.parallel.threads`:
+- `default_plan`:
 
-  Controls the default number of threads for parallel operations (using
-  foreach and parallel). Defaults to half of the available physical
-  cores. Set to `1` to disable parallelization.
+  Default parallel backend used by future:
 
-- `STID.warn.seurat.v5`:
+  - Windows: `"multisession"`
 
-  Show warning if the input Seurat object is v5 format and specific
-  v4-compatible layers are missing.
+  - Linux/macOS: `"multicore"`
 
-- `STID.check.dots`:
+- `future.globals.maxSize`:
 
-  For functions that have `...` as a parameter, this controls the
-  behavior when an argument isn't used. Can be one of `"warn"`,
-  `"stop"`, or `"silent"`. Defaults to `"warn"`.
+  Maximum size of global objects exported in future-based computation:
+  default is 1 GB (`1 * 1024^3`), can be increased for large datasets.
 
-- `STID.msg.nichenet`:
+## Global constants
 
-  Show message about using cached NicheNet networks to speed up
-  initialization.
-
-- `STID.msg.cellchat`:
-
-  Show message about the version of CellChatDB being loaded.
+Access internal constants via
+[`get_STID_globals()`](https://yulongqin.github.io/STID/reference/get_STID_globals.md),
+including: supported platforms, hosts, pathogen types, scoring methods,
+visualization modes, and sample analysis modes.
 
 ## References
 
-If you use STID in your publication, please cite:
-
-- YulongQin, et al. "STID: Spatial Transcriptomics toolkit for
-  Infectious Diseases." *Journal Name*, Year. DOI: 10.xxxx/xxxxx
-
-- Stuart T, Butler A, et al. (2019) "Comprehensive Integration of
-  Single-Cell Data." *Cell*. doi:10.1016/j.cell.2019.05.031 (For Seurat
-  foundation)
+Qin Y et al. STID: Spatial Transcriptomics toolkit for Infectious
+Diseases. Stuart T, Butler A, et al. Comprehensive Integration of
+Single-Cell Data. *Cell* 2019.
+[doi:10.1016/j.cell.2019.05.031](https://doi.org/10.1016/j.cell.2019.05.031)
 
 ## See also
 
@@ -80,15 +80,13 @@ Useful links:
 
 - Homepage: <https://github.com/YulongQin/STID>
 
-- Documentation: <https://YulongQin.github.io/STID/>
+- Documentation: <https://YulongQin.github.io/STID>
 
-- Report bugs at <https://github.com/YulongQin/STID/issues>
+- Tutorial: <https://YulongQin.github.io/STID/articles>
+
+- Report bugs: <https://github.com/YulongQin/STID/issues>
 
 ## Author
 
-**Maintainer**: Yulong Qin <qyl3700@foxmail.com> (ORCID:
-0009-0009-2761-0750)
-
-**Contributors**:
-
-**Funders**:
+**Maintainer:** Yulong Qin Email: <qyl3700@foxmail.com> ORCID:
+<https://orcid.org/0009-0009-2761-0750>

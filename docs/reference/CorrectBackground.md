@@ -8,7 +8,7 @@ samples.
 ## Usage
 
 ``` r
-CorrectBackgroud(
+CorrectBackground(
   STID_obj = NULL,
   loop_id = "LoopAllSamp",
   bg_samp_id = NULL,
@@ -18,7 +18,7 @@ CorrectBackgroud(
   assay_id = "Spatial",
   layer_id = "counts",
   grp_nm = NULL,
-  dir_nm = "M1_CorrectBackgroud"
+  dir_nm = "M1_CorrectBackground"
 )
 ```
 
@@ -65,7 +65,7 @@ CorrectBackgroud(
 
 - dir_nm:
 
-  Character, directory name for output (default: "M1_CorrectBackgroud")
+  Character, directory name for output (default: "M1_CorrectBackground")
 
 ## Value
 
@@ -77,7 +77,7 @@ assay
 ``` r
 if (FALSE) { # \dontrun{
 # Correct background using specified background samples and features
-STID_obj <- CorrectBackgroud(
+STID_obj <- CorrectBackground(
   STID_obj = STID_object,
   bg_samp_id = c("sample1", "sample2"),
   bg_features = c("gene1", "gene2", "gene3"),

@@ -164,7 +164,7 @@ get_STID_globals <- function() {
       "Key functionalities:\n",
       "  - Data conversion (h5ad2rds, rds2h5ad)\n",
       "  - Preprocessig (Seurat_pipeline, anno_SingleR)\n",
-      "  - Background correction (CorrectBackgroud)\n",
+      "  - Background correction (CorrectBackground)\n",
       "  - Spot detection (SpotDetect_Gene, SpotDetect_Geneset)\n",
       "  - Niche identification (NicheDetect_Lasso, NicheDetect_STS, ...)\n",
       "  - Single-Sample analysis (CalSampComp, CalSampDEGs, ...)\n",

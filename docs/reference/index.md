@@ -16,7 +16,7 @@
   : Add annotations to SingleSampNiche genes
 - [`anno_SingleR()`](https://yulongqin.github.io/STID/reference/anno_SingleR.md)
   : Annotate Cell Types Using SingleR
-- [`as.Seurat(`*`<STID>`*`)`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
+- [`as.Seurat.STID()`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
   : Convert STID object to Seurat object
 - [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md) :
   Convert Seurat object to STID object
@@ -60,7 +60,7 @@
   : Predefined color palettes
 - [`CompareNiche()`](https://yulongqin.github.io/STID/reference/CompareNiche.md)
   : Compare two niche detection results
-- [`CorrectBackgroud()`](https://yulongqin.github.io/STID/reference/CorrectBackgroud.md)
+- [`CorrectBackground()`](https://yulongqin.github.io/STID/reference/CorrectBackground.md)
   : Correct background expression in spatial transcriptomics data
 - [`CreateMultiSampNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
   [`CreateMSNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
