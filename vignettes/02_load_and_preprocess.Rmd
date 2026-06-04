@@ -1,8 +1,8 @@
 ---
-title: "Load and preprocess spatial transcriptomics data"
+title: "Load and preprocess"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Load and preprocess spatial transcriptomics data}
+  %\VignetteIndexEntry{Load and preprocess}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

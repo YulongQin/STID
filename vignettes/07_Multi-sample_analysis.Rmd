@@ -1,8 +1,8 @@
 ---
-title: "Multi-sample niche analysis"
+title: "Multi-sample analysis"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Multi-sample niche analysis}
+  %\VignetteIndexEntry{Multi-sample analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

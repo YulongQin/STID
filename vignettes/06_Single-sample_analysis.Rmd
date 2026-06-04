@@ -1,8 +1,8 @@
 ---
-title: "Single-sample niche analysis"
+title: "Single-sample analysis"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Single-sample niche analysis}
+  %\VignetteIndexEntry{Single-sample analysis}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
