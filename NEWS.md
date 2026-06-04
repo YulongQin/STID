@@ -1,0 +1,96 @@
+STID News
+================
+
+# STID 0.0.0.9000
+
+This is the first development release of **STID**, a spatial
+transcriptomics toolkit for infectious disease studies.
+
+## Overview
+
+- Introduced **STID** as a standardized and reproducible framework for
+  analyzing infection-associated spatial transcriptomics data.
+- Established an infection-specific analysis workflow that leverages the
+  Seurat ecosystem and incorporates Python-based modules where needed.
+- Supported spatial transcriptomics studies of infectious diseases
+  caused by bacteria, viruses, and parasites.
+- Provided functionality for characterizing pathogen-infected and
+  host-responsive niches, including their spatial structure, cellular
+  composition, molecular functions, and host-pathogen interactions.
+
+## Main capabilities
+
+- Added support for constructing and organizing infection-associated
+  spatial transcriptomics data.
+- Added workflows for data conversion, preprocessing, annotation, and
+  quality-controlled downstream analysis.
+- Added pathogen background correction to improve interpretation of
+  pathogen-derived signals.
+- Added methods for detecting infection-associated spots from pathogen
+  genes or pathogen-related gene sets.
+- Added methods for identifying infection-associated spatial niches.
+- Added single-sample analysis workflows for characterizing
+  infection-associated niches within individual samples.
+- Added multi-sample and temporal analysis workflows for comparing
+  infection-associated spatial patterns across samples or disease
+  stages.
+- Added visualization, plotting, and utility functions to support
+  interpretation of STID analysis results.
+
+## Representative functions
+
+The following functions are representative examples of the current STID
+interface and do not constitute a complete list of available functions.
+
+- Added data conversion utilities, including `h5ad2rds()` and
+  `rds2h5ad()`.
+- Added preprocessing and annotation utilities, including
+  `Seurat_pipeline()` and `anno_SingleR()`.
+- Added pathogen background correction with `CorrectBackground()`.
+- Added infection-associated spot detection utilities, including
+  `SpotDetect_Gene()` and `SpotDetect_Geneset()`.
+- Added infection-associated niche identification utilities, including
+  `NicheDetect_Lasso()` and `NicheDetect_STS()`.
+- Added single-sample analysis utilities, including `CalSampComp()` and
+  `CalSampDEGs()`.
+- Added multi-sample analysis utilities, including `CalSampPathoTrack()`
+  and `CalSampGeneTrend()`.
+
+## Documentation
+
+- Added the package README with an overview, key features, installation
+  instructions, quick start information, resources, and citation
+  details.
+- Added online tutorials covering installation, data loading and
+  preprocessing, pathogen background correction, infection-associated
+  spot detection, infection-associated niche identification,
+  single-sample analysis, and multi-sample analysis.
+- Added advanced documentation for the STID class, plotting functions,
+  and utility functions.
+
+## Data and resources
+
+- Added the `Gene_Geneset` dataset for gene and gene set information
+  used in STID workflows.
+- Added links to raw and processed datasets used in the associated study
+  and tutorials.
+- Added links to the GitHub repository, tutorial website, archived study
+  version, and reproducible analysis scripts.
+
+## Installation
+
+- Added GitHub-based installation via
+  `remotes::install_github("YulongQin/STID")`.
+- Added installation guidance for CRAN and Bioconductor mirror
+  configuration.
+- Added recommendations for using an isolated R library path to improve
+  reproducibility.
+- Added pre-installation notes for dependency management, source
+  installation, binary packages, timeout configuration, and compilation
+  settings.
+
+## Notes
+
+- STID is under active development.
+- Function names, APIs, tutorials, and analysis workflows may continue
+  to evolve in future development versions.

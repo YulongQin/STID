@@ -1,0 +1,118 @@
+---
+title: "Utility functions"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Utility functions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 5,
+  fig.retina = 2
+)
+
+set.seed(123)
+```
+
+## Overview
+
+This vignette introduces four utility functions used for environment configuration, cross-format data conversion, and annotation parsing in STID workflows. `configure_conda()` prepares the Python environment required by Python-backed conversion steps. `h5ad2rds()` and `rds2h5ad()` convert data between AnnData `h5ad` files and Seurat-compatible R objects. `parse_gtf()` extracts structured gene annotation information from GTF files.
+
+## Function summary
+
+| Function | Purpose | Typical input | Typical output | Notes |
+|---|---|---|---|---|
+| `configure_conda()` | Configure the Python environment through `reticulate` | Conda environment name, or default Miniconda setup | Activated Python/Conda environment | Run before Python-backed conversion workflows |
+| `h5ad2rds()` | Convert AnnData `h5ad` files to Seurat objects | `.h5ad` file path | Seurat object and/or `.rds` file | Supports spatial and single-cell modes, reductions, coordinates, and optional SCT conversion |
+| `rds2h5ad()` | Convert Seurat objects to AnnData-compatible `h5ad` files | Seurat object | `.h5ad` file | Current helper supports the SeuratDisk conversion path |
+| `parse_gtf()` | Parse GTF annotation files into tidy tables | `.gtf` file path | Data frame containing genomic features and attributes | Use `fil_label` to filter feature types such as `gene` |
+
+## Prerequisites
+
+```{r packages, message = FALSE, warning = FALSE, eval = FALSE}
+library(tidyverse)
+library(Seurat)
+library(STID)
+```
+
+## `configure_conda()`
+
+`configure_conda()` configures Python through `reticulate`. If no Conda environment name is supplied, it attempts to use or install the default Miniconda environment. If a Conda environment name is supplied, it checks whether that environment exists before activating it.
+
+```{r configure-conda, eval = FALSE}
+# Use default Miniconda
+configure_conda()
+
+# Use an existing Conda environment
+configure_conda(conda_nm = "scanpy_env")
+```
+
+Run this configuration before using Python-backed conversion workflows such as `h5ad2rds()` and `rds2h5ad()`.
+
+## `h5ad2rds()`
+
+`h5ad2rds()` converts an AnnData `h5ad` file into a Seurat object. It supports spatial and single-cell modes, optional reductions, optional spatial coordinates, and optional SCT conversion.
+
+```{r h5ad-to-rds, eval = FALSE}
+stRNA <- h5ad2rds(
+  file_path = "data/sample_spatial.h5ad",
+  data_type = "stRNA",
+  convert_mode = "scanpy",
+  assay_id = "Spatial",
+  X_index = "rawX",
+  binsize = 100,
+  SCT_index = FALSE,
+  reduction_index = TRUE,
+  image_index = TRUE,
+  return_object = TRUE,
+  grp_nm = "sample_spatial",
+  dir_nm = "M0_h5ad2rds"
+)
+```
+
+## `rds2h5ad()`
+
+`rds2h5ad()` converts a Seurat object into an AnnData-compatible `h5ad` file using the SeuratDisk path.
+
+```{r rds-to-h5ad, eval = FALSE}
+rds2h5ad(
+  seurat_obj = stRNA,
+  data_type = "stRNA",
+  convert_mode = "seurat",
+  assay_id = "Spatial",
+  grp_nm = "sample_spatial",
+  dir_nm = "M0_rds2h5ad"
+)
+```
+
+> **Note:** The Scanpy mode of `rds2h5ad()` is not implemented in the current helper. Use `convert_mode = "seurat"` for this direction.
+
+## `parse_gtf()`
+
+`parse_gtf()` reads a GTF file and returns a tidy data frame. The `fil_label` argument filters the feature column, for example to keep only genes.
+
+```{r parse-gtf, eval = FALSE}
+gtf_gene <- parse_gtf(
+  gtf_file = "reference/annotation.gtf",
+  fil_label = "gene"
+)
+
+head(gtf_gene)
+```
+
+```{r parse-gtf-use-case, eval = FALSE}
+gene_table <- parse_gtf("reference/annotation.gtf", fil_label = "gene") %>%
+  dplyr::select(seqname, start, end, strand, gene_id, gene_name, gene_biotype)
+```
+
+## Session information
+
+```{r session-info}
+sessionInfo()
+```

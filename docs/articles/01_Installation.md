@@ -1,220 +1,290 @@
-# 01_Installation
+# Installation
 
 ## Overview
 
-This vignette describes the installation procedure for **STID**,
-including dependency management and troubleshooting strategies.
+This vignette describes a reproducible installation workflow for `STID`.
+Because `STID` integrates spatial transcriptomics, niche detection,
+cell-cell communication, regulatory-network inference, and host-pathogen
+analysis, the package depends on a relatively broad R, Bioconductor,
+GitHub, and system-software ecosystem.
 
-Due to the extensive set of dependencies required for spatial
-transcriptomics and infection analysis, we recommend a controlled
-installation environment to ensure reproducibility.
+This vignette covers:
 
-------------------------------------------------------------------------
+- preparing a clean R library for `STID`;
+- configuring CRAN and Bioconductor mirrors;
+- installing core R, Bioconductor, and GitHub dependencies;
+- installing `STID` from GitHub;
+- checking whether required and suggested packages are available;
+- troubleshooting common installation failures caused by package
+  versions, compilation tools, network access, or system libraries.
+
+> **Note:** Before running the commands below, update the CRAN mirror,
+> Bioconductor mirror, library path, R version, compiler settings, and
+> optional dependency list according to the operating system and network
+> environment used for the analysis.
 
 ## Installation strategy
 
-STID can be installed directly from GitHub. The recommended workflow
-consists of:
+A controlled installation environment is recommended. The general
+workflow is:
 
-1.  Configuring CRAN and Bioconductor mirrors
-2.  Preparing a dedicated library path
-3.  Installing STID and dependencies
-4.  Verifying installation completeness
+1.  confirm that R and system build tools are available;
+2.  configure a dedicated library path for `STID`;
+3.  configure CRAN and Bioconductor mirrors;
+4.  install package-management utilities;
+5.  install heavy or failure-prone dependencies first;
+6.  install `STID` from GitHub;
+7.  verify core and optional dependencies.
 
-------------------------------------------------------------------------
+> **Note:** If an older package version is already loaded from the
+> default library, simply calling `.libPaths("./library_STID/")` may not
+> fully solve version conflicts. In that case, restart R and update or
+> remove the conflicting package from the default library before
+> reinstalling `STID`.
 
-## Configure
+## Configure the R installation environment
 
-### mirrors
+### Configure mirrors
 
-To ensure stable and fast installation, users may configure CRAN and
-Bioconductor mirrors depending on their location.
+Use a CRAN mirror and Bioconductor mirror that are stable in the current
+network environment.
 
 ``` r
 # Recommended for users in China
-options("repos" = c(CRAN="https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
-options(BioC_mirror="https://mirrors.tuna.tsinghua.edu.cn/bioconductor")
+options(repos = c(CRAN = "https://mirrors.tuna.tsinghua.edu.cn/CRAN/"))
+options(BioC_mirror = "https://mirrors.tuna.tsinghua.edu.cn/bioconductor")
 
 # Recommended for users outside China
-options("repos" = c(CRAN="https://cloud.r-project.org"))
+options(repos = c(CRAN = "https://cloud.r-project.org"))
 options(BioC_mirror = "https://bioconductor.org")
 ```
 
-### library path
+### Configure an isolated library path
 
-Given the number of dependencies, it is strongly recommended to use an
-isolated library path.
-
-This prevents conflicts with existing R environments and improves
-reproducibility.
+A dedicated library path helps avoid conflicts with an existing R
+environment and makes the installation easier to reproduce.
 
 ``` r
-dir.create("./library_STID/", showWarnings = FALSE) 
-.libPaths("./library_STID/")  # modify as needed
+dir.create("./library_STID/", showWarnings = FALSE, recursive = TRUE)
+.libPaths(normalizePath("./library_STID/"))
 .libPaths()
 ```
 
-> [Notes:\\](Notes:%5C)
-> 如果你的默认library中包含旧的版本的依赖包（例如Matrix），安装过程中可能会出现版本冲突导致安装失败。这种没办法通过.libPaths(“./library_STID/”)
-> 来解决，建议升级你默认library中的依赖包
+> **Note:** If older dependency versions already exist in the default
+> library (for example, `Matrix`, `rlang`, or `SeuratObject`), version
+> conflicts may still occur during installation. It is recommended to
+> restart R and prioritize upgrading the conflicting packages in the
+> default library, or reinstall everything in a fresh R environment.
 
-### additional configuration
+### Configure download and compilation options
 
 ``` r
-# Increase download timeout to avoid failures caused by unstable network connections
+# Increase download timeout for large packages or unstable networks
 options(timeout = 300)
 
-# Enable parallel compilation to accelerate package installation
-Sys.setenv(MAKEFLAGS = paste0("-j", parallel::detectCores() - 2))
+# Use parallel compilation when source installation is required
+n_cores <- max(1, parallel::detectCores() - 2)
+Sys.setenv(MAKEFLAGS = paste0("-j", n_cores))
 
-# Optimize compilation flags (reduce debug info and improve performance)
+# Reduce debug information and use optimized compilation flags
 Sys.setenv(
   PKG_CFLAGS = "-O2 -g0 -DNDEBUG",
   PKG_CXXFLAGS = "-O2 -g0 -DNDEBUG"
 )
 ```
 
-------------------------------------------------------------------------
+## Install package-management utilities
 
-## Pre-installation requirements
-
-It is recommended to use R version 4.5 or higher. If your R version is
-lower than 4.5, installation will become difficult, as many dependent
-packages need to be compiled and installed. It is recommended that you
-first install the following packages:
-
-> Installation from source is recommended
+Install `remotes`, `devtools`, and `BiocManager` before installing
+`STID` and its dependencies.
 
 ``` r
-# Core infrastructure package
-install.packages("rlang") # >= 1.1.7
+install_if_missing <- function(pkgs) {
+  missing_pkgs <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(missing_pkgs) > 0) {
+    install.packages(missing_pkgs)
+  }
+  invisible(missing_pkgs)
+}
 
-
-# These packages require network access (e.g., GitHub or external sources).
-# Installation failures (e.g., "Error in download.file") are often caused by network issues.
-# Retry installation or consider using a proxy/VPN if necessary.
-# Note: this is not a complete list, but these are the most failure-prone packages.
-install.packages("openssl") # >= 2.3.5
-install.packages("curl") # >= 7.0.0 
-install.packages("systemfonts")
-
-
-# These packages are recommended to be installed as binary versions
-# to avoid compilation errors and reduce installation time
-install.packages("Matrix", type = "binary") # >= 1.6.5
-install.packages("RcppArmadillo", type = "binary")
-install.packages("uwot", type = "binary")
-install.packages("units", type = "binary")
-install.packages("ggforce", type = "binary")
+install_if_missing(c("remotes", "devtools", "BiocManager"))
 ```
 
-> [Notes:\\](Notes:%5C) 这些问题主要出现在旧版本的R（eg:
-> R4.2)，再新版本的R中，有最新的源码包对应的二进制包
+## Install core dependencies
 
-------------------------------------------------------------------------
+The following packages are commonly involved in version or compilation
+failures. Installing them explicitly before `STID` can make the GitHub
+installation more stable.
+
+> **Note:** For recent R versions, binary packages are usually available
+> for many dependencies and can substantially reduce installation time.
+> For older R versions, source installation or version pinning may be
+> required.
+
+``` r
+install.packages(c(
+  "rlang",
+  "openssl",
+  "curl",
+  "systemfonts"
+))
+
+install.packages(c(
+  "Matrix",
+  "RcppArmadillo",
+  "uwot",
+  "units",
+  "ggforce"
+), type = "binary")
+```
+
+If the binary packages are unavailable or incompatible with the current
+R version, install a compatible source version manually.
+
+``` r
+remotes::install_version("rlang", version = "1.1.7")
+remotes::install_version("Matrix", version = "1.6.5")
+remotes::install_version("SeuratObject", version = "5.0.2")
+remotes::install_version("Seurat", version = "5.1.0")
+```
+
+### Bioconductor dependencies
+
+``` r
+BiocManager::install(c(
+  "AnnotationDbi",
+  "AUCell",
+  "Biostrings",
+  "clusterProfiler",
+  "DOSE",
+  "GO.db",
+  "GOSemSim",
+  "SingleR",
+  "STRINGdb",
+  "SummarizedExperiment",
+  "UCell"
+), ask = FALSE, update = FALSE)
+```
+
+### GitHub dependencies
+
+Some downstream analyses use packages that are usually installed from
+GitHub. Install these packages only if the corresponding analysis
+modules are needed.
+
+``` r
+devtools::install_github("jinworks/CellChat", upgrade = "never")
+devtools::install_github("saezlab/mistyR", upgrade = "never")
+devtools::install_github("aeyslab/nichenetr", upgrade = "never")
+devtools::install_github("mhahsler/rBLAST", upgrade = "never")
+devtools::install_github("mojaveazure/seurat-disk#198", upgrade = "never")
+```
+
+> **Note:** When GitHub installation fails with
+> `Error in download.file`, the most common causes are network
+> interruption, rate limits, or proxy configuration. Retry the command,
+> configure a proxy if needed, or install the package from a downloaded
+> source archive.
 
 ## Install STID
 
-If installation fails, we recommend re-running the installation command
-multiple times and using the dependency checking utility to identify
-missing packages. Problematic packages should then be installed
-individually until all dependencies are successfully resolved.
-
-> When prompted to update packages, select “3: None” to avoid
-> overwriting previously installed versions (e.g., Matrix). Installation
-> from source is recommended.
+Install `STID` directly from GitHub. When prompted to update
+dependencies, selecting `3: None` is often safer in an already
+configured environment because it avoids unexpectedly overwriting
+packages such as `Matrix`, `SeuratObject`, or `Seurat`.
 
 ``` r
-if (!requireNamespace("remotes", quietly = TRUE)) {
-    install.packages("remotes")
-}
-
-remotes::install_github("YulongQin/STID")
+remotes::install_github(
+  "YulongQin/STID",
+  dependencies = TRUE,
+  upgrade = "never"
+)
 ```
 
-Installation may take approximately 30–60 minutes depending on system
-configuration.
+The full installation may take 30–60 minutes or longer depending on the
+operating system, R version, network speed, and whether packages are
+installed from source.
 
-------------------------------------------------------------------------
+``` r
+library(STID)
+packageVersion("STID")
+```
 
 ## Check dependencies
 
-You can check the dependencies of STID
-[here](https://github.com/YulongQin/STID/blob/main/DESCRIPTION). The
-package in the Suggests will not be installed automatically. If you need
-to use it later, you will have to install it manually.
-
-To ensure all required packages are installed with correct versions, the
-following utility function can be used.
+The `Imports` packages are required for core `STID` functions. Packages
+in `Suggests` are not always installed automatically and should be
+installed manually before running the corresponding downstream analysis.
 
 ``` r
-pkg_imports <- c("anndata", "AnnotationDbi", "assertthat", "AUCell", "Biostrings", "clusterProfiler",
-             "concaveman", "data.table", "dbscan", "distances", "doParallel", "DOSE", "dplyr",
-             "DT", "FNN", "foreach", "furrr", "future", "ggdensity", "ggforce", "ggh4x",
-             "ggnewscale", "ggplot2", "ggraph", "ggrepel", "ggsignif", "ggvenn", "GO.db",
-             "GOSemSim", "igraph", "imager", "magrittr", "Matrix", "methods", 
-             "paletteer", "patchwork", "proxy", "psych", "purrr", "rBLAST", "reticulate",
-             "rjson", "rlang", "scales", "Seurat", "SeuratDisk", "SeuratObject", "shiny",
-             "shinycssloaders", "sp", "STRINGdb", "stringr", "SummarizedExperiment",
-             "tibble", "tidyr", "UCell", "viridis", "zip")
+pkg_imports <- c(
+  "anndata", "AnnotationDbi", "assertthat", "AUCell", "Biostrings",
+  "clusterProfiler", "concaveman", "data.table", "dbscan", "distances",
+  "doParallel", "DOSE", "dplyr", "DT", "FNN", "foreach", "furrr",
+  "future", "ggdensity", "ggforce", "ggh4x", "ggnewscale", "ggplot2",
+  "ggraph", "ggrepel", "ggsignif", "ggvenn", "GO.db", "GOSemSim",
+  "igraph", "imager", "magrittr", "Matrix", "methods", "paletteer",
+  "patchwork", "proxy", "psych", "purrr", "rBLAST", "reticulate",
+  "rjson", "rlang", "scales", "Seurat", "SeuratDisk", "SeuratObject",
+  "shiny", "shinycssloaders", "sp", "STRINGdb", "stringr",
+  "SummarizedExperiment", "tibble", "tidyr", "UCell", "viridis", "zip", "Mfuzz"
+)
 
-pkg_suggests <- c("CellChat", "knitr", "mistyR", "nichenetr", "org.Hs.eg.db",
-                  "org.Mm.eg.db", "rmarkdown", "SingleR", "testthat")
+pkg_suggests <- c(
+  "CellChat", "knitr", "mistyR", "nichenetr", "org.Hs.eg.db",
+  "org.Mm.eg.db", "rmarkdown", "SingleR", "testthat"
+)
 
-check_missing_packages <- function(pkg_list) {
-  installed_pkgs <- installed.packages()[, "Package"]
-  missing_pkgs <- setdiff(pkg_list, installed_pkgs)
+pkg_min_versions <- c(
+  ggplot2 = "4.0.2",
+  rlang = "1.1.7",
+  Matrix = "1.6.5",
+  SeuratObject = "5.0.2",
+  Seurat = "5.1.0"
+)
+```
+
+``` r
+check_stid_packages <- function(pkg_list, min_versions = NULL) {
+  installed_pkgs <- rownames(installed.packages())
   installed_ok <- intersect(pkg_list, installed_pkgs)
+  missing_pkgs <- setdiff(pkg_list, installed_pkgs)
 
-  version_wrong <- c()
-
-  if("ggplot2" %in% installed_ok) {
-    v <- packageVersion("ggplot2")
-    if(v < "4.0.2"){
-      version_wrong <- c(version_wrong, paste0("ggplot2 (requires >= 4.0.2, current = ", v, ")"))
-    }
-  }
-  if("rlang" %in% installed_ok) {
-    v <- packageVersion("rlang")
-    if(v < "1.1.7"){
-      version_wrong <- c(version_wrong, paste0("rlang (requires >= 1.1.7, current = ", v, ")"))
-    }
-  }
-  if("Matrix" %in% installed_ok) {
-    v <- packageVersion("Matrix")
-    if(v < "1.6.5"){
-      version_wrong <- c(version_wrong, paste0("Matrix (requires >= 1.6.5, current = ", v, ")"))
-    }
-  }
-  if("SeuratObject" %in% installed_ok) {
-    v <- packageVersion("SeuratObject")
-    if(v < "5.0.2"){
-      version_wrong <- c(version_wrong, paste0("SeuratObject (requires >= 5.0.2, current = ", v, ")"))
-    }
-  }
-  if("Seurat" %in% installed_ok) {
-    v <- packageVersion("Seurat")
-    if(v < "5.1.0"){
-      version_wrong <- c(version_wrong, paste0("Seurat (requires >= 5.1.0, current = ", v, ")"))
+  version_wrong <- character()
+  if (!is.null(min_versions)) {
+    for (pkg in names(min_versions)) {
+      if (pkg %in% installed_ok) {
+        current_version <- as.character(packageVersion(pkg))
+        required_version <- min_versions[[pkg]]
+        if (utils::compareVersion(current_version, required_version) < 0) {
+          version_wrong <- c(
+            version_wrong,
+            sprintf(
+              "%s (requires >= %s, current = %s)",
+              pkg, required_version, current_version
+            )
+          )
+        }
+      }
     }
   }
 
   cat("==================== Package Installation Check ====================\n")
-  cat("✅ Installed packages: ", length(installed_ok), "\n")
-  cat("❌ Missing packages: ", length(missing_pkgs), "\n")
+  cat("Installed packages: ", length(installed_ok), "\n", sep = "")
+  cat("Missing packages: ", length(missing_pkgs), "\n", sep = "")
 
-  if(length(missing_pkgs) > 0){
+  if (length(missing_pkgs) > 0) {
     cat("\nMissing list:\n")
-    cat(paste0("  - ", missing_pkgs, "\n"), sep="")
+    cat(paste0("  - ", missing_pkgs, "\n"), sep = "")
   } else {
-    cat("\n✅ All packages are installed!\n")
+    cat("\nAll packages in this list are installed.\n")
   }
 
-  if(length(version_wrong) > 0){
-    cat("\n⚠️  Version mismatches:\n")
-    cat(paste0("  - ", version_wrong, "\n"), sep="")
+  if (length(version_wrong) > 0) {
+    cat("\nVersion mismatches:\n")
+    cat(paste0("  - ", version_wrong, "\n"), sep = "")
   }
-  cat("=================================================================\n")
+  cat("====================================================================\n")
 
   invisible(list(
     installed = installed_ok,
@@ -223,77 +293,215 @@ check_missing_packages <- function(pkg_list) {
   ))
 }
 
-check_missing_packages(pkg_imports)
-check_missing_packages(pkg_suggests)
+imports_check <- check_stid_packages(pkg_imports, pkg_min_versions)
+suggests_check <- check_stid_packages(pkg_suggests)
 ```
 
-------------------------------------------------------------------------
+### Install missing dependencies from the check result
 
-## Manual installation of dependencies
-
-In some environments (e.g., restricted networks or incompatible
-binaries), automatic installation may fail. The following steps provide
-manual installation options.
-
-### Seurat dependencies
+Use the dependency check results to install missing packages in smaller
+batches. This makes it easier to identify which package fails.
 
 ``` r
-remotes::install_version('rlang', version = '1.1.7')
-remotes::install_version('Matrix', version = '1.6.5')
-remotes::install_version('SeuratObject', version = '5.0.2')
-remotes::install_version('Seurat', version = '5.1.0')
-```
+missing_imports <- imports_check$missing
+missing_suggests <- suggests_check$missing
 
-### Bioconductor dependencies
+cran_candidates <- setdiff(
+  unique(c(missing_imports, missing_suggests)),
+  c(
+    "AnnotationDbi", "AUCell", "Biostrings", "clusterProfiler", "DOSE",
+    "GO.db", "GOSemSim", "SingleR", "STRINGdb", "SummarizedExperiment",
+    "UCell", "CellChat", "mistyR", "nichenetr", "rBLAST", "SeuratDisk",
+    "org.Hs.eg.db", "org.Mm.eg.db"
+  )
+)
 
-``` r
-if (!require("BiocManager", quietly = TRUE)) {
-    install.packages("BiocManager")
+if (length(cran_candidates) > 0) {
+  install.packages(cran_candidates)
 }
-
-BiocManager::install(c(
-  "AnnotationDbi","AUCell","Biostrings","clusterProfiler","DOSE",
-  "GO.db","GOSemSim","SingleR","STRINGdb","SummarizedExperiment","UCell"
-))
 ```
-
-### GitHub dependencies
 
 ``` r
-if (!require("devtools", quietly = TRUE)) {
-    install.packages("devtools")
-}
+bioc_candidates <- intersect(
+  unique(c(missing_imports, missing_suggests)),
+  c(
+    "AnnotationDbi", "AUCell", "Biostrings", "clusterProfiler", "DOSE",
+    "GO.db", "GOSemSim", "SingleR", "STRINGdb", "SummarizedExperiment",
+    "UCell", "org.Hs.eg.db", "org.Mm.eg.db"
+  )
+)
 
-devtools::install_github("jinworks/CellChat")
-devtools::install_github("saezlab/mistyR")
-devtools::install_github("aeyslab/nichenetr")
-devtools::install_github("mhahsler/rBLAST")
-devtools::install_github("mojaveazure/seurat-disk#198")
+if (length(bioc_candidates) > 0) {
+  BiocManager::install(bioc_candidates, ask = FALSE, update = FALSE)
+}
 ```
 
-------------------------------------------------------------------------
+## Optional analysis modules
 
-## Optional: prebuilt library (Windows)
+Some `STID` functions require additional resources beyond the core R
+package installation.
 
-A precompiled library is available via [Figshare
-repository](https://doi.org/10.6084/m9.figshare.31839988). This option
-is **not recommended** unless standard installation fails, as
-compatibility cannot be guaranteed across environments.
+### Cell-cell communication analysis
 
-------------------------------------------------------------------------
+[`CalSampCellComm()`](https://yulongqin.github.io/STID/reference/CalSampCellComm.md)
+requires `CellChat` and ligand-receptor resources. Install and test
+`CellChat` before running communication analysis.
 
-## Remarks
+``` r
+if (!requireNamespace("CellChat", quietly = TRUE)) {
+  devtools::install_github("jinworks/CellChat", upgrade = "never")
+}
+```
 
-- Installation from source is strongly recommended for reproducibility
-- Use an isolated library path to avoid version conflicts
-- Verify dependencies before running downstream analyses
-- Suggested packages are not installed automatically and should be
-  installed as needed
+### Spatial colocalization analysis
 
-------------------------------------------------------------------------
+[`CalSampCoLoc()`](https://yulongqin.github.io/STID/reference/CalSampCoLoc.md)
+can use `mistyR` or Python-based tools depending on the selected method.
+If the workflow uses Python packages, configure `reticulate` to point to
+the intended Python environment.
+
+``` r
+library(reticulate)
+
+# Replace this path with the Python or conda environment used for spatial analysis
+# use_python("/path/to/python", required = TRUE)
+# use_condaenv("stid", required = TRUE)
+
+py_config()
+```
+
+### Gene regulatory network analysis
+
+[`CalSampGRN()`](https://yulongqin.github.io/STID/reference/CalSampGRN.md)
+requires NicheNet reference files and organism-specific resources.
+Download and store these files locally before running the analysis.
+
+``` r
+if (!requireNamespace("nichenetr", quietly = TRUE)) {
+  devtools::install_github("aeyslab/nichenetr", upgrade = "never")
+}
+```
+
+### Host-pathogen protein association analysis
+
+[`CalSampPPI()`](https://yulongqin.github.io/STID/reference/CalSampPPI.md)
+requires local FASTA files, symbol-to-protein mapping files, BLAST, and
+STRING resources.
+
+``` r
+Sys.which("blastp")
+Sys.which("makeblastdb")
+
+if (!requireNamespace("rBLAST", quietly = TRUE)) {
+  devtools::install_github("mhahsler/rBLAST", upgrade = "never")
+}
+```
+
+## Troubleshooting
+
+### Package version conflicts
+
+Version conflicts commonly involve `Matrix`, `rlang`, `SeuratObject`,
+`Seurat`, or `ggplot2`.
+
+``` r
+packages_to_check <- c("Matrix", "rlang", "SeuratObject", "Seurat", "ggplot2")
+
+vapply(packages_to_check, function(pkg) {
+  if (requireNamespace(pkg, quietly = TRUE)) {
+    as.character(packageVersion(pkg))
+  } else {
+    NA_character_
+  }
+}, character(1))
+```
+
+> **Note:** Restart R after updating core packages. A package namespace
+> that is already loaded in the current R session may continue to use
+> the old version until the session is restarted.
+
+### Network or GitHub download failures
+
+``` r
+options(timeout = 600)
+
+# Test whether GitHub is reachable from R
+utils::download.file(
+  "https://raw.githubusercontent.com/YulongQin/STID/main/DESCRIPTION",
+  tempfile(),
+  quiet = FALSE
+)
+```
+
+If the download fails, retry later, switch networks, configure a proxy,
+or download the source archive manually and install from the local file.
+
+``` r
+# Example: install from a local source archive
+# remotes::install_local("/path/to/STID-main.zip", dependencies = TRUE, upgrade = "never")
+```
+
+### Compilation failures
+
+Compilation failures usually indicate missing build tools or system
+libraries. Install the corresponding system dependency, restart R, and
+reinstall the failed package.
+
+``` r
+# Replace units with the package that failed in your environment
+remove.packages("units")
+install.packages("units", type = "source")
+```
+
+### Bioconductor version mismatch
+
+Bioconductor packages must match the active R version. Confirm the
+Bioconductor version before installing Bioconductor dependencies.
+
+``` r
+BiocManager::version()
+BiocManager::valid()
+```
+
+## Notes
+
+- Use a clean library path and restart R before installation to avoid
+  stale namespaces.
+- Use R 4.5 or higher when possible to reduce source-compilation and
+  dependency-resolution problems.
+- Install heavy or failure-prone dependencies before installing `STID`
+  from GitHub.
+- Suggested packages are not always installed automatically; install
+  them manually before running optional downstream analyses.
+- For reproducible projects, record the R version, package versions,
+  system libraries, and installation date.
 
 ## Session information
 
 ``` r
 sessionInfo()
+#> R version 4.2.0 (2022-04-22 ucrt)
+#> Platform: x86_64-w64-mingw32/x64 (64-bit)
+#> Running under: Windows 10 x64 (build 22000)
+#> 
+#> Matrix products: default
+#> 
+#> locale:
+#> [1] LC_COLLATE=Chinese (Simplified)_China.utf8 
+#> [2] LC_CTYPE=Chinese (Simplified)_China.utf8   
+#> [3] LC_MONETARY=Chinese (Simplified)_China.utf8
+#> [4] LC_NUMERIC=C                               
+#> [5] LC_TIME=Chinese (Simplified)_China.utf8    
+#> 
+#> attached base packages:
+#> [1] stats     graphics  grDevices utils     datasets  methods   base     
+#> 
+#> loaded via a namespace (and not attached):
+#>  [1] digest_0.6.35     R6_2.6.1          jsonlite_1.8.8    lifecycle_1.0.5  
+#>  [5] evaluate_1.0.1    cachem_1.1.0      rlang_1.1.7       cli_3.6.5        
+#>  [9] rstudioapi_0.15.0 fs_1.6.3          jquerylib_0.1.4   bslib_0.8.0      
+#> [13] ragg_1.3.0        rmarkdown_2.29    pkgdown_2.2.0     textshaping_0.3.6
+#> [17] desc_1.4.3        tools_4.2.0       htmlwidgets_1.6.4 yaml_2.3.10      
+#> [21] xfun_0.49         fastmap_1.2.0     compiler_4.2.0    systemfonts_1.0.4
+#> [25] htmltools_0.5.8.1 knitr_1.49        sass_0.4.9
 ```

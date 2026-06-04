@@ -16,7 +16,7 @@
   : Add annotations to SingleSampNiche genes
 - [`anno_SingleR()`](https://yulongqin.github.io/STID/reference/anno_SingleR.md)
   : Annotate Cell Types Using SingleR
-- [`as.Seurat.STID()`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
+- [`as.Seurat(`*`<STID>`*`)`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
   : Convert STID object to Seurat object
 - [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md) :
   Convert Seurat object to STID object

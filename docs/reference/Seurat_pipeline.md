@@ -50,8 +50,8 @@ A Seurat object with processed data and cluster annotations
 ``` r
 if (FALSE) { # \dontrun{
 # Run standard pipeline on spatial data
-seurat_obj <- Seurat_pipeline(
-  seurat_obj = my_spatial_data,
+stRNA <- Seurat_pipeline(
+  seurat_obj = stRNA,
   resolution_index = seq(0.2, 1.0, 0.2)
 )
 } # }

@@ -1,0 +1,78 @@
+---
+title: "Datasets and gene sets"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Datasets and gene sets}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 5,
+  fig.retina = 2
+)
+
+set.seed(123)
+```
+
+## Overview
+
+This vignette briefly summarizes the public spatial transcriptomic datasets and curated gene resources used by `STID`.
+
+```{r packages, message = FALSE, warning = FALSE, eval = FALSE}
+library(tidyverse)
+library(Seurat)
+library(STID)
+```
+
+## Public datasets
+
+Table S1 includes eight public mouse spatial transcriptomic datasets covering viral, bacterial, and parasitic infection models.
+
+| Pathogen type | Pathogen | Abbrev. | Disease | Tissue | Reference | Technology | GEO | n |
+|---|---|---|---|---|---|---|---|---|
+| Virus | Japanese encephalitis virus | JEV | Japanese encephalitis | Brain | Ou et al. (2026) | Stereo-seq | N/A | 12 |
+| Virus | Venezuelan equine encephalitis virus | VEEV | Venezuelan equine encephalitis | Brain | Rangel et al. (2024) | 10x Visium | GSE275201 | 2 |
+| Virus | Reovirus type 1 Lang | Reo-T1L | Viral myocarditis | Heart | Mantri et al. (2022) | 10x Visium | GSE189636 | 4 |
+| Bacterium | Mycobacterium tuberculosis | MTB | Tuberculosis | Lung | Zhao et al. (2025) | Stereo-seq V2 | N/A | 8 |
+| Bacterium | Klebsiella pneumoniae | Kp | Klebsiella pneumoniae pneumonia | Lung | Xu et al. (2022) | 10x Visium | GSE190225 | 4 |
+| Parasite | Echinococcus multilocularis | Em | Alveolar echinococcosis | Liver | Ou et al. (2025) | Stereo-seq | N/A | 12 |
+| Parasite | Plasmodium berghei ANKA | N/A | Malaria | Liver | Hildebrandt et al. (2024) | 10x Visium | GSE268068 | 4 |
+| Parasite | Trypanosoma brucei | Tbb | African trypanosomiasis | Brain | Quintana et al. (2022) | 10x Visium | GSE200642 | 3 |
+
+All raw and processed data are available from Figshare: <https://doi.org/10.6084/m9.figshare.31839988>.
+
+
+## Curated genes and gene sets
+
+Table S2 summarizes 12 curated resources. Counts are shown as `Human/Mouse`.
+
+| Type | Name | Main use | Count |
+|---|---|---|---|
+| Gene | Infection_Immunity | Infection and immune response genes | 391/345 |
+| Gene | PRR | Pattern recognition receptor genes | 137/128 |
+| Gene | Macrophage | Macrophage polarization/function genes | 35/35 |
+| Gene set | GO_BP_Detect_viral | GO biological process terms related to viral infection | 9/12 |
+| Gene set | GO_BP_Detect_bacterial | GO biological process terms related to bacterial infection | 10/7 |
+| Gene set | KEGG_Detect_viral | KEGG viral infection pathways | 21/21 |
+| Gene set | KEGG_Detect_bacterial | KEGG bacterial infection pathways | 11/7 |
+| Gene set | KEGG_Detect_parasitic | KEGG parasitic infection pathways | 6/6 |
+| Gene set | KEGG_Metabolism | KEGG metabolism pathways | 85/85 |
+| Gene set | Reactome_Metabolism | Reactome metabolism pathways | 301/253 |
+| Gene set | MSigDB_Hallmark | MSigDB hallmark gene sets | 50/50 |
+| Gene set | PCD | Programmed cell death gene sets | 18/18 |
+
+```{r gene-geneset, message = FALSE, warning = FALSE}
+STID::Gene_Geneset
+```
+
+## Session information
+
+```{r session-info}
+sessionInfo()
+```

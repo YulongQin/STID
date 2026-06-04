@@ -30,8 +30,8 @@
 #' @examples
 #' \dontrun{
 #' # Run standard pipeline on spatial data
-#' seurat_obj <- Seurat_pipeline(
-#'   seurat_obj = my_spatial_data,
+#' stRNA <- Seurat_pipeline(
+#'   seurat_obj = stRNA,
 #'   resolution_index = seq(0.2, 1.0, 0.2)
 #' )
 #' }
@@ -51,10 +51,14 @@ Seurat_pipeline <- function(seurat_obj = NULL,data_type = "stRNA",
   }
   match.arg(data_type, choices = .STID_globals$supported_types)
   if(data_type == "stRNA"){
-    assay_nm <- "Spatial"
+    if(is.null(assay_nm)){
+      assay_nm <- "Spatial"
+    }
     image_index <- TRUE
   }else if(data_type == "scRNA"){
-    assay_nm <- "RNA"
+    if(is.null(assay_nm)){
+      assay_nm <- "RNA"
+    }
     image_index <- FALSE
   }
   # >>> End check
@@ -175,8 +179,7 @@ Seurat_pipeline <- function(seurat_obj = NULL,data_type = "stRNA",
 #'        cluster IDs for aggregation
 #' @param ref_colnm Character, column name in reference object containing
 #'        cell type labels
-#' @param species_index Character, species for built-in references (currently unused)
-#' @param assay_nm Character, assay to use (default: "Spatial")
+#' @param assay_nm Character, assay to use (default: NULL)
 #' @param layer_nm Character, layer/slot to use (default: "data")
 #'
 #' @return A Seurat object with added 'anno_SingleR' column in metadata
@@ -192,8 +195,8 @@ Seurat_pipeline <- function(seurat_obj = NULL,data_type = "stRNA",
 #' library(SingleR)
 #' ref <- HumanPrimaryCellAtlasData()
 #'
-#' seurat_obj <- anno_SingleR(
-#'   seurat_obj = my_seurat,
+#' stRNA <- anno_SingleR(
+#'   seurat_obj = stRNA,
 #'   ref_obj = ref,
 #'   seurat_colnm = "seurat_clusters",
 #'   ref_colnm = "label.main"
@@ -203,8 +206,7 @@ anno_SingleR <- function(seurat_obj = NULL,
                          ref_obj = NULL,
                          seurat_colnm = NULL,
                          ref_colnm = NULL,
-                         species_index = NULL,
-                         assay_nm = "Spatial",
+                         assay_nm = NULL,
                          layer_nm = "data"
 ) {
 
@@ -227,15 +229,7 @@ anno_SingleR <- function(seurat_obj = NULL,
   # >>> End check
 
   # >>> Start main pipeline
-  clog_step("Normalize seurat_obj")
-  if("data" %in% names(seurat_obj@assays[[assay_nm]]@layers)){
-    clog_normal("Find data in the assay")
-  }else{
-    clog_warn("No data in the assay")
-    clog_normal("Perform NormalizeData")
-    seurat_obj <- NormalizeData(seurat_obj, normalization.method = "LogNormalize", scale.factor = 10000)
-  }
-  obj_exp <- GetAssayData(seurat_obj, slot=layer_nm)
+  obj_exp <- GetAssayData(seurat_obj, assay = assay_nm, layer = layer_nm) # GetAssayData -> LayerData
 
   #
   clog_step("Perform SingleR")

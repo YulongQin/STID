@@ -86,7 +86,8 @@ dir.create("./library_STID/", showWarnings = FALSE)
 options(timeout = 300)
 
 # Enable parallel compilation to accelerate package installation
-Sys.setenv(MAKEFLAGS = paste0("-j", parallel::detectCores() - 2))
+ncores <- max(1, parallel::detectCores() - 2)
+Sys.setenv(MAKEFLAGS = paste0("-j", ncores))
 
 # Optimize compilation flags (reduce debug info and improve performance)
 Sys.setenv(
@@ -97,12 +98,12 @@ Sys.setenv(
 
 ### Pre-installation requirements
 
-It is recommended to use R version 4.5 or higher. If your R version is
-lower than 4.5, installation will become difficult, as many dependent
-packages need to be compiled and installed. It is recommended that you
-first install the following packages:
+If your R version \>= 4.5, you can skip the Pre-installation step.
+Otherwise, it is strongly recommended that you perform the
+Pre-installation; otherwise, the installation process will become
+difficult, as many dependent packages need to be compiled and installed.
 
-> Installation from source is recommended
+> Installation from source is recommended.
 
 ``` r
 # Core infrastructure package
@@ -153,32 +154,39 @@ remotes::install_github("YulongQin/STID")
 ## Quick Start
 
 You can click
-[here](https://yulongqin.github.io/STID/articles/00_Quick_Start.html) to
+[here](https://yulongqin.github.io/STID/articles/00_Quick_start.html) to
 access the quick start tutorial, which provides a concise overview of
 the main functions and workflow of STID.
 
-For a more detailed step-by-step guide, please refer to the following
-tutorials:
+For more detailed step-by-step instructions, please refer to the
+following tutorials:
 
-- [01_Installation](https://yulongqin.github.io/STID/articles/01_Installation.html)
-- [02_PreProcssing](https://yulongqin.github.io/STID/articles/02_PreProcssing.html)
-- [03_Background_correction](https://yulongqin.github.io/STID/articles/03_Background_correction.html)
-- [04_Infection_spot_detection](https://yulongqin.github.io/STID/articles/04_Infection_spot_detection.html)
-- [05_Infection_niche_detection](https://yulongqin.github.io/STID/articles/05_Infection_niche_detection.html)
-- [06_SingleSampNiche_analysis](https://yulongqin.github.io/STID/articles/06_SingleSampNiche.html)
-- [07_MultiSampNiche_analysis](https://yulongqin.github.io/STID/articles/07_MultiSampNiche.html)
+- [01
+  Installation](https://yulongqin.github.io/STID/articles/01_Installation.html)
+- [02 load and
+  preprocess](https://yulongqin.github.io/STID/articles/02_load_and_preprocess.html)
+- [03 Pathogen background
+  correction](https://yulongqin.github.io/STID/articles/03_Pathogen_background_correction.html)
+- [04 Infection-associated spot
+  detection](https://yulongqin.github.io/STID/articles/04_Infection-associated_spot_detection.html)
+- [05 Infection-associated niche
+  identification](https://yulongqin.github.io/STID/articles/05_Infection-associated_niche_identification.html)
+- [06 Single-sample
+  analysis](https://yulongqin.github.io/STID/articles/06_Single-sample_analysis.html)
+- [07 Multi-sample
+  analysis](https://yulongqin.github.io/STID/articles/07_Multi-sample_analysis.html)
 
 ## Resources
 
 ### Project
 
-- GitHub Repository: Access the source code and contribute to STID on
-  [GitHub](https://github.com/YulongQin/STID.git).
+- GitHub repository: The source code for STID is available on
+  [GitHub](https://github.com/YulongQin/STID).
 
 ### Tutorials
 
-- Online Tutorial: For a comprehensive guide on using STID, visit our
-  [tutorial website](https://yulongqin.github.io/STID/).
+- Online tutorial: Documentation and tutorials for STID are available at
+  the [tutorial website](https://yulongqin.github.io/STID/).
 
 ### Data availability
 
@@ -186,30 +194,31 @@ tutorials:
 
   A dataset containing gene and gene set information, available in the
   [R
-  package](https://github.com/YulongQin/STID/blob/d305ee31337ee7290981a50ed08cd74746a1ff70/data/Gene_Geneset.rda).
+  package](https://github.com/YulongQin/STID/blob/main/data/Gene_Geneset.rda).
 
-- Raw data
+- Raw and processed data
 
-  You can access the Raw data used in the tutorial from the [Figshare
-  repository](https://doi.org/10.6084/m9.figshare.31839988). Some data
-  are unavailable or partially available due to constraints set by the
-  original authors. Please contact the original authors for data access
-  requests.
+  The raw and processed datasets used in the article and tutorials are
+  available from the [Figshare
+  repository](https://doi.org/10.6084/m9.figshare.31839988). Some
+  datasets are unavailable or only partially available due to
+  restrictions imposed by the original authors. Please contact the
+  original authors for data access requests.
 
 ### Code availability
 
 - The version used in this study has been archived on
   [Zenodo](https://doi.org/10.5281/zenodo.20353070).
-- All analysis scripts required to reproduce the article results are
-  available at the
-  [article_code](https://github.com/YulongQin/STID/tree/main/article_code).
+- All analysis scripts required to reproduce the results presented in
+  the article are available at the
+  [article_code](https://github.com/YulongQin/STID/tree/main/article_code)
+  directory.
 
 ## Citation
 
 If you use STID in your research, please cite:
 
-Qin Y (2026). *STID: A Standardized Spatial Transcriptomics Analysis
-Framework for Infectious Diseases*.
-<https://github.com/YulongQin/STID.git>,
-<https://yulongqin.github.io/STID/>,
-<https://github.com/YulongQin/STID>.
+Qin, Y., Peng, Y., Chen, Q., Chen, J., Ren, P., Deng, H., Wang, D., Liu,
+X., Ou, Z., Deng, Z., et al. *STID: A Standardized Spatial
+Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
+(2026), 2026.05.24.727492. <https://doi.org/10.64898/2026.05.24.727492>

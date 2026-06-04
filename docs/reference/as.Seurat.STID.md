@@ -7,7 +7,8 @@ structures.
 ## Usage
 
 ``` r
-as.Seurat.STID(STID_obj)
+# S3 method for class 'STID'
+as.Seurat(STID_obj)
 ```
 
 ## Arguments

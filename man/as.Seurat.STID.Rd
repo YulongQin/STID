@@ -4,7 +4,7 @@
 \alias{as.Seurat.STID}
 \title{Convert STID object to Seurat object}
 \usage{
-as.Seurat.STID(STID_obj)
+\method{as.Seurat}{STID}(STID_obj)
 }
 \arguments{
 \item{STID_obj}{An STID object to be converted}

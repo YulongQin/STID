@@ -36,8 +36,8 @@ UMAP/t-SNE dimensionality reduction. Also generates spatial feature plots.
 \examples{
 \dontrun{
 # Run standard pipeline on spatial data
-seurat_obj <- Seurat_pipeline(
-  seurat_obj = my_spatial_data,
+stRNA <- Seurat_pipeline(
+  seurat_obj = stRNA,
   resolution_index = seq(0.2, 1.0, 0.2)
 )
 }

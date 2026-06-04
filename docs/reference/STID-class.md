@@ -33,7 +33,7 @@ infection-related analyses.
 - `graphs`:
 
   A list of
-  [`Graph`](https://satijalab.github.io/seurat-object/reference/Graph-class.html)
+  [`Graph`](https://rdrr.io/pkg/SeuratObject/man/Graph-class.html)
   objects (inherited from Seurat)
 
 - `neighbors`:

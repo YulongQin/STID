@@ -12,8 +12,7 @@ anno_SingleR(
   ref_obj = NULL,
   seurat_colnm = NULL,
   ref_colnm = NULL,
-  species_index = NULL,
-  assay_nm = "Spatial",
+  assay_nm = NULL,
   layer_nm = "data"
 )
 ```
@@ -38,13 +37,9 @@ anno_SingleR(
 
   Character, column name in reference object containing cell type labels
 
-- species_index:
-
-  Character, species for built-in references (currently unused)
-
 - assay_nm:
 
-  Character, assay to use (default: "Spatial")
+  Character, assay to use (default: NULL)
 
 - layer_nm:
 
@@ -62,8 +57,8 @@ if (FALSE) { # \dontrun{
 library(SingleR)
 ref <- HumanPrimaryCellAtlasData()
 
-seurat_obj <- anno_SingleR(
-  seurat_obj = my_seurat,
+stRNA <- anno_SingleR(
+  seurat_obj = stRNA,
   ref_obj = ref,
   seurat_colnm = "seurat_clusters",
   ref_colnm = "label.main"

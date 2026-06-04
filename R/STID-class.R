@@ -518,8 +518,7 @@ setMethod("as.STID", "Seurat",
               names(coord_interval) <- samp_id
             }else{
               clog_error(paste0("The plat_format ", data_format, " of data_platform ", data_platform,
-                                "is not common in current STID analysis.
-                                Please check if your data_format and data_platform are correct."))
+                                " is not common in current STID analysis. Please check if your data_format and data_platform are correct."))
             }
 
             #>
@@ -639,10 +638,10 @@ setMethod("as.STID", "Seurat",
   for (img_name in image_names) {
     img <- STID_obj@images[[img_name]]
 
-    if(inherits(img) == "VisiumV1") {
+    if(inherits(img, "VisiumV1")) {
       coords <- as.data.frame(img@coordinates)[, c("imagerow", "imagecol")]
       colnames(coords) <- c(y_colnm, x_colnm)
-    }else if(inherits(img) == "VisiumV2"){
+    }else if(inherits(img, "VisiumV2")){
       coords <- as.data.frame(img@boundaries[["centroids"]]@coords)
       rownames(coords) <- img@boundaries[["centroids"]]@cells
       colnames(coords) <- c( x_colnm, y_colnm)
@@ -2616,6 +2615,7 @@ setMethod(
       }
     }
     cat("\n")
+    # browser()
   }
 )
 
