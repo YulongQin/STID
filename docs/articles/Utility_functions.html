@@ -94,7 +94,7 @@
 </h2>
 <p>This vignette introduces four utility functions used for environment
 configuration, cross-format data conversion, and annotation parsing in
-STID workflows. <code>configure_conda()</code> prepares the Python
+STID workflows. <code><a href="../reference/configure_conda.html">configure_conda()</a></code> prepares the Python
 environment required by Python-backed conversion steps.
 <code><a href="../reference/h5ad2rds.html">h5ad2rds()</a></code> and <code><a href="../reference/rds2h5ad.html">rds2h5ad()</a></code> convert data between
 AnnData <code>h5ad</code> files and Seurat-compatible R objects.
@@ -121,7 +121,7 @@ from GTF files.</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code>configure_conda()</code></td>
+<td><code><a href="../reference/configure_conda.html">configure_conda()</a></code></td>
 <td>Configure the Python environment through
 <code>reticulate</code>
 </td>
@@ -172,17 +172,17 @@ files</td>
 <h2 id="configure_conda">
 <code>configure_conda()</code><a class="anchor" aria-label="anchor" href="#configure_conda"></a>
 </h2>
-<p><code>configure_conda()</code> configures Python through
+<p><code><a href="../reference/configure_conda.html">configure_conda()</a></code> configures Python through
 <code>reticulate</code>. If no Conda environment name is supplied, it
 attempts to use or install the default Miniconda environment. If a Conda
 environment name is supplied, it checks whether that environment exists
 before activating it.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Use default Miniconda</span></span>
-<span><span class="fu">configure_conda</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/configure_conda.html">configure_conda</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Use an existing Conda environment</span></span>
-<span><span class="fu">configure_conda</span><span class="op">(</span>conda_nm <span class="op">=</span> <span class="st">"scanpy_env"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/configure_conda.html">configure_conda</a></span><span class="op">(</span>conda_nm <span class="op">=</span> <span class="st">"scanpy_env"</span><span class="op">)</span></span></code></pre></div>
 <p>Run this configuration before using Python-backed conversion
 workflows such as <code><a href="../reference/h5ad2rds.html">h5ad2rds()</a></code> and
 <code><a href="../reference/rds2h5ad.html">rds2h5ad()</a></code>.</p>

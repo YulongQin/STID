@@ -93,12 +93,14 @@
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
 <p>This vignette describes how to perform pathogen background correction
-for spatial transcriptomics data using <code>STID</code>.</p>
-<p>Reliable detection of pathogen-associated signals requires explicit
-modeling of background contamination. In <code>STID</code>, background
-correction uses reference background or control samples to estimate the
-distribution of pathogen-associated features and reduce spurious signals
-before downstream infection-aware spatial analysis.</p>
+for spatial transcriptomic data of infectious diseases using
+<code>STID</code>.</p>
+<p>Accurate detection of pathogen-derived background signals requires
+explicit modeling of background contamination. In <code>STID</code>,
+background correction uses reference background or control samples to
+estimate the distribution of pathogen-associated features and reduce
+spurious signals before downstream spatial transcriptomic analysis of
+infectious diseases.</p>
 <p>This vignette covers:</p>
 <ul>
 <li>preparing a processed <code>STID</code> object and a pathogen
@@ -106,16 +108,27 @@ feature list;</li>
 <li>selecting background or control samples for background
 modeling;</li>
 <li>running <code><a href="../reference/CorrectBackground.html">CorrectBackground()</a></code>;</li>
-<li>summarizing pathogen-associated signal before and after
+<li>summarizing pathogen-derived background signal before and after
 correction;</li>
-<li>generating exploratory spatial maps of pathogen-associated
-signal.</li>
+<li>generating spatial distribution maps of pathogen-derived background
+signals.</li>
 </ul>
+<div class="figure" style="text-align: center">
+<img src="figures/Figure2_A_partial.png" class="r-plt" alt="Spatial distribution of pathogen-derived background signal before and after background correction." width="300px"><p class="caption">
+Spatial distribution of pathogen-derived background signal before and
+after background correction.
+</p>
+</div>
 <blockquote>
 <p><strong>Note:</strong> Update the <code>STID</code> object name,
 pathogen feature list, background sample IDs, assay name, layer name,
 pathogen gene prefix, group names, and output directory according to the
 dataset used in your analysis.</p>
+</blockquote>
+<blockquote>
+<p><strong>Reference code:</strong> For more runnable code examples,
+please refer to the <a href="https://github.com/YulongQin/STID/tree/main/article_code" class="external-link">article
+code</a>.</p>
 </blockquote>
 </div>
 <div class="section level2">
@@ -129,8 +142,8 @@ dataset used in your analysis.</p>
 <div class="section level2">
 <h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
 </h2>
-<p>This vignette use the processed AE <code>STID_obj</code> object and a
-pathogen feature list have already been generated in the preprocessing
+<p>This vignette uses the processed AE STID_obj object and a pathogen
+feature list that have already been generated in the preprocessing
 step.</p>
 <blockquote>
 <p><strong>Note:</strong> Replace <code>STID_obj</code>,
@@ -161,7 +174,7 @@ counts between the background samples and all samples. The adjusted
 threshold is then subtracted from expression values across all spots or
 cells, and negative corrected values are set to zero.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span><span class="st">"parallel_workers"</span> <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span><span class="st">"parallel_workers"</span> <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">STID_obj_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CorrectBackground.html">CorrectBackground</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_before</span>,</span>
@@ -173,63 +186,33 @@ cells, and negative corrected values are set to zero.</p>
 <span>  grp_nm <span class="op">=</span> <span class="st">"Final_CE_0.95"</span>,</span>
 <span>  dir_nm <span class="op">=</span> <span class="st">"M1_CorrectBackground"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a>
-</h4>
-<ul>
-<li>
-<code>bg_samp_id</code>: background or control sample IDs used to
-estimate the background signal distribution. Update this argument to
-match your dataset.</li>
-<li>
-<code>bg_features</code>: pathogen-associated features used for
-background modeling. Update this argument if your pathogen feature
-vector has a different object name.</li>
-<li>
-<code>PosThres_prob</code>: probability threshold used to estimate
-the background expression cutoff. The example above uses
-<code>0.95</code>.</li>
-<li>
-<code>assay_id</code> and <code>layer_id</code>: assay and data
-layer used for correction. Update these arguments if your object uses
-different assay or layer names.</li>
-<li>
-<code>grp_nm</code>: name assigned to the corrected signal group in
-the object metadata. Update this name to reflect the threshold or
-correction setting used in your analysis.</li>
-<li>
-<code>dir_nm</code>: output directory for background correction
-results. Update this path or directory name as needed.</li>
-</ul>
 <p>The choice of <code>PosThres_prob</code> determines the balance
 between sensitivity and specificity. It should be calibrated according
 to sequencing depth, background signal level, and expected pathogen
 load.</p>
-</div>
-<div class="section level4">
-<h4 id="output-figure">Output figure<a class="anchor" aria-label="anchor" href="#output-figure"></a>
-</h4>
-<p>The following figure summarizes pathogen-associated signal after
-background correction.</p>
+<p>The following figure summarizes pathogen-derived background signal
+after background correction.</p>
 <div class="figure" style="text-align: center">
-<img src="figures/Figure2_B.png" class="r-plt" alt="Summary of pathogen-associated signal after background correction." width="600px"><p class="caption">
-Summary of pathogen-associated signal after background correction.
+<img src="figures/Figure2_B.png" class="r-plt" alt="Summary of pathogen-derived background signal after background correction." width="600px"><p class="caption">
+Summary of pathogen-derived background signal after background
+correction.
 </p>
 </div>
 </div>
-</div>
 <div class="section level2">
-<h2 id="spatial-distribution-of-pathogen-associated-signal">Spatial distribution of pathogen-associated signal<a class="anchor" aria-label="anchor" href="#spatial-distribution-of-pathogen-associated-signal"></a>
+<h2 id="spatial-distribution-of-pathogen-derived-background-signal">Spatial distribution of pathogen-derived background signal<a class="anchor" aria-label="anchor" href="#spatial-distribution-of-pathogen-derived-background-signal"></a>
 </h2>
-<p>This section generates exploratory spatial maps of
-pathogen-associated signal before and after background correction.
-Formal detection of infection-associated spots is described in the next
-vignette, <code>04_Infection-associated_spot_detection.html</code>.</p>
+<p>This section generates exploratory spatial maps of pathogen-derived
+background signal before and after background correction. Formal
+detection of infection-associated positive spots is described in the <a href="https://yulongqin.github.io/STID/articles/04_Infection-associated_spot_detection.html">Infection
+associated spot detection</a> vignette.</p>
 <blockquote>
 <p><strong>Note:</strong> Update the pathogen gene prefix in
 <code>pattern</code>, the pathogen feature vector, metadata key, assay
 name, layer name, and output group names according to your dataset.</p>
 </blockquote>
+<p>Calculate the overall expression of pathogen genes and add the
+results to meta.data.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">high_exp_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetTopGenes.html">GetTopGenes</a></span><span class="op">(</span></span>
 <span>  <span class="va">STID_obj_before</span>,</span>
@@ -241,6 +224,7 @@ name, layer name, and output group names according to your dataset.</p>
 <span>  layer_id <span class="op">=</span> <span class="st">"counts"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># before correction</span></span>
 <span><span class="va">raw_pathogen_signal_before</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_before</span>,</span>
 <span>  features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
@@ -255,6 +239,7 @@ name, layer name, and output group names according to your dataset.</p>
 <span>  ignore_rownm <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># after correction</span></span>
 <span><span class="va">raw_pathogen_signal_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_after</span>,</span>
 <span>  features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
@@ -268,14 +253,12 @@ name, layer name, and output group names according to your dataset.</p>
 <span>  meta_key <span class="op">=</span> <span class="st">"raw"</span>,</span>
 <span>  ignore_rownm <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<blockquote>
-<p><strong>Note:</strong> If your installed <code>STID</code> version
-uses the legacy argument name <code>igrnore_rownm</code>, replace
-<code>ignore_rownm</code> with <code>igrnore_rownm</code> in the two
-<code><a href="../reference/AddMetaColumn.html">AddMetaColumn()</a></code> calls above.</p>
-</blockquote>
+<p>Using identical parameters, calculate the spatial distribution of
+pathogen-infected positive spots in the STID object before and after
+pathogen background correction.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pathogen_signal_columns_before</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># before correction</span></span>
+<span><span class="va">pathogen_signal_columns_before</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
 <span>  <span class="st">"all_gene"</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj_before</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
 <span>  value <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -297,6 +280,7 @@ uses the legacy argument name <code>igrnore_rownm</code>, replace
 <span>  grp_nm <span class="op">=</span> <span class="st">"CE_correct_before_all_gene_black"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># after correction</span></span>
 <span><span class="va">pathogen_signal_columns_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
 <span>  <span class="st">"all_gene"</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj_after</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
@@ -318,36 +302,39 @@ uses the legacy argument name <code>igrnore_rownm</code>, replace
 <span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="st">"CE_correct_after_all_gene_black"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="output-figure-1">Output figure<a class="anchor" aria-label="anchor" href="#output-figure-1"></a>
-</h4>
 <p>The following figure shows the spatial distribution of
-pathogen-associated signal before and after background correction.</p>
+pathogen-derived background signal before and after background
+correction.</p>
 <div class="figure" style="text-align: center">
-<img src="figures/Figure2_A.png" class="r-plt" alt="Spatial distribution of pathogen-associated signal before and after background correction." width="500px"><p class="caption">
-Spatial distribution of pathogen-associated signal before and after
-background correction.
+<img src="figures/Figure2_A.png" class="r-plt" alt="Spatial distribution of pathogen-derived background signal before and after background correction." width="500px"><p class="caption">
+Spatial distribution of pathogen-derived background signal before and
+after background correction.
 </p>
-</div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="notes">Notes<a class="anchor" aria-label="anchor" href="#notes"></a>
 </h2>
 <ul>
-<li>Apply background correction before spatial classification or
-downstream pathogen signal interpretation.</li>
-<li>Confirm that background samples represent true negative or baseline
-conditions before running correction.</li>
-<li>Check <code>meta.data</code> and the output files in
-<code>dir_nm</code> to confirm that corrected signals were generated
-successfully.</li>
-<li>The corrected object preserves the original object structure while
-updating pathogen signal estimates.</li>
+<li>Apply pathogen background correction before downstream
+infection-associated spatial transcriptomic analysis.</li>
+<li>Confirm that background samples represent true baseline conditions
+before running correction.</li>
+<li>The corrected STID object preserves the original object structure
+while updating pathogen gene expression.</li>
 <li>Recalibrate <code>PosThres_prob</code> when applying this workflow
 to datasets with different sequencing depth, pathogen burden, or
 background contamination levels.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p>This vignette generated a background-corrected <code>STID</code>
+object and reduced nonspecific pathogen-derived signals in control or
+background samples. In the next vignette, we will use the corrected
+expression matrix to identify pathogen-infected spots and
+host-responsive spots based on gene expression or gene set scores.</p>
 </div>
 <div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>

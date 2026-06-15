@@ -1,10 +1,10 @@
 # The STID Class
 
-The STID (Integrated Single-cell Transcriptomics) object extends the
-Seurat class to add specialized functionality for analyzing infection
-and spatial transcriptomics data. It inherits all functionality from
-Seurat objects while adding additional slots for tracking
-infection-related analyses.
+The STID (Spatial Transcriptomics toolkit for Infectious Diseases)
+object extends the Seurat class to add specialized functionality for
+analyzing infection and spatial transcriptomics data. It inherits all
+functionality from Seurat objects while adding additional slots for
+tracking infection-related analyses.
 
 ## Slots
 
@@ -33,7 +33,7 @@ infection-related analyses.
 - `graphs`:
 
   A list of
-  [`Graph`](https://rdrr.io/pkg/SeuratObject/man/Graph-class.html)
+  [`Graph`](https://satijalab.github.io/seurat-object/reference/Graph-class.html)
   objects (inherited from Seurat)
 
 - `neighbors`:

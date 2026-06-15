@@ -73,6 +73,7 @@ Imports:
     SummarizedExperiment,
     tibble,
     tidyr,
+    tidyselect,
     UCell,
     viridis,
     zip

@@ -1,10 +1,10 @@
-# Load and preprocess spatial transcriptomics data
+# Load and preprocess
 
 ## Overview
 
 This vignette describes how to load and preprocess spatial
 transcriptomics data before constructing an `STID` object for downstream
-infection-aware spatial analysis.
+spatial transcriptomic analysis of infectious diseases.
 
 Preprocessing standardizes the input object so that the data are
 normalized, dimensionally reduced, clustered, and annotated in a format
@@ -17,9 +17,18 @@ This vignette covers:
 - annotating spatial spots or cells with a reference-based method;
 - converting a processed Seurat object into an `STID` object.
 
+![Preprocessing modules in the STID
+workflow.](figures/Figure1_A_partial.png)
+
+Preprocessing modules in the STID workflow.
+
 > **Note:** Update the example dataset name, organism information,
 > pathogen gene prefix, and metadata column names according to the
 > dataset used in your analysis.
+
+> **Reference code:** For more runnable code examples, please refer to
+> the [article
+> code](https://github.com/YulongQin/STID/tree/main/article_code).
 
 ## Prerequisites
 
@@ -36,7 +45,9 @@ reference-based annotation step.
 
 The example data can be downloaded from
 [Figshare](https://doi.org/10.6084/m9.figshare.31839988). In this
-vignette, we use the `stRNA_AE` dataset as an example.
+vignette, we use the `stRNA_AE` dataset as an example. Alveolar
+echinococcosis (AE) is a Stereo-seq-based mouse tissue dataset infected
+with *Echinococcus multilocularis*.
 
 > **Note:** Replace `./stRNA_AE.rds` with the correct local path or a
 > package-provided example dataset.
@@ -119,25 +130,10 @@ stRNA <- anno_SingleR(
 )
 ```
 
-#### Details
-
 The
 [`anno_SingleR()`](https://yulongqin.github.io/STID/reference/anno_SingleR.md)
 function annotates query spots or cells using the `SingleR` framework.
-
-Key arguments include:
-
-- `ref_obj`: a reference dataset with known cell-type annotations;
-- `seurat_colnm`: the metadata column containing cluster labels in the
-  query Seurat object;
-- `ref_colnm`: the annotation column in the reference dataset.
-
-The resulting annotations are stored in the Seurat object and can be
-used for:
-
-- interpreting infection-associated spatial niches;
-- comparing host cell-type composition across samples or groups;
-- downstream niche-level analysis in STID.
+The resulting annotations are stored in the Seurat object.
 
 > **Note:** Replace
 > [`MouseRNAseqData()`](https://rdrr.io/pkg/SingleR/man/datasets.html)
@@ -147,10 +143,9 @@ used for:
 
 ## Convert the Seurat object into an STID object
 
-To support infection-aware spatial transcriptomics analysis, STID uses a
-dedicated object class that stores sample information, host-cell
-annotations, pathogen metadata, and platform-specific spatial
-information.
+To support spatial transcriptomic analysis of infectious diseases, STID
+uses a dedicated object class that stores sample information, pathogen
+metadata, and platform-specific spatial information.
 
 Before conversion, confirm the following information:
 
@@ -173,7 +168,7 @@ STID_obj <- as.STID(
   host_org = "mouse",
   pathogen_grp = "parasite",
   pathogen_org = "EmuJ",
-  pathogen_gene = pathogen_genes,
+  pathogen_genes = pathogen_genes,
   binsize = 50,
   data_format = "square_grid",
   data_platform = "StereoSeq"
@@ -182,25 +177,14 @@ STID_obj <- as.STID(
 print(STID_obj)
 ```
 
-#### Details
-
 The [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md)
 function converts a processed Seurat object into an `STID` object. The
 generated object is used as the standard input for downstream STID
 analyses.
 
-The example above assumes that:
-
-- `batch` stores sample identifiers;
-- `group` stores sample-level experimental groups;
-- `anno` stores cell-type annotations;
-- pathogen genes are identified by the prefix `EmuJ-`;
-- the spatial data were generated using the Stereo-seq platform and
-  represented as a square grid.
-
 > **Note:** These assumptions are dataset-specific. Update `samp_colnm`,
 > `samp_grp_colnm`, `celltype_colnm`, `host_org`, `pathogen_grp`,
-> `pathogen_org`, `pathogen_gene`, `binsize`, `data_format`, and
+> `pathogen_org`, `pathogen_genes`, `binsize`, `data_format`, and
 > `data_platform` before using this workflow for another dataset.
 
 ## Inspect the STID object
@@ -224,15 +208,18 @@ Printed summary of the raw STID object.
 
 ## Notes
 
-- Use a reference dataset that matches the species and tissue context of
-  the spatial transcriptomics data.
 - Verify that all metadata columns passed to
   [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md)
   are present in `stRNA@meta.data`.
 - Check the pathogen gene prefix carefully, because an incorrect pattern
   may remove pathogen-derived features from downstream analysis.
-- For package vignettes, keep large example data outside the package or
-  provide a small, lightweight example object.
+
+## Next steps
+
+This vignette generated a processed `STID` object containing spatial
+coordinates, sample information, and host–pathogen metadata. In the next
+vignette, we will use this object to correct pathogen-derived background
+signals before detecting infection-associated spots.
 
 ## Session information
 

@@ -92,32 +92,38 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This vignette describes how to identify infection-associated spatial
-locations using <code>STID</code> after preprocessing and, when
-appropriate, pathogen background correction.</p>
-<p>Infection-associated spots can be detected from either gene-level
-signals or gene-set scores. The gene-level strategy uses
-pathogen-derived genes or host response genes to define positive spatial
-locations, whereas the gene-set strategy summarizes coordinated
-biological programs and identifies spots with elevated pathway- or
-process-level activity.</p>
+<p>This vignette describes how to identify infection-associated spots
+using <code>STID</code> after preprocessing.</p>
+<p>Infection-associated spots can be detected using either gene-level
+signals or gene-set scores. The gene-level strategy defines positive
+spots based on the expression of pathogen-derived genes or
+host-responsive genes, whereas the gene-set strategy defines positive
+spots based on gene-set scores that quantify the activity of
+infection-associated pathways or biological processes.</p>
 <p>This vignette covers:</p>
 <ul>
-<li>preparing an example <code>STID</code> object for
-infection-associated spot detection;</li>
-<li>defining pathogen-derived and host response gene sets;</li>
-<li>identifying infection-associated spots using aggregated gene-level
-signals;</li>
-<li>identifying infection-associated spots using gene-set scores;</li>
+<li>defining pathogen-derived and host-responsive gene sets;</li>
+<li>detecting infection-associated spots using gene-level signals;</li>
+<li>detecting infection-associated spots using gene-set scores;</li>
 <li>visualizing threshold-based detection results and spatial
 distributions.</li>
 </ul>
+<div class="figure" style="text-align: center">
+<img src="figures/graphical_abstract_partial.png" class="r-plt" alt="Infection-associated spot detection workflow." width="600px"><p class="caption">
+Infection-associated spot detection workflow.
+</p>
+</div>
 <blockquote>
 <p><strong>Note:</strong> Update the input object name, sample metadata
-columns, pathogen gene list, host response gene list, gene-set
+columns, pathogen gene list, host-responsive gene list, gene-set
 collections, detection thresholds, plotting parameters, output group
 names, and saved object path according to the dataset used in your
 analysis.</p>
+</blockquote>
+<blockquote>
+<p><strong>Reference code:</strong> For more runnable code examples,
+please refer to the <a href="https://github.com/YulongQin/STID/tree/main/article_code" class="external-link">article
+code</a>.</p>
 </blockquote>
 </div>
 <div class="section level2">
@@ -131,26 +137,23 @@ analysis.</p>
 <div class="section level2">
 <h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
 </h2>
-<p>The example data can be downloaded from <a href="https://doi.org/10.6084/m9.figshare.31839988" class="external-link">Figshare</a>. In
-this vignette, we use the <code>stRNA_Tbb</code> dataset as an
-example.</p>
-<blockquote>
-<p><strong>Note:</strong> Replace <code>./stRNA_Tbb.rds</code> with the
-correct local path or a package-provided example dataset.</p>
-</blockquote>
+<p>This vignette uses the African trypanosomiasis, Japanese encephalitis
+(JE), and AE infection datasets to illustrate the detection of
+infection-associated spots.</p>
+<div class="section level3">
+<h3 id="african-trypanosomiasis-infection-model">African trypanosomiasis infection model<a class="anchor" aria-label="anchor" href="#african-trypanosomiasis-infection-model"></a>
+</h3>
+<p>The <code>stRNA_Tbb</code> data can be downloaded from <a href="https://doi.org/10.6084/m9.figshare.31839988" class="external-link">Figshare</a>. This
+is a Visium-based mouse tissue dataset infected with <em>Trypanosoma
+brucei brucei</em>.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span>file <span class="op">=</span> <span class="st">"./stRNA_Tbb.rds"</span><span class="op">)</span></span>
-<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SeuratObject/man/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://satijalab.org/seurat/reference/NormalizeData.html" class="external-link">NormalizeData</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span></span>
 <span><span class="va">meta_data</span> <span class="op">&lt;-</span> <span class="va">stRNA</span><span class="op">@</span><span class="va">meta.data</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">meta_data</span><span class="op">$</span><span class="va">group</span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="construct-the-stid-object">Construct the STID object<a class="anchor" aria-label="anchor" href="#construct-the-stid-object"></a>
-</h4>
-<p>This example uses a Visium-based mouse tissue dataset infected with
-<em>Trypanosoma brucei brucei</em>. The gene vectors below define
-pathogen-derived features and host response markers used for downstream
-detection.</p>
+<p>The gene vectors below define pathogen-derived genes and
+host-responsive genes used for downstream detection.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pathogen_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Tb927.7.5940"</span>, <span class="st">"Tb927.6.4280"</span><span class="op">)</span></span>
 <span><span class="va">host_response_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
@@ -194,27 +197,77 @@ with suitable background or control samples, pathogen background
 correction should be performed before formal infection-associated spot
 detection.</p>
 </div>
+<div class="section level3">
+<h3 id="je-infection-model">JE infection model<a class="anchor" aria-label="anchor" href="#je-infection-model"></a>
+</h3>
+<p>The <code>stRNA_JEV</code> data can be downloaded from <a href="https://doi.org/10.6084/m9.figshare.31839988" class="external-link">Figshare</a>. This
+is a Stereo-seq-based mouse tissue dataset infected with <em>Japanese
+encephalitis virus</em>.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span>file <span class="op">=</span> <span class="st">"./stRNA_JEV.rds"</span><span class="op">)</span></span>
+<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># stRNA &lt;- NormalizeData(stRNA)</span></span>
+<span><span class="va">meta_data</span> <span class="op">&lt;-</span> <span class="va">stRNA</span><span class="op">@</span><span class="va">meta.data</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">meta_data</span><span class="op">$</span><span class="va">new_samp</span><span class="op">)</span></span></code></pre></div>
+<p>The JEV example uses viral genes as pathogen-derived features and
+selected interferon- and inflammation-associated genes as
+host-responsive markers.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pathogen_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="st">"NS5"</span>, <span class="st">"C"</span>, <span class="st">"NS3"</span>, <span class="st">"NS1"</span>, <span class="st">"E"</span>, <span class="st">"Prm"</span>, <span class="st">"NS4aAlt"</span>, <span class="st">"NS4bAlt"</span>, <span class="st">"NS2a"</span>, <span class="st">"NS2b"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">host_response_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Cxcl10"</span>, <span class="st">"Ifitm3"</span>, <span class="st">"Isg15"</span>, <span class="st">"Irf7"</span>, <span class="st">"Ccl5"</span>, <span class="st">"Ccl2"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as.STID.html">as.STID</a></span><span class="op">(</span></span>
+<span>  <span class="va">stRNA</span>,</span>
+<span>  samp_colnm <span class="op">=</span> <span class="st">"new_samp"</span>,</span>
+<span>  samp_grp_colnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
+<span>  celltype_colnm <span class="op">=</span> <span class="st">"new_cell"</span>,</span>
+<span>  host_org <span class="op">=</span> <span class="st">"mouse"</span>,</span>
+<span>  pathogen_grp <span class="op">=</span> <span class="st">"virus"</span>,</span>
+<span>  pathogen_org <span class="op">=</span> <span class="st">"JEV"</span>,</span>
+<span>  pathogen_gene <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
+<span>  data_format <span class="op">=</span> <span class="st">"square_grid"</span>,</span>
+<span>  data_platform <span class="op">=</span> <span class="st">"StereoSeq"</span>,</span>
+<span>  binsize <span class="op">=</span> <span class="fl">35</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">)</span></span></code></pre></div>
+<p>Because the pathogen in the JE infection model is captured by probes,
+pathogen genes are not present in the control group, so pathogen
+background correction is not necessary, and we can proceed directly to
+infection-associated spot detection.</p>
+</div>
+<div class="section level3">
+<h3 id="ae-infection-model">AE infection model<a class="anchor" aria-label="anchor" href="#ae-infection-model"></a>
+</h3>
+<p>The processed AE <code>STID_obj_after</code> object has already been
+generated in the pathogen background correction step.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="detect-infection-associated-spots-using-gene-level-signals">Detect infection-associated spots using gene-level signals<a class="anchor" aria-label="anchor" href="#detect-infection-associated-spots-using-gene-level-signals"></a>
 </h2>
-<p>Gene-level detection identifies positive spatial locations from
-pathogen-derived expression or host response marker expression. For each
-sample, the expression distribution is evaluated, and a quantile-based
-threshold is used to classify spots as positive or negative. By default,
-nonzero expression values can be used to estimate the threshold, and the
+<p>Gene-level detection identifies positive spots from pathogen-derived
+gene expression or host-responsive gene expression. For each sample, the
+expression distribution is evaluated, and a quantile-based threshold is
+used to classify spots as positive or negative. By default, nonzero
+expression values can be used to estimate the threshold, and the
 selected cutoff should be calibrated according to spatial expression
 patterns and frequency distributions.</p>
 <p>For multiple genes, aggregated expression across the selected
 features is used for spot-level detection. Optional smoothing can be
 applied before thresholding to reduce local noise.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">COLOR_DIS_CON</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  dis <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grey95"</span>, <span class="st">"#E34D4A"</span><span class="op">)</span>,</span>
-<span>  con <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#440154FF"</span>, <span class="st">"#3B528BFF"</span>, <span class="st">"#21908CFF"</span>, <span class="st">"#5DC863FF"</span>, <span class="st">"#FDE725FF"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pathogen_signal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
+<div class="section level3">
+<h3 id="african-trypanosomiasis-infection-model-1">African trypanosomiasis infection model<a class="anchor" aria-label="anchor" href="#african-trypanosomiasis-infection-model-1"></a>
+</h3>
+<p>Calculate the overall expression of pathogen-derived genes and
+host-responsive genes and add the results to meta.data.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">COLOR_DIS_CON</span> <span class="op">&lt;-</span> <span class="fu">STID</span><span class="fu">::</span><span class="va"><a href="../reference/COLOR_DIS_CON.html">COLOR_DIS_CON</a></span></span>
+<span></span>
+<span><span class="co"># pathogen-derived genes</span></span>
+<span><span class="va">pathogen_signal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
 <span>  features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
 <span>  prefix <span class="op">=</span> <span class="st">"pathogen_gene"</span>,</span>
@@ -228,6 +281,7 @@ applied before thresholding to reduce local noise.</p>
 <span>  ignore_rownm <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># host-responsive genes</span></span>
 <span><span class="va">host_response_signal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
 <span>  features <span class="op">=</span> <span class="va">host_response_genes</span>,</span>
@@ -241,14 +295,9 @@ applied before thresholding to reduce local noise.</p>
 <span>  meta_key <span class="op">=</span> <span class="st">"raw"</span>,</span>
 <span>  ignore_rownm <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<blockquote>
-<p><strong>Note:</strong> If the installed <code>STID</code> version
-uses the legacy argument name <code>igrnore_rownm</code>, replace
-<code>ignore_rownm</code> with <code>igrnore_rownm</code> in the
-<code><a href="../reference/AddMetaColumn.html">AddMetaColumn()</a></code> calls above.</p>
-</blockquote>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pathogen_signal_columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># pathogen-derived genes</span></span>
+<span><span class="va">pathogen_signal_columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
 <span>  <span class="st">"pathogen_gene"</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
 <span>  value <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -271,6 +320,7 @@ uses the legacy argument name <code>igrnore_rownm</code>, replace
 <span>  grp_nm <span class="op">=</span> <span class="st">"Tbb_pathogen_gene_signal_white"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># host-responsive genes</span></span>
 <span><span class="va">host_response_signal_columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
 <span>  <span class="st">"host_response_gene"</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
@@ -292,39 +342,6 @@ uses the legacy argument name <code>igrnore_rownm</code>, replace
 <span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="st">"Tbb_host_response_gene_signal_white"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a>
-</h4>
-<ul>
-<li>
-<code>features</code>: gene features used to define
-infection-associated or host response-associated signal. Update this
-vector for each dataset.</li>
-<li>
-<code>feature_colnm</code>: metadata columns containing aggregated
-gene-level signal. These columns should correspond to the selected
-feature set.</li>
-<li>
-<code>PosThres_prob</code>: quantile-based probability threshold for
-positive-spot detection. Recalibrate this value according to the signal
-distribution.</li>
-<li>
-<code>PosThres_count</code>: count-based cutoff for positive-spot
-detection. Increase this value when low-level background signal is
-expected.</li>
-<li>
-<code>blur_method</code>, <code>blur_n</code>, and
-<code>blur_sigma</code>: optional smoothing parameters used before
-visualization or thresholding.</li>
-<li>
-<code>grp_nm</code>: output group name stored in the
-<code>STID</code> object. Use informative names that describe the
-dataset and detection strategy.</li>
-</ul>
-</div>
-<div class="section level4">
-<h4 id="output-figure">Output figure<a class="anchor" aria-label="anchor" href="#output-figure"></a>
-</h4>
 <p>The following figure summarizes threshold-based classification of
 infection-associated spots using gene-level signals.</p>
 <div class="figure" style="text-align: center">
@@ -333,6 +350,125 @@ Threshold-based classification of infection-associated spots using
 gene-level signals.
 </p>
 </div>
+</div>
+<div class="section level3">
+<h3 id="je-infection-model-1">JE infection model<a class="anchor" aria-label="anchor" href="#je-infection-model-1"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">COLOR_DIS_CON</span> <span class="op">&lt;-</span> <span class="fu">STID</span><span class="fu">::</span><span class="va"><a href="../reference/COLOR_DIS_CON.html">COLOR_DIS_CON</a></span></span>
+<span></span>
+<span><span class="va">pathogen_signal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
+<span>  prefix <span class="op">=</span> <span class="st">"all_gene"</span>,</span>
+<span>  func <span class="op">=</span> <span class="st">"sum"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/AddMetaColumn.html">AddMetaColumn</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  add_data <span class="op">=</span> <span class="va">pathogen_signal</span>,</span>
+<span>  meta_key <span class="op">=</span> <span class="st">"raw"</span>,</span>
+<span>  ignore_rownm <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">host_response_signal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  features <span class="op">=</span> <span class="va">host_response_genes</span>,</span>
+<span>  prefix <span class="op">=</span> <span class="st">"host_response_gene"</span>,</span>
+<span>  func <span class="op">=</span> <span class="st">"sum"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/AddMetaColumn.html">AddMetaColumn</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  add_data <span class="op">=</span> <span class="va">host_response_signal</span>,</span>
+<span>  meta_key <span class="op">=</span> <span class="st">"raw"</span>,</span>
+<span>  ignore_rownm <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">pathogen_signal_columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
+<span>  <span class="st">"all_gene"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
+<span>  value <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">host_response_signal_columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
+<span>  <span class="st">"host_response_gene"</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
+<span>  value <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Gene.html">SpotDetect_Gene</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
+<span>  feature_colnm <span class="op">=</span> <span class="va">pathogen_signal_columns</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  PosThres_count <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  blur_n <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  blur_sigma <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_multisamp_all_gene_white"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Gene.html">SpotDetect_Gene</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  features <span class="op">=</span> <span class="va">host_response_genes</span>,</span>
+<span>  feature_colnm <span class="op">=</span> <span class="va">host_response_signal_columns</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  PosThres_count <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  blur_n <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  blur_sigma <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_multisamp_host_gene_white"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="ae-infection-model-1">AE infection model<a class="anchor" aria-label="anchor" href="#ae-infection-model-1"></a>
+</h3>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># high_exp_genes is defined in the pathogen background correction vignette </span></span>
+<span><span class="va">STID_obj_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Gene.html">SpotDetect_Gene</a></span><span class="op">(</span></span>
+<span>  <span class="va">STID_obj_after</span>,</span>
+<span>  features <span class="op">=</span> <span class="va">high_exp_genes</span>,</span>
+<span>  feature_colnm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
+<span>    <span class="st">"all_gene"</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj_after</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
+<span>    value <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  PosThres_count <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  <span class="co"># blur_method = "isoblur",</span></span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  blur_n <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  blur_sigma <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"AE_correct_after_all_gene_white"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Gene.html">SpotDetect_Gene</a></span><span class="op">(</span></span>
+<span>  <span class="va">STID_obj_after</span>,</span>
+<span>  features <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  PosThres_count <span class="op">=</span> <span class="fl">3</span>, </span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  blur_n <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  blur_sigma <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"AE_correct_after_host_gene_white"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -347,7 +483,10 @@ mean or total expression.</p>
 <p>The same thresholding strategy used for gene-level detection can be
 applied to gene-set scores. Spots with scores above the selected
 threshold are classified as positive.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="section level3">
+<h3 id="african-trypanosomiasis-infection-model-2">African trypanosomiasis infection model<a class="anchor" aria-label="anchor" href="#african-trypanosomiasis-infection-model-2"></a>
+</h3>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Gene_Geneset</span> <span class="op">&lt;-</span> <span class="fu">STID</span><span class="fu">::</span><span class="va"><a href="../reference/Gene_Geneset.html">Gene_Geneset</a></span></span>
 <span></span>
 <span><span class="va">pcd_geneset_df</span> <span class="op">&lt;-</span> <span class="va">Gene_Geneset</span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">Mouse_PCD_geneset</span></span>
@@ -370,7 +509,7 @@ threshold are classified as positive.</p>
 <span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="st">"Tbb_PCD_geneset_white"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">parasite_response_geneset_df</span> <span class="op">&lt;-</span> <span class="va">Gene_Geneset</span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">KEGG</span><span class="op">$</span><span class="va">Mouse_KEGG_Detect_parasitic_geneset</span></span>
 <span><span class="va">parasite_response_geneset_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">parasite_response_geneset_df</span>, <span class="va">na.omit</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">parasite_response_geneset_list</span><span class="op">)</span></span>
@@ -389,42 +528,119 @@ threshold are classified as positive.</p>
 <span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="st">"Tbb_parasite_response_geneset_white"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">STID_obj</span>, file <span class="op">=</span> <span class="st">"./STID_obj_Tbb_SpotDetect.rds"</span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="details-1">Details<a class="anchor" aria-label="anchor" href="#details-1"></a>
-</h4>
-<ul>
-<li>
-<code>geneset_list</code>: named list of gene sets used for scoring.
-Replace this object with gene sets appropriate for the host species and
-biological process of interest.</li>
-<li>
-<code>score_method</code>: scoring method used to quantify gene-set
-activity. Select a method that is appropriate for the data type and
-normalization strategy.</li>
-<li>
-<code>n_iter</code>, <code>nbin</code>, and <code>seed</code>:
-parameters used by <code>AddModuleScore</code>. Adjust these values when
-using different feature pools or scoring configurations.</li>
-<li>
-<code>PosThres_score</code>: score-based cutoff for positive-spot
-detection. Recalibrate this threshold for each gene-set collection and
-dataset.</li>
-<li>
-<code>grp_nm</code>: output group name stored in the
-<code>STID</code> object. Use a name that identifies the dataset,
-gene-set collection, and visualization background.</li>
-</ul>
-</div>
-<div class="section level4">
-<h4 id="output-figure-1">Output figure<a class="anchor" aria-label="anchor" href="#output-figure-1"></a>
-</h4>
+<span><span class="op">)</span></span></code></pre></div>
 <p>The following figure shows the spatial distribution of
 infection-associated spots identified using gene-set scores.</p>
 <div class="figure" style="text-align: center">
 <img src="figures/Figure2_G.png" class="r-plt" alt="Spatial distribution of infection-associated spots identified using gene-set scores." width="600px"><p class="caption">
+Spatial distribution of infection-associated spots identified using
+gene-set scores.
+</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="je-infection-model-2">JE infection model<a class="anchor" aria-label="anchor" href="#je-infection-model-2"></a>
+</h3>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">Gene_Geneset</span> <span class="op">&lt;-</span> <span class="fu">STID</span><span class="fu">::</span><span class="va"><a href="../reference/Gene_Geneset.html">Gene_Geneset</a></span></span>
+<span></span>
+<span><span class="va">pcd_geneset_df</span> <span class="op">&lt;-</span> <span class="va">Gene_Geneset</span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">Mouse_PCD_geneset</span></span>
+<span><span class="va">pcd_geneset_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">pcd_geneset_df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Geneset.html">SpotDetect_Geneset</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  geneset_list <span class="op">=</span> <span class="va">pcd_geneset_list</span>,</span>
+<span>  score_method <span class="op">=</span> <span class="st">"AddModuleScore"</span>,</span>
+<span>  n_iter <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  nbin <span class="op">=</span> <span class="fl">24</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0.75</span>,</span>
+<span>  PosThres_score <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_multisamp_PCD_white"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">viral_response_geneset_df</span> <span class="op">&lt;-</span> <span class="va">Gene_Geneset</span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">Mouse_GO_BP_Detect_viral_geneset</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">viral_response_geneset_df</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span></span>
+<span>  <span class="st">"GOBP_"</span>,</span>
+<span>  <span class="st">""</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">viral_response_geneset_df</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">viral_response_geneset_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">viral_response_geneset_df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Geneset.html">SpotDetect_Geneset</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  geneset_list <span class="op">=</span> <span class="va">viral_response_geneset_list</span>,</span>
+<span>  score_method <span class="op">=</span> <span class="st">"AddModuleScore"</span>,</span>
+<span>  n_iter <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  nbin <span class="op">=</span> <span class="fl">24</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0.75</span>,</span>
+<span>  PosThres_score <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_multisamp_GO_viral_white"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The following figure shows the spatial distribution of
+infection-associated spots identified using gene-set scores.</p>
+<div class="figure" style="text-align: center">
+<img src="figures/Figure2_J1.png" class="r-plt" alt="Spatial distribution of infection-associated spots identified using gene-set scores." width="650px"><p class="caption">
+Spatial distribution of infection-associated spots identified using
+gene-set scores.
+</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="ae-infection-model-2">AE infection model<a class="anchor" aria-label="anchor" href="#ae-infection-model-2"></a>
+</h3>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">geneset_df</span> <span class="op">&lt;-</span> <span class="fu">STID</span><span class="fu">::</span><span class="va"><a href="../reference/Gene_Geneset.html">Gene_Geneset</a></span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">Mouse_PCD_geneset</span></span>
+<span><span class="va">geneset_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">geneset_df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Geneset.html">SpotDetect_Geneset</a></span><span class="op">(</span></span>
+<span>  <span class="va">STID_obj_after</span>,</span>
+<span>  geneset_list <span class="op">=</span> <span class="va">geneset_list</span>,</span>
+<span>  score_method <span class="op">=</span> <span class="st">"AddModuleScore"</span>,</span>
+<span>  n_iter <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  nbin <span class="op">=</span> <span class="fl">24</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  PosThres_score <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"AE_correct_after_PCD_white"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">geneset_df</span> <span class="op">&lt;-</span> <span class="fu">STID</span><span class="fu">::</span><span class="va"><a href="../reference/Gene_Geneset.html">Gene_Geneset</a></span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">Mouse_KEGG_Detect_parasitic_geneset</span></span>
+<span><span class="va">geneset_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">geneset_df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">STID_obj_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Geneset.html">SpotDetect_Geneset</a></span><span class="op">(</span></span>
+<span>  <span class="va">STID_obj_after</span>,</span>
+<span>  geneset_list <span class="op">=</span> <span class="va">geneset_list</span>,</span>
+<span>  score_method <span class="op">=</span> <span class="st">"AddModuleScore"</span>,</span>
+<span>  n_iter <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  nbin <span class="op">=</span> <span class="fl">24</span>,</span>
+<span>  PosThres_prob <span class="op">=</span> <span class="fl">0.25</span>,</span>
+<span>  PosThres_score <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  pt_size <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
+<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"AE_correct_after_KEGG_Parasite_white"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The following figure shows the spatial distribution of
+infection-associated spots identified using gene-set scores.</p>
+<div class="figure" style="text-align: center">
+<img src="figures/Figure2_J2.png" class="r-plt" alt="Spatial distribution of infection-associated spots identified using gene-set scores." width="650px"><p class="caption">
 Spatial distribution of infection-associated spots identified using
 gene-set scores.
 </p>
@@ -438,26 +654,31 @@ gene-set scores.
 <li>Perform pathogen background correction before infection-associated
 spot detection when suitable background or control samples are
 available.</li>
-<li>Confirm that pathogen-derived genes, host response genes, and
+<li>Confirm that pathogen-derived genes, host-responsive genes, and
 gene-set features are present in the input object before running
 detection.</li>
 <li>Calibrate <code>PosThres_prob</code>, <code>PosThres_count</code>,
 and <code>PosThres_score</code> according to the observed signal
 distribution, sequencing depth, expected pathogen burden, and
 tissue-specific background level.</li>
-<li>Use sample-specific threshold evaluation when infection burden or
-sequencing depth differs substantially across samples.</li>
-<li>Use informative <code>grp_nm</code> values because they are used to
-organize downstream metadata and visualization outputs.</li>
 <li>Review spatial maps and threshold summaries together to avoid
 interpreting isolated low-signal spots as infection-associated
 regions.</li>
 </ul>
 </div>
 <div class="section level2">
+<h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p>This vignette identified infection-associated spots, including
+pathogen-infected spots and/or host-responsive spots. In the next
+vignette, we will use these spot-level labels as input to identify
+infection-associated niches with Foci, Aggregated, or Dispersed
+mode.</p>
+</div>
+<div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.2.0 (2022-04-22 ucrt)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-w64-mingw32/x64 (64-bit)</span></span>

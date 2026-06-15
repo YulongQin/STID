@@ -3,13 +3,14 @@
 ## Overview
 
 This vignette describes how to perform pathogen background correction
-for spatial transcriptomics data using `STID`.
+for spatial transcriptomic data of infectious diseases using `STID`.
 
-Reliable detection of pathogen-associated signals requires explicit
-modeling of background contamination. In `STID`, background correction
-uses reference background or control samples to estimate the
+Accurate detection of pathogen-derived background signals requires
+explicit modeling of background contamination. In `STID`, background
+correction uses reference background or control samples to estimate the
 distribution of pathogen-associated features and reduce spurious signals
-before downstream infection-aware spatial analysis.
+before downstream spatial transcriptomic analysis of infectious
+diseases.
 
 This vignette covers:
 
@@ -17,13 +18,25 @@ This vignette covers:
 - selecting background or control samples for background modeling;
 - running
   [`CorrectBackground()`](https://yulongqin.github.io/STID/reference/CorrectBackground.md);
-- summarizing pathogen-associated signal before and after correction;
-- generating exploratory spatial maps of pathogen-associated signal.
+- summarizing pathogen-derived background signal before and after
+  correction;
+- generating spatial distribution maps of pathogen-derived background
+  signals.
+
+![Spatial distribution of pathogen-derived background signal before and
+after background correction.](figures/Figure2_A_partial.png)
+
+Spatial distribution of pathogen-derived background signal before and
+after background correction.
 
 > **Note:** Update the `STID` object name, pathogen feature list,
 > background sample IDs, assay name, layer name, pathogen gene prefix,
 > group names, and output directory according to the dataset used in
 > your analysis.
+
+> **Reference code:** For more runnable code examples, please refer to
+> the [article
+> code](https://github.com/YulongQin/STID/tree/main/article_code).
 
 ## Prerequisites
 
@@ -35,8 +48,8 @@ library(STID)
 
 ## Example data
 
-This vignette use the processed AE `STID_obj` object and a pathogen
-feature list have already been generated in the preprocessing step.
+This vignette uses the processed AE STID_obj object and a pathogen
+feature list that have already been generated in the preprocessing step.
 
 > **Note:** Replace `STID_obj`, `pathogen_genes`, and `DPI_0_1` with the
 > object name, pathogen feature vector, and background or control sample
@@ -67,7 +80,7 @@ threshold is then subtracted from expression values across all spots or
 cells, and negative corrected values are set to zero.
 
 ``` r
-options("parallel_workers" = 1)
+options("parallel_workers" = 4)
 
 STID_obj_after <- CorrectBackground(
   STID_obj = STID_obj_before,
@@ -81,49 +94,34 @@ STID_obj_after <- CorrectBackground(
 )
 ```
 
-#### Details
-
-- `bg_samp_id`: background or control sample IDs used to estimate the
-  background signal distribution. Update this argument to match your
-  dataset.
-- `bg_features`: pathogen-associated features used for background
-  modeling. Update this argument if your pathogen feature vector has a
-  different object name.
-- `PosThres_prob`: probability threshold used to estimate the background
-  expression cutoff. The example above uses `0.95`.
-- `assay_id` and `layer_id`: assay and data layer used for correction.
-  Update these arguments if your object uses different assay or layer
-  names.
-- `grp_nm`: name assigned to the corrected signal group in the object
-  metadata. Update this name to reflect the threshold or correction
-  setting used in your analysis.
-- `dir_nm`: output directory for background correction results. Update
-  this path or directory name as needed.
-
 The choice of `PosThres_prob` determines the balance between sensitivity
 and specificity. It should be calibrated according to sequencing depth,
 background signal level, and expected pathogen load.
 
-#### Output figure
-
-The following figure summarizes pathogen-associated signal after
+The following figure summarizes pathogen-derived background signal after
 background correction.
 
-![Summary of pathogen-associated signal after background
+![Summary of pathogen-derived background signal after background
 correction.](figures/Figure2_B.png)
 
-Summary of pathogen-associated signal after background correction.
+Summary of pathogen-derived background signal after background
+correction.
 
-## Spatial distribution of pathogen-associated signal
+## Spatial distribution of pathogen-derived background signal
 
-This section generates exploratory spatial maps of pathogen-associated
-signal before and after background correction. Formal detection of
-infection-associated spots is described in the next vignette,
-`04_Infection-associated_spot_detection.html`.
+This section generates exploratory spatial maps of pathogen-derived
+background signal before and after background correction. Formal
+detection of infection-associated positive spots is described in the
+[Infection associated spot
+detection](https://yulongqin.github.io/STID/articles/04_Infection-associated_spot_detection.html)
+vignette.
 
 > **Note:** Update the pathogen gene prefix in `pattern`, the pathogen
 > feature vector, metadata key, assay name, layer name, and output group
 > names according to your dataset.
+
+Calculate the overall expression of pathogen genes and add the results
+to meta.data.
 
 ``` r
 high_exp_genes <- GetTopGenes(
@@ -136,6 +134,7 @@ high_exp_genes <- GetTopGenes(
   layer_id = "counts"
 )
 
+# before correction
 raw_pathogen_signal_before <- GetGeneStat(
   STID_obj = STID_obj_before,
   features = pathogen_genes,
@@ -150,6 +149,7 @@ STID_obj_before <- AddMetaColumn(
   ignore_rownm = FALSE
 )
 
+# after correction
 raw_pathogen_signal_after <- GetGeneStat(
   STID_obj = STID_obj_after,
   features = pathogen_genes,
@@ -165,13 +165,12 @@ STID_obj_after <- AddMetaColumn(
 )
 ```
 
-> **Note:** If your installed `STID` version uses the legacy argument
-> name `igrnore_rownm`, replace `ignore_rownm` with `igrnore_rownm` in
-> the two
-> [`AddMetaColumn()`](https://yulongqin.github.io/STID/reference/AddMetaColumn.md)
-> calls above.
+Using identical parameters, calculate the spatial distribution of
+pathogen-infected positive spots in the STID object before and after
+pathogen background correction.
 
 ``` r
+# before correction
 pathogen_signal_columns_before <- grep(
   "all_gene",
   colnames(STID_obj_before@meta.data),
@@ -194,6 +193,7 @@ STID_obj_before <- SpotDetect_Gene(
   grp_nm = "CE_correct_before_all_gene_black"
 )
 
+# after correction
 pathogen_signal_columns_after <- grep(
   "all_gene",
   colnames(STID_obj_after@meta.data),
@@ -217,30 +217,34 @@ STID_obj_after <- SpotDetect_Gene(
 )
 ```
 
-#### Output figure
+The following figure shows the spatial distribution of pathogen-derived
+background signal before and after background correction.
 
-The following figure shows the spatial distribution of
-pathogen-associated signal before and after background correction.
+![Spatial distribution of pathogen-derived background signal before and
+after background correction.](figures/Figure2_A.png)
 
-![Spatial distribution of pathogen-associated signal before and after
-background correction.](figures/Figure2_A.png)
-
-Spatial distribution of pathogen-associated signal before and after
-background correction.
+Spatial distribution of pathogen-derived background signal before and
+after background correction.
 
 ## Notes
 
-- Apply background correction before spatial classification or
-  downstream pathogen signal interpretation.
-- Confirm that background samples represent true negative or baseline
-  conditions before running correction.
-- Check `meta.data` and the output files in `dir_nm` to confirm that
-  corrected signals were generated successfully.
-- The corrected object preserves the original object structure while
-  updating pathogen signal estimates.
+- Apply pathogen background correction before downstream
+  infection-associated spatial transcriptomic analysis.
+- Confirm that background samples represent true baseline conditions
+  before running correction.
+- The corrected STID object preserves the original object structure
+  while updating pathogen gene expression.
 - Recalibrate `PosThres_prob` when applying this workflow to datasets
   with different sequencing depth, pathogen burden, or background
   contamination levels.
+
+## Next steps
+
+This vignette generated a background-corrected `STID` object and reduced
+nonspecific pathogen-derived signals in control or background samples.
+In the next vignette, we will use the corrected expression matrix to
+identify pathogen-infected spots and host-responsive spots based on gene
+expression or gene set scores.
 
 ## Session information
 

@@ -2,7 +2,7 @@
 % Please edit documentation in R/SingleSampAnalysis.R
 \name{CalSampCoLoc}
 \alias{CalSampCoLoc}
-\title{Calculate Niche Co-localization using MSTIDyR}
+\title{Calculate Niche Co-localization}
 \usage{
 CalSampCoLoc(
   STID_obj = NULL,
@@ -53,9 +53,9 @@ CalSampCoLoc(
 If return_data = TRUE, returns a list of MSTIDyR results per sample
 }
 \description{
-Performs spatial co-localization analysis using the MSTIDyR framework to
-identify intra-view, juxtaview, and paraview relationships between cell types
-or gene expression patterns within niches.
+Performs spatial co-localization analysis using the mistyR or Squidpy method to
+assess the spatial relationships between cell types, gene expression,
+or gene scores within niches. Generates co-localization metrics and visualizations for each sample.
 }
 \examples{
 \dontrun{

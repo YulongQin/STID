@@ -53,9 +53,9 @@ NULL (invisible), saves h5ad file to disk
 ``` r
 if (FALSE) { # \dontrun{
 # Convert Seurat object to h5ad
+configure_conda()
 rds2h5ad(
   seurat_obj = seurat_object,
-  python_path = "~/anaconda3/envs/scanpy/bin/python",
   data_type = "stRNA",
   grp_nm = "sample1"
 )

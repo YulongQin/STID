@@ -15,13 +15,15 @@ This vignette covers:
 - installing core R, Bioconductor, and GitHub dependencies;
 - installing `STID` from GitHub;
 - checking whether required and suggested packages are available;
-- troubleshooting common installation failures caused by package
-  versions, compilation tools, network access, or system libraries.
 
 > **Note:** Before running the commands below, update the CRAN mirror,
 > Bioconductor mirror, library path, R version, compiler settings, and
 > optional dependency list according to the operating system and network
 > environment used for the analysis.
+
+> **Reference code:** For more runnable code examples, please refer to
+> the [article
+> code](https://github.com/YulongQin/STID/tree/main/article_code).
 
 ## Installation strategy
 
@@ -110,81 +112,40 @@ install_if_missing <- function(pkgs) {
 install_if_missing(c("remotes", "devtools", "BiocManager"))
 ```
 
-## Install core dependencies
+## Pre-installation requirements
 
-The following packages are commonly involved in version or compilation
-failures. Installing them explicitly before `STID` can make the GitHub
-installation more stable.
-
-> **Note:** For recent R versions, binary packages are usually available
-> for many dependencies and can substantially reduce installation time.
-> For older R versions, source installation or version pinning may be
-> required.
+We recommend using R 4.5 or later. Installing packages becomes
+challenging on R versions older than 4.5, as numerous dependencies will
+require manual compilation from source. We suggest installing the
+packages listed below first, and source-based installation is advised.
 
 ``` r
-install.packages(c(
-  "rlang",
-  "openssl",
-  "curl",
-  "systemfonts"
-))
+# Core infrastructure package
+install.packages("rlang") # >= 1.1.7
 
-install.packages(c(
-  "Matrix",
-  "RcppArmadillo",
-  "uwot",
-  "units",
-  "ggforce"
-), type = "binary")
+
+# These packages require network access (e.g., GitHub or external sources).
+# Installation failures (e.g., "Error in download.file") are often caused by network issues.
+# Retry installation or consider using a proxy/VPN if necessary.
+# Note: this is not a complete list, but these are the most failure-prone packages.
+install.packages("openssl") # >= 2.3.5
+install.packages("curl") # >= 7.0.0 
+install.packages("systemfonts")
+
+
+# These packages are recommended to be installed as binary versions
+# to avoid compilation errors and reduce installation time
+install.packages("Matrix", type = "binary") # >= 1.6.5
+install.packages("RcppArmadillo", type = "binary")
+install.packages("uwot", type = "binary")
+install.packages("units", type = "binary")
+install.packages("ggforce", type = "binary")
 ```
 
-If the binary packages are unavailable or incompatible with the current
-R version, install a compatible source version manually.
-
-``` r
-remotes::install_version("rlang", version = "1.1.7")
-remotes::install_version("Matrix", version = "1.6.5")
-remotes::install_version("SeuratObject", version = "5.0.2")
-remotes::install_version("Seurat", version = "5.1.0")
-```
-
-### Bioconductor dependencies
-
-``` r
-BiocManager::install(c(
-  "AnnotationDbi",
-  "AUCell",
-  "Biostrings",
-  "clusterProfiler",
-  "DOSE",
-  "GO.db",
-  "GOSemSim",
-  "SingleR",
-  "STRINGdb",
-  "SummarizedExperiment",
-  "UCell"
-), ask = FALSE, update = FALSE)
-```
-
-### GitHub dependencies
-
-Some downstream analyses use packages that are usually installed from
-GitHub. Install these packages only if the corresponding analysis
-modules are needed.
-
-``` r
-devtools::install_github("jinworks/CellChat", upgrade = "never")
-devtools::install_github("saezlab/mistyR", upgrade = "never")
-devtools::install_github("aeyslab/nichenetr", upgrade = "never")
-devtools::install_github("mhahsler/rBLAST", upgrade = "never")
-devtools::install_github("mojaveazure/seurat-disk#198", upgrade = "never")
-```
-
-> **Note:** When GitHub installation fails with
-> `Error in download.file`, the most common causes are network
-> interruption, rate limits, or proxy configuration. Retry the command,
-> configure a proxy if needed, or install the package from a downloaded
-> source archive.
+> **Note:** These issues mainly occur in older versions of R (e.g., R
+> 4.2). R versions 4.5 and above ship with binary packages compatible
+> with the latest source packages, so you can skip these installation
+> steps if you are using R ≥ 4.5.
 
 ## Install STID
 
@@ -196,14 +157,16 @@ packages such as `Matrix`, `SeuratObject`, or `Seurat`.
 ``` r
 remotes::install_github(
   "YulongQin/STID",
-  dependencies = TRUE,
-  upgrade = "never"
+  dependencies = TRUE
 )
 ```
 
-The full installation may take 30–60 minutes or longer depending on the
-operating system, R version, network speed, and whether packages are
-installed from source.
+> **Note:** The full installation may take anywhere from 10 minutes to
+> over 1 hour, depending on the operating system, R version, network
+> speed, and whether packages are installed from source. With R 4.5 or
+> later, installation typically takes around 10 minutes, whereas older R
+> versions may require extensive source compilation and can take
+> approximately 1 hour or longer.
 
 ``` r
 library(STID)
@@ -212,22 +175,28 @@ packageVersion("STID")
 
 ## Check dependencies
 
+You can check the dependencies of STID
+[here](https://github.com/YulongQin/STID/blob/main/DESCRIPTION).
+
 The `Imports` packages are required for core `STID` functions. Packages
 in `Suggests` are not always installed automatically and should be
 installed manually before running the corresponding downstream analysis.
 
+To ensure all required packages are installed with correct versions, the
+following utility function can be used.
+
 ``` r
 pkg_imports <- c(
-  "anndata", "AnnotationDbi", "assertthat", "AUCell", "Biostrings",
+  "anndata", "AnnotationDbi", "assertthat", "AUCell", "Biobase", "Biostrings",
   "clusterProfiler", "concaveman", "data.table", "dbscan", "distances",
   "doParallel", "DOSE", "dplyr", "DT", "FNN", "foreach", "furrr",
   "future", "ggdensity", "ggforce", "ggh4x", "ggnewscale", "ggplot2",
-  "ggraph", "ggrepel", "ggsignif", "ggvenn", "GO.db", "GOSemSim",
-  "igraph", "imager", "magrittr", "Matrix", "methods", "paletteer",
+  "ggprism", "ggraph", "ggrepel", "ggsignif", "ggvenn", "GO.db", "GOSemSim",
+  "igraph", "imager", "magrittr", "Matrix", "methods", "Mfuzz", "paletteer",
   "patchwork", "proxy", "psych", "purrr", "rBLAST", "reticulate",
   "rjson", "rlang", "scales", "Seurat", "SeuratDisk", "SeuratObject",
   "shiny", "shinycssloaders", "sp", "STRINGdb", "stringr",
-  "SummarizedExperiment", "tibble", "tidyr", "UCell", "viridis", "zip", "Mfuzz"
+  "SummarizedExperiment", "tibble", "tidyr", "tidyselect", "UCell", "viridis", "zip"
 )
 
 pkg_suggests <- c(
@@ -297,171 +266,60 @@ imports_check <- check_stid_packages(pkg_imports, pkg_min_versions)
 suggests_check <- check_stid_packages(pkg_suggests)
 ```
 
-### Install missing dependencies from the check result
+## Install missing dependencies from the check result
 
-Use the dependency check results to install missing packages in smaller
-batches. This makes it easier to identify which package fails.
+In some environments (e.g., restricted networks or incompatible
+binaries), automatic installation may fail. The following steps provide
+manual installation options.
 
-``` r
-missing_imports <- imports_check$missing
-missing_suggests <- suggests_check$missing
-
-cran_candidates <- setdiff(
-  unique(c(missing_imports, missing_suggests)),
-  c(
-    "AnnotationDbi", "AUCell", "Biostrings", "clusterProfiler", "DOSE",
-    "GO.db", "GOSemSim", "SingleR", "STRINGdb", "SummarizedExperiment",
-    "UCell", "CellChat", "mistyR", "nichenetr", "rBLAST", "SeuratDisk",
-    "org.Hs.eg.db", "org.Mm.eg.db"
-  )
-)
-
-if (length(cran_candidates) > 0) {
-  install.packages(cran_candidates)
-}
-```
+### Seurat dependencies
 
 ``` r
-bioc_candidates <- intersect(
-  unique(c(missing_imports, missing_suggests)),
-  c(
-    "AnnotationDbi", "AUCell", "Biostrings", "clusterProfiler", "DOSE",
-    "GO.db", "GOSemSim", "SingleR", "STRINGdb", "SummarizedExperiment",
-    "UCell", "org.Hs.eg.db", "org.Mm.eg.db"
-  )
-)
-
-if (length(bioc_candidates) > 0) {
-  BiocManager::install(bioc_candidates, ask = FALSE, update = FALSE)
-}
+remotes::install_version('rlang', version = '1.1.7')
+remotes::install_version('Matrix', version = '1.6.5')
+remotes::install_version('SeuratObject', version = '5.0.2')
+remotes::install_version('Seurat', version = '5.1.0')
 ```
 
-## Optional analysis modules
-
-Some `STID` functions require additional resources beyond the core R
-package installation.
-
-### Cell-cell communication analysis
-
-[`CalSampCellComm()`](https://yulongqin.github.io/STID/reference/CalSampCellComm.md)
-requires `CellChat` and ligand-receptor resources. Install and test
-`CellChat` before running communication analysis.
+### Bioconductor dependencies
 
 ``` r
-if (!requireNamespace("CellChat", quietly = TRUE)) {
-  devtools::install_github("jinworks/CellChat", upgrade = "never")
-}
+BiocManager::install(c(
+  "AnnotationDbi",
+  "AUCell",
+  "Biostrings",
+  "clusterProfiler",
+  "DOSE",
+  "GO.db",
+  "GOSemSim",
+  "SingleR",
+  "STRINGdb",
+  "SummarizedExperiment",
+  "UCell",
+  "org.Hs.eg.db",
+  "org.Mm.eg.db"
+), ask = FALSE, update = FALSE)
 ```
 
-### Spatial colocalization analysis
+### GitHub dependencies
 
-[`CalSampCoLoc()`](https://yulongqin.github.io/STID/reference/CalSampCoLoc.md)
-can use `mistyR` or Python-based tools depending on the selected method.
-If the workflow uses Python packages, configure `reticulate` to point to
-the intended Python environment.
+Some downstream analyses use packages that are usually installed from
+GitHub. Install these packages only if the corresponding analysis
+modules are needed.
 
 ``` r
-library(reticulate)
-
-# Replace this path with the Python or conda environment used for spatial analysis
-# use_python("/path/to/python", required = TRUE)
-# use_condaenv("stid", required = TRUE)
-
-py_config()
+devtools::install_github("jinworks/CellChat")
+devtools::install_github("saezlab/mistyR")
+devtools::install_github("saeyslab/nichenetr")
+devtools::install_github("mhahsler/rBLAST")
+devtools::install_github("mojaveazure/seurat-disk#198")
 ```
 
-### Gene regulatory network analysis
-
-[`CalSampGRN()`](https://yulongqin.github.io/STID/reference/CalSampGRN.md)
-requires NicheNet reference files and organism-specific resources.
-Download and store these files locally before running the analysis.
-
-``` r
-if (!requireNamespace("nichenetr", quietly = TRUE)) {
-  devtools::install_github("aeyslab/nichenetr", upgrade = "never")
-}
-```
-
-### Host-pathogen protein association analysis
-
-[`CalSampPPI()`](https://yulongqin.github.io/STID/reference/CalSampPPI.md)
-requires local FASTA files, symbol-to-protein mapping files, BLAST, and
-STRING resources.
-
-``` r
-Sys.which("blastp")
-Sys.which("makeblastdb")
-
-if (!requireNamespace("rBLAST", quietly = TRUE)) {
-  devtools::install_github("mhahsler/rBLAST", upgrade = "never")
-}
-```
-
-## Troubleshooting
-
-### Package version conflicts
-
-Version conflicts commonly involve `Matrix`, `rlang`, `SeuratObject`,
-`Seurat`, or `ggplot2`.
-
-``` r
-packages_to_check <- c("Matrix", "rlang", "SeuratObject", "Seurat", "ggplot2")
-
-vapply(packages_to_check, function(pkg) {
-  if (requireNamespace(pkg, quietly = TRUE)) {
-    as.character(packageVersion(pkg))
-  } else {
-    NA_character_
-  }
-}, character(1))
-```
-
-> **Note:** Restart R after updating core packages. A package namespace
-> that is already loaded in the current R session may continue to use
-> the old version until the session is restarted.
-
-### Network or GitHub download failures
-
-``` r
-options(timeout = 600)
-
-# Test whether GitHub is reachable from R
-utils::download.file(
-  "https://raw.githubusercontent.com/YulongQin/STID/main/DESCRIPTION",
-  tempfile(),
-  quiet = FALSE
-)
-```
-
-If the download fails, retry later, switch networks, configure a proxy,
-or download the source archive manually and install from the local file.
-
-``` r
-# Example: install from a local source archive
-# remotes::install_local("/path/to/STID-main.zip", dependencies = TRUE, upgrade = "never")
-```
-
-### Compilation failures
-
-Compilation failures usually indicate missing build tools or system
-libraries. Install the corresponding system dependency, restart R, and
-reinstall the failed package.
-
-``` r
-# Replace units with the package that failed in your environment
-remove.packages("units")
-install.packages("units", type = "source")
-```
-
-### Bioconductor version mismatch
-
-Bioconductor packages must match the active R version. Confirm the
-Bioconductor version before installing Bioconductor dependencies.
-
-``` r
-BiocManager::version()
-BiocManager::valid()
-```
+> **Note:** When GitHub installation fails with
+> `Error in download.file`, the most common causes are network
+> interruption, rate limits, or proxy configuration. Retry the command,
+> configure a proxy if needed, or install the package from a downloaded
+> source archive.
 
 ## Notes
 
@@ -475,6 +333,13 @@ BiocManager::valid()
   them manually before running optional downstream analyses.
 - For reproducible projects, record the R version, package versions,
   system libraries, and installation date.
+
+## Next steps
+
+After installing STID and the required dependencies, you are ready to
+load spatial transcriptomic data into R. In the next vignette, we will
+preprocess the input data, perform basic quality control and annotation,
+and convert the processed object into the `STID` class.
 
 ## Session information
 

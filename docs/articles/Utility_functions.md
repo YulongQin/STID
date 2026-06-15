@@ -4,8 +4,10 @@
 
 This vignette introduces four utility functions used for environment
 configuration, cross-format data conversion, and annotation parsing in
-STID workflows. `configure_conda()` prepares the Python environment
-required by Python-backed conversion steps.
+STID workflows.
+[`configure_conda()`](https://yulongqin.github.io/STID/reference/configure_conda.md)
+prepares the Python environment required by Python-backed conversion
+steps.
 [`h5ad2rds()`](https://yulongqin.github.io/STID/reference/h5ad2rds.md)
 and
 [`rds2h5ad()`](https://yulongqin.github.io/STID/reference/rds2h5ad.md)
@@ -18,7 +20,7 @@ extracts structured gene annotation information from GTF files.
 
 | Function | Purpose | Typical input | Typical output | Notes |
 |----|----|----|----|----|
-| `configure_conda()` | Configure the Python environment through `reticulate` | Conda environment name, or default Miniconda setup | Activated Python/Conda environment | Run before Python-backed conversion workflows |
+| [`configure_conda()`](https://yulongqin.github.io/STID/reference/configure_conda.md) | Configure the Python environment through `reticulate` | Conda environment name, or default Miniconda setup | Activated Python/Conda environment | Run before Python-backed conversion workflows |
 | [`h5ad2rds()`](https://yulongqin.github.io/STID/reference/h5ad2rds.md) | Convert AnnData `h5ad` files to Seurat objects | `.h5ad` file path | Seurat object and/or `.rds` file | Supports spatial and single-cell modes, reductions, coordinates, and optional SCT conversion |
 | [`rds2h5ad()`](https://yulongqin.github.io/STID/reference/rds2h5ad.md) | Convert Seurat objects to AnnData-compatible `h5ad` files | Seurat object | `.h5ad` file | Current helper supports the SeuratDisk conversion path |
 | [`parse_gtf()`](https://yulongqin.github.io/STID/reference/parse_gtf.md) | Parse GTF annotation files into tidy tables | `.gtf` file path | Data frame containing genomic features and attributes | Use `fil_label` to filter feature types such as `gene` |
@@ -33,10 +35,11 @@ library(STID)
 
 ## `configure_conda()`
 
-`configure_conda()` configures Python through `reticulate`. If no Conda
-environment name is supplied, it attempts to use or install the default
-Miniconda environment. If a Conda environment name is supplied, it
-checks whether that environment exists before activating it.
+[`configure_conda()`](https://yulongqin.github.io/STID/reference/configure_conda.md)
+configures Python through `reticulate`. If no Conda environment name is
+supplied, it attempts to use or install the default Miniconda
+environment. If a Conda environment name is supplied, it checks whether
+that environment exists before activating it.
 
 ``` r
 # Use default Miniconda

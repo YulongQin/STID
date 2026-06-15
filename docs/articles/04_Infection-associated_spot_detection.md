@@ -2,32 +2,37 @@
 
 ## Overview
 
-This vignette describes how to identify infection-associated spatial
-locations using `STID` after preprocessing and, when appropriate,
-pathogen background correction.
+This vignette describes how to identify infection-associated spots using
+`STID` after preprocessing.
 
-Infection-associated spots can be detected from either gene-level
-signals or gene-set scores. The gene-level strategy uses
-pathogen-derived genes or host response genes to define positive spatial
-locations, whereas the gene-set strategy summarizes coordinated
-biological programs and identifies spots with elevated pathway- or
-process-level activity.
+Infection-associated spots can be detected using either gene-level
+signals or gene-set scores. The gene-level strategy defines positive
+spots based on the expression of pathogen-derived genes or
+host-responsive genes, whereas the gene-set strategy defines positive
+spots based on gene-set scores that quantify the activity of
+infection-associated pathways or biological processes.
 
 This vignette covers:
 
-- preparing an example `STID` object for infection-associated spot
-  detection;
-- defining pathogen-derived and host response gene sets;
-- identifying infection-associated spots using aggregated gene-level
-  signals;
-- identifying infection-associated spots using gene-set scores;
+- defining pathogen-derived and host-responsive gene sets;
+- detecting infection-associated spots using gene-level signals;
+- detecting infection-associated spots using gene-set scores;
 - visualizing threshold-based detection results and spatial
   distributions.
 
+![Infection-associated spot detection
+workflow.](figures/graphical_abstract_partial.png)
+
+Infection-associated spot detection workflow.
+
 > **Note:** Update the input object name, sample metadata columns,
-> pathogen gene list, host response gene list, gene-set collections,
+> pathogen gene list, host-responsive gene list, gene-set collections,
 > detection thresholds, plotting parameters, output group names, and
 > saved object path according to the dataset used in your analysis.
+
+> **Reference code:** For more runnable code examples, please refer to
+> the [article
+> code](https://github.com/YulongQin/STID/tree/main/article_code).
 
 ## Prerequisites
 
@@ -39,12 +44,16 @@ library(STID)
 
 ## Example data
 
-The example data can be downloaded from
-[Figshare](https://doi.org/10.6084/m9.figshare.31839988). In this
-vignette, we use the `stRNA_Tbb` dataset as an example.
+This vignette uses the African trypanosomiasis, Japanese encephalitis
+(JE), and AE infection datasets to illustrate the detection of
+infection-associated spots.
 
-> **Note:** Replace `./stRNA_Tbb.rds` with the correct local path or a
-> package-provided example dataset.
+### African trypanosomiasis infection model
+
+The `stRNA_Tbb` data can be downloaded from
+[Figshare](https://doi.org/10.6084/m9.figshare.31839988). This is a
+Visium-based mouse tissue dataset infected with *Trypanosoma brucei
+brucei*.
 
 ``` r
 stRNA <- readRDS(file = "./stRNA_Tbb.rds")
@@ -54,12 +63,8 @@ meta_data <- stRNA@meta.data
 table(meta_data$group)
 ```
 
-#### Construct the STID object
-
-This example uses a Visium-based mouse tissue dataset infected with
-*Trypanosoma brucei brucei*. The gene vectors below define
-pathogen-derived features and host response markers used for downstream
-detection.
+The gene vectors below define pathogen-derived genes and host-responsive
+genes used for downstream detection.
 
 ``` r
 pathogen_genes <- c("Tb927.7.5940", "Tb927.6.4280")
@@ -102,13 +107,67 @@ correction to this dataset. For datasets with suitable background or
 control samples, pathogen background correction should be performed
 before formal infection-associated spot detection.
 
+### JE infection model
+
+The `stRNA_JEV` data can be downloaded from
+[Figshare](https://doi.org/10.6084/m9.figshare.31839988). This is a
+Stereo-seq-based mouse tissue dataset infected with *Japanese
+encephalitis virus*.
+
+``` r
+stRNA <- readRDS(file = "./stRNA_JEV.rds")
+stRNA <- suppressMessages(UpdateSeuratObject(stRNA))
+# stRNA <- NormalizeData(stRNA)
+meta_data <- stRNA@meta.data
+table(meta_data$new_samp)
+```
+
+The JEV example uses viral genes as pathogen-derived features and
+selected interferon- and inflammation-associated genes as
+host-responsive markers.
+
+``` r
+pathogen_genes <- c(
+  "NS5", "C", "NS3", "NS1", "E", "Prm", "NS4aAlt", "NS4bAlt", "NS2a", "NS2b"
+)
+host_response_genes <- c("Cxcl10", "Ifitm3", "Isg15", "Irf7", "Ccl5", "Ccl2")
+```
+
+``` r
+STID_obj <- as.STID(
+  stRNA,
+  samp_colnm = "new_samp",
+  samp_grp_colnm = "grp",
+  celltype_colnm = "new_cell",
+  host_org = "mouse",
+  pathogen_grp = "virus",
+  pathogen_org = "JEV",
+  pathogen_gene = pathogen_genes,
+  data_format = "square_grid",
+  data_platform = "StereoSeq",
+  binsize = 35
+)
+
+print(STID_obj)
+```
+
+Because the pathogen in the JE infection model is captured by probes,
+pathogen genes are not present in the control group, so pathogen
+background correction is not necessary, and we can proceed directly to
+infection-associated spot detection.
+
+### AE infection model
+
+The processed AE `STID_obj_after` object has already been generated in
+the pathogen background correction step.
+
 ## Detect infection-associated spots using gene-level signals
 
-Gene-level detection identifies positive spatial locations from
-pathogen-derived expression or host response marker expression. For each
-sample, the expression distribution is evaluated, and a quantile-based
-threshold is used to classify spots as positive or negative. By default,
-nonzero expression values can be used to estimate the threshold, and the
+Gene-level detection identifies positive spots from pathogen-derived
+gene expression or host-responsive gene expression. For each sample, the
+expression distribution is evaluated, and a quantile-based threshold is
+used to classify spots as positive or negative. By default, nonzero
+expression values can be used to estimate the threshold, and the
 selected cutoff should be calibrated according to spatial expression
 patterns and frequency distributions.
 
@@ -116,14 +175,15 @@ For multiple genes, aggregated expression across the selected features
 is used for spot-level detection. Optional smoothing can be applied
 before thresholding to reduce local noise.
 
-``` r
-COLOR_DIS_CON <- list(
-  dis = c("grey95", "#E34D4A"),
-  con = c("#440154FF", "#3B528BFF", "#21908CFF", "#5DC863FF", "#FDE725FF")
-)
-```
+### African trypanosomiasis infection model
+
+Calculate the overall expression of pathogen-derived genes and
+host-responsive genes and add the results to meta.data.
 
 ``` r
+COLOR_DIS_CON <- STID::COLOR_DIS_CON
+
+# pathogen-derived genes
 pathogen_signal <- GetGeneStat(
   STID_obj = STID_obj,
   features = pathogen_genes,
@@ -138,6 +198,7 @@ STID_obj <- AddMetaColumn(
   ignore_rownm = FALSE
 )
 
+# host-responsive genes
 host_response_signal <- GetGeneStat(
   STID_obj = STID_obj,
   features = host_response_genes,
@@ -153,13 +214,8 @@ STID_obj <- AddMetaColumn(
 )
 ```
 
-> **Note:** If the installed `STID` version uses the legacy argument
-> name `igrnore_rownm`, replace `ignore_rownm` with `igrnore_rownm` in
-> the
-> [`AddMetaColumn()`](https://yulongqin.github.io/STID/reference/AddMetaColumn.md)
-> calls above.
-
 ``` r
+# pathogen-derived genes
 pathogen_signal_columns <- grep(
   "pathogen_gene",
   colnames(STID_obj@meta.data),
@@ -183,6 +239,7 @@ STID_obj <- SpotDetect_Gene(
   grp_nm = "Tbb_pathogen_gene_signal_white"
 )
 
+# host-responsive genes
 host_response_signal_columns <- grep(
   "host_response_gene",
   colnames(STID_obj@meta.data),
@@ -206,24 +263,6 @@ STID_obj <- SpotDetect_Gene(
 )
 ```
 
-#### Details
-
-- `features`: gene features used to define infection-associated or host
-  response-associated signal. Update this vector for each dataset.
-- `feature_colnm`: metadata columns containing aggregated gene-level
-  signal. These columns should correspond to the selected feature set.
-- `PosThres_prob`: quantile-based probability threshold for
-  positive-spot detection. Recalibrate this value according to the
-  signal distribution.
-- `PosThres_count`: count-based cutoff for positive-spot detection.
-  Increase this value when low-level background signal is expected.
-- `blur_method`, `blur_n`, and `blur_sigma`: optional smoothing
-  parameters used before visualization or thresholding.
-- `grp_nm`: output group name stored in the `STID` object. Use
-  informative names that describe the dataset and detection strategy.
-
-#### Output figure
-
 The following figure summarizes threshold-based classification of
 infection-associated spots using gene-level signals.
 
@@ -232,6 +271,125 @@ gene-level signals.](figures/Figure2_F.png)
 
 Threshold-based classification of infection-associated spots using
 gene-level signals.
+
+### JE infection model
+
+``` r
+COLOR_DIS_CON <- STID::COLOR_DIS_CON
+
+pathogen_signal <- GetGeneStat(
+  STID_obj = STID_obj,
+  features = pathogen_genes,
+  prefix = "all_gene",
+  func = "sum"
+)
+
+STID_obj <- AddMetaColumn(
+  STID_obj = STID_obj,
+  add_data = pathogen_signal,
+  meta_key = "raw",
+  ignore_rownm = FALSE
+)
+
+host_response_signal <- GetGeneStat(
+  STID_obj = STID_obj,
+  features = host_response_genes,
+  prefix = "host_response_gene",
+  func = "sum"
+)
+
+STID_obj <- AddMetaColumn(
+  STID_obj = STID_obj,
+  add_data = host_response_signal,
+  meta_key = "raw",
+  ignore_rownm = FALSE
+)
+
+pathogen_signal_columns <- grep(
+  "all_gene",
+  colnames(STID_obj@meta.data),
+  value = TRUE
+)
+
+host_response_signal_columns <- grep(
+  "host_response_gene",
+  colnames(STID_obj@meta.data),
+  value = TRUE
+)
+
+STID_obj <- SpotDetect_Gene(
+  STID_obj = STID_obj,
+  features = pathogen_genes,
+  feature_colnm = pathogen_signal_columns,
+  PosThres_prob = 0,
+  PosThres_count = 1,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  pt_size = 0.25,
+  blur_method = NULL,
+  blur_n = 1,
+  blur_sigma = 0.5,
+  plot_method = "single",
+  grp_nm = "JEV_multisamp_all_gene_white"
+)
+
+STID_obj <- SpotDetect_Gene(
+  STID_obj = STID_obj,
+  features = host_response_genes,
+  feature_colnm = host_response_signal_columns,
+  PosThres_prob = 0,
+  PosThres_count = 4,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  pt_size = 0.25,
+  blur_method = NULL,
+  blur_n = 1,
+  blur_sigma = 0.5,
+  plot_method = "single",
+  grp_nm = "JEV_multisamp_host_gene_white"
+)
+```
+
+### AE infection model
+
+``` r
+# high_exp_genes is defined in the pathogen background correction vignette 
+STID_obj_after <- SpotDetect_Gene(
+  STID_obj_after,
+  features = high_exp_genes,
+  feature_colnm = grep(
+    "all_gene",
+    colnames(STID_obj_after@meta.data),
+    value = TRUE
+  ),
+  PosThres_prob = 0,
+  PosThres_count = 3,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  pt_size = 1,
+  # blur_method = "isoblur",
+  blur_method = NULL,
+  blur_n = 1,
+  blur_sigma = 0.5,
+  plot_method = "single",
+  grp_nm = "AE_correct_after_all_gene_white"
+)
+
+STID_obj_after <- SpotDetect_Gene(
+  STID_obj_after,
+  features = NULL,
+  PosThres_prob = 0,
+  PosThres_count = 3, 
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  pt_size = 1,
+  blur_method = NULL,
+  blur_n = 1,
+  blur_sigma = 0.5,
+  plot_method = "single",
+  grp_nm = "AE_correct_after_host_gene_white"
+)
+```
 
 ## Detect infection-associated spots using gene-set scores
 
@@ -244,6 +402,8 @@ total expression.
 The same thresholding strategy used for gene-level detection can be
 applied to gene-set scores. Spots with scores above the selected
 threshold are classified as positive.
+
+### African trypanosomiasis infection model
 
 ``` r
 Gene_Geneset <- STID::Gene_Geneset
@@ -290,28 +450,7 @@ STID_obj <- SpotDetect_Geneset(
   plot_method = "single",
   grp_nm = "Tbb_parasite_response_geneset_white"
 )
-
-saveRDS(STID_obj, file = "./STID_obj_Tbb_SpotDetect.rds")
 ```
-
-#### Details
-
-- `geneset_list`: named list of gene sets used for scoring. Replace this
-  object with gene sets appropriate for the host species and biological
-  process of interest.
-- `score_method`: scoring method used to quantify gene-set activity.
-  Select a method that is appropriate for the data type and
-  normalization strategy.
-- `n_iter`, `nbin`, and `seed`: parameters used by `AddModuleScore`.
-  Adjust these values when using different feature pools or scoring
-  configurations.
-- `PosThres_score`: score-based cutoff for positive-spot detection.
-  Recalibrate this threshold for each gene-set collection and dataset.
-- `grp_nm`: output group name stored in the `STID` object. Use a name
-  that identifies the dataset, gene-set collection, and visualization
-  background.
-
-#### Output figure
 
 The following figure shows the spatial distribution of
 infection-associated spots identified using gene-set scores.
@@ -322,23 +461,137 @@ gene-set scores.](figures/Figure2_G.png)
 Spatial distribution of infection-associated spots identified using
 gene-set scores.
 
+### JE infection model
+
+``` r
+Gene_Geneset <- STID::Gene_Geneset
+
+pcd_geneset_df <- Gene_Geneset$Mouse$Geneset$Mouse_PCD_geneset
+pcd_geneset_list <- lapply(pcd_geneset_df, function(x) na.omit(x))
+
+STID_obj <- SpotDetect_Geneset(
+  STID_obj = STID_obj,
+  geneset_list = pcd_geneset_list,
+  score_method = "AddModuleScore",
+  n_iter = 5,
+  nbin = 24,
+  seed = 10,
+  PosThres_prob = 0.75,
+  PosThres_score = 0,
+  pt_size = 0.25,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  blur_method = NULL,
+  plot_method = "single",
+  grp_nm = "JEV_multisamp_PCD_white"
+)
+
+viral_response_geneset_df <- Gene_Geneset$Mouse$Geneset$Mouse_GO_BP_Detect_viral_geneset
+colnames(viral_response_geneset_df) <- gsub(
+  "GOBP_",
+  "",
+  colnames(viral_response_geneset_df)
+)
+viral_response_geneset_list <- lapply(viral_response_geneset_df, function(x) na.omit(x))
+
+STID_obj <- SpotDetect_Geneset(
+  STID_obj = STID_obj,
+  geneset_list = viral_response_geneset_list,
+  score_method = "AddModuleScore",
+  n_iter = 5,
+  nbin = 24,
+  PosThres_prob = 0.75,
+  PosThres_score = 0,
+  pt_size = 0.25,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  blur_method = NULL,
+  plot_method = "single",
+  grp_nm = "JEV_multisamp_GO_viral_white"
+)
+```
+
+The following figure shows the spatial distribution of
+infection-associated spots identified using gene-set scores.
+
+![Spatial distribution of infection-associated spots identified using
+gene-set scores.](figures/Figure2_J1.png)
+
+Spatial distribution of infection-associated spots identified using
+gene-set scores.
+
+### AE infection model
+
+``` r
+geneset_df <- STID::Gene_Geneset$Mouse$Geneset$Mouse_PCD_geneset
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+
+STID_obj_after <- SpotDetect_Geneset(
+  STID_obj_after,
+  geneset_list = geneset_list,
+  score_method = "AddModuleScore",
+  n_iter = 5,
+  nbin = 24,
+  PosThres_prob = 0.25,
+  PosThres_score = 0,
+  pt_size = 1,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  blur_method = NULL,
+  plot_method = "single",
+  grp_nm = "AE_correct_after_PCD_white"
+)
+
+geneset_df <- STID::Gene_Geneset$Mouse$Geneset$Mouse_KEGG_Detect_parasitic_geneset
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+
+STID_obj_after <- SpotDetect_Geneset(
+  STID_obj_after,
+  geneset_list = geneset_list,
+  score_method = "AddModuleScore",
+  n_iter = 5,
+  nbin = 24,
+  PosThres_prob = 0.25,
+  PosThres_score = 0,
+  pt_size = 1,
+  col = COLOR_DIS_CON,
+  black_bg = FALSE,
+  blur_method = NULL,
+  plot_method = "single",
+  grp_nm = "AE_correct_after_KEGG_Parasite_white"
+)
+```
+
+The following figure shows the spatial distribution of
+infection-associated spots identified using gene-set scores.
+
+![Spatial distribution of infection-associated spots identified using
+gene-set scores.](figures/Figure2_J2.png)
+
+Spatial distribution of infection-associated spots identified using
+gene-set scores.
+
 ## Notes
 
 - Perform pathogen background correction before infection-associated
   spot detection when suitable background or control samples are
   available.
-- Confirm that pathogen-derived genes, host response genes, and gene-set
-  features are present in the input object before running detection.
+- Confirm that pathogen-derived genes, host-responsive genes, and
+  gene-set features are present in the input object before running
+  detection.
 - Calibrate `PosThres_prob`, `PosThres_count`, and `PosThres_score`
   according to the observed signal distribution, sequencing depth,
   expected pathogen burden, and tissue-specific background level.
-- Use sample-specific threshold evaluation when infection burden or
-  sequencing depth differs substantially across samples.
-- Use informative `grp_nm` values because they are used to organize
-  downstream metadata and visualization outputs.
 - Review spatial maps and threshold summaries together to avoid
   interpreting isolated low-signal spots as infection-associated
   regions.
+
+## Next steps
+
+This vignette identified infection-associated spots, including
+pathogen-infected spots and/or host-responsive spots. In the next
+vignette, we will use these spot-level labels as input to identify
+infection-associated niches with Foci, Aggregated, or Dispersed mode.
 
 ## Session information
 

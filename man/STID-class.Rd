@@ -6,7 +6,7 @@
 \alias{STID}
 \title{The STID Class}
 \description{
-The STID (Integrated Single-cell Transcriptomics) object extends the Seurat
+The STID (Spatial Transcriptomics toolkit for Infectious Diseases) object extends the Seurat
 class to add specialized functionality for analyzing infection and spatial
 transcriptomics data. It inherits all functionality from Seurat objects while
 adding additional slots for tracking infection-related analyses.

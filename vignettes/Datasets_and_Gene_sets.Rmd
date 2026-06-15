@@ -22,7 +22,7 @@ set.seed(123)
 
 ## Overview
 
-This vignette briefly summarizes the public spatial transcriptomic datasets and curated gene resources used by `STID`.
+This vignette briefly summarizes the public spatial transcriptomic datasets of infectious diseases and curated gene resources used by `STID`.
 
 ```{r packages, message = FALSE, warning = FALSE, eval = FALSE}
 library(tidyverse)
@@ -34,26 +34,25 @@ library(STID)
 
 Table S1 includes eight public mouse spatial transcriptomic datasets covering viral, bacterial, and parasitic infection models.
 
-| Pathogen type | Pathogen | Abbrev. | Disease | Tissue | Reference | Technology | GEO | n |
-|---|---|---|---|---|---|---|---|---|
-| Virus | Japanese encephalitis virus | JEV | Japanese encephalitis | Brain | Ou et al. (2026) | Stereo-seq | N/A | 12 |
+| Pathogen type | Pathogen | Abbrev. | Disease | Tissue | Reference | Technology | Repository/accession | n |
+|--------|--------|--------|--------|--------|--------|--------|--------|--------|
+| Virus | Japanese encephalitis virus | JEV | Japanese encephalitis | Brain | Ou et al. (2026) | Stereo-seq | STT0000076 | 12 |
 | Virus | Venezuelan equine encephalitis virus | VEEV | Venezuelan equine encephalitis | Brain | Rangel et al. (2024) | 10x Visium | GSE275201 | 2 |
 | Virus | Reovirus type 1 Lang | Reo-T1L | Viral myocarditis | Heart | Mantri et al. (2022) | 10x Visium | GSE189636 | 4 |
-| Bacterium | Mycobacterium tuberculosis | MTB | Tuberculosis | Lung | Zhao et al. (2025) | Stereo-seq V2 | N/A | 8 |
+| Bacterium | Mycobacterium tuberculosis | MTB | Tuberculosis | Lung | Zhao et al. (2025) | Stereo-seq V2 | CRA018250 | 8 |
 | Bacterium | Klebsiella pneumoniae | Kp | Klebsiella pneumoniae pneumonia | Lung | Xu et al. (2022) | 10x Visium | GSE190225 | 4 |
-| Parasite | Echinococcus multilocularis | Em | Alveolar echinococcosis | Liver | Ou et al. (2025) | Stereo-seq | N/A | 12 |
+| Parasite | Echinococcus multilocularis | Em | Alveolar echinococcosis | Liver | Ou et al. (2025) | Stereo-seq | STT0000072 | 12 |
 | Parasite | Plasmodium berghei ANKA | N/A | Malaria | Liver | Hildebrandt et al. (2024) | 10x Visium | GSE268068 | 4 |
-| Parasite | Trypanosoma brucei | Tbb | African trypanosomiasis | Brain | Quintana et al. (2022) | 10x Visium | GSE200642 | 3 |
+| Parasite | Trypanosoma brucei brucei | Tbb | African trypanosomiasis | Brain | Quintana et al. (2022) | 10x Visium | GSE200642 | 3 |
 
-All raw and processed data are available from Figshare: <https://doi.org/10.6084/m9.figshare.31839988>.
-
+Raw datasets are available from the repositories reported in the original publications and Table S1. Processed datasets and curated gene and gene-set resources are available from [Figshare](https://doi.org/10.6084/m9.figshare.31839988).
 
 ## Curated genes and gene sets
 
 Table S2 summarizes 12 curated resources. Counts are shown as `Human/Mouse`.
 
 | Type | Name | Main use | Count |
-|---|---|---|---|
+|------------------|------------------|------------------|------------------|
 | Gene | Infection_Immunity | Infection and immune response genes | 391/345 |
 | Gene | PRR | Pattern recognition receptor genes | 137/128 |
 | Gene | Macrophage | Macrophage polarization/function genes | 35/35 |

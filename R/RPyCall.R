@@ -5,6 +5,40 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
+#' Configure Python Conda Environment
+#'
+#' Configures the Python environment used by STID through \pkg{reticulate}.
+#' If \code{conda_nm} is not provided, the function tries to use the default
+#' Miniconda environment managed by \pkg{reticulate}; if it is unavailable,
+#' Miniconda will be installed automatically. If \code{conda_nm} is provided,
+#' the function checks whether the specified Conda environment exists and then
+#' activates it.
+#'
+#' @param conda_nm Character, name of an existing Conda environment to use.
+#' If \code{NULL}, the default Miniconda path returned by
+#' \code{\link[reticulate]{miniconda_path}} will be used
+#' (default: \code{NULL}).
+#' @param conda_path Character, path to a Conda installation or environment.
+#' Currently reserved for future use and not used directly in this function
+#' (default: \code{NULL}).
+#'
+#' @return Invisibly returns \code{NULL}. The function is mainly called for its
+#' side effects, including configuring the Python environment and printing
+#' Python configuration information.
+#'
+#' @importFrom reticulate miniconda_path use_condaenv install_miniconda
+#' @importFrom reticulate py_config py_available conda_list
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Use the default reticulate Miniconda environment
+#' configure_conda()
+#'
+#' # Use an existing Conda environment
+#' configure_conda(conda_nm = "scanpy")
+#' }
 configure_conda <- function(conda_nm = NULL,conda_path = NULL){
   clog_start()
 
@@ -43,6 +77,23 @@ configure_conda <- function(conda_nm = NULL,conda_path = NULL){
   clog_end()
 }
 
+
+#' Check Required Python Packages
+#'
+#' Checks whether the required Python packages are installed and importable in
+#' the currently configured Python environment. This function is intended for
+#' internal use after \code{\link{configure_conda}} has configured Python
+#' through \pkg{reticulate}.
+#'
+#' @param pkgs Character vector, names of Python packages to check.
+#'
+#' @return Invisibly returns \code{NULL}. The function prints package checking
+#' messages and warnings through STID logging functions.
+#'
+#' @importFrom reticulate py_available py_config py_list_packages py_module_available
+#'
+#' @keywords internal
+#' @noRd
 .check_py_pkgs <- function(pkgs = NULL){
   if(!py_available()){
     clog_error("Python is not configured, please run configure_conda() first.")
@@ -125,9 +176,9 @@ configure_conda <- function(conda_nm = NULL,conda_path = NULL){
 #' @examples
 #' \dontrun{
 #' # Convert spatial transcriptomics h5ad to Seurat
+#' configure_conda()
 #' seurat_obj <- h5ad2rds(
 #'   file_path = "data/spatial_data.h5ad",
-#'   python_path = "~/anaconda3/envs/scanpy/bin/python",
 #'   data_type = "stRNA",
 #'   binsize = 100,
 #'   reduction_index = TRUE,
@@ -472,9 +523,9 @@ h5ad2rds <- function(
 #' @examples
 #' \dontrun{
 #' # Convert Seurat object to h5ad
+#' configure_conda()
 #' rds2h5ad(
 #'   seurat_obj = seurat_object,
-#'   python_path = "~/anaconda3/envs/scanpy/bin/python",
 #'   data_type = "stRNA",
 #'   grp_nm = "sample1"
 #' )
@@ -571,10 +622,39 @@ rds2h5ad <- function(
 # .RPyCall_squidpy
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Internal pipeline for Squidpy spatial co-localization analysis
+#'
+#' Converts selected STID single-sample data to h5ad format, calls Python
+#' Squidpy through reticulate, computes spatial neighborhood enrichment and
+#' co-occurrence patterns, and saves spatial and co-occurrence plots for each
+#' sample.
+#'
+#' @param STID_obj STID object containing spatial transcriptomics data and metadata
+#' @param loop_single Character vector, sample identifiers to process
+#' @param niche_key Character, niche key used to restrict the analysis to niche
+#'   cells. If NULL, cells are selected from the metadata specified by meta_key
+#' @param meta_key Character, metadata key used when niche_key is NULL
+#'   (default: "coord")
+#' @param group_by Character, column name used as the cell group or cluster label
+#'   for Squidpy neighborhood enrichment and co-occurrence analysis
+#' @param group_use Character vector, specific groups in group_by to include
+#'   in the analysis. If NULL, all groups are used
+#' @param coord_interval Numeric vector, spatial coordinate intervals for each
+#'   sample, used as spot size and neighborhood radius
+#' @param tmp_dir Character, temporary directory. Currently reserved for interface
+#'   consistency with other internal pipelines
+#' @param output_dir Character, directory for intermediate h5ad files and output
+#'   data
+#' @param photo_dir Character, directory for saving spatial and co-occurrence
+#'   plots
+#'
+#' @return List of Squidpy neighborhood enrichment results per sample
+#'
 #' @import reticulate
 #' @importFrom anndata read_h5ad
-
-
+#'
+#' @keywords internal
+#' @noRd
 .RPyCall_squidpy <- function(
     STID_obj = NULL,
     loop_single = NULL,

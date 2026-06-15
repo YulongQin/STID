@@ -25,7 +25,7 @@
 - [`CalSampCellComm()`](https://yulongqin.github.io/STID/reference/CalSampCellComm.md)
   : Calculate Niche Cell Communication using CellChat
 - [`CalSampCoLoc()`](https://yulongqin.github.io/STID/reference/CalSampCoLoc.md)
-  : Calculate Niche Co-localization using MSTIDyR
+  : Calculate Niche Co-localization
 - [`CalSampComp()`](https://yulongqin.github.io/STID/reference/CalSampComp.md)
   : Calculate Niche Cell Type Composition
 - [`CalSampDEGs()`](https://yulongqin.github.io/STID/reference/CalSampDEGs.md)
@@ -60,6 +60,8 @@
   : Predefined color palettes
 - [`CompareNiche()`](https://yulongqin.github.io/STID/reference/CompareNiche.md)
   : Compare two niche detection results
+- [`configure_conda()`](https://yulongqin.github.io/STID/reference/configure_conda.md)
+  : Configure Python Conda Environment
 - [`CorrectBackground()`](https://yulongqin.github.io/STID/reference/CorrectBackground.md)
   : Correct background expression in spatial transcriptomics data
 - [`CreateMultiSampNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
@@ -129,6 +131,8 @@
   : Plot Niche Cell Communication Results
 - [`Plot_Spatial()`](https://yulongqin.github.io/STID/reference/Plot_Spatial.md)
   : Create spatial plots for STID data
+- [`Plot_SpatialCoLoc()`](https://yulongqin.github.io/STID/reference/Plot_SpatialCoLoc.md)
+  : Plot Spatial Co-localization
 - [`print(`*`<STID>`*`)`](https://yulongqin.github.io/STID/reference/print.STID.md)
   : Print method for STID objects
 - [`rds2h5ad()`](https://yulongqin.github.io/STID/reference/rds2h5ad.md)

@@ -87,9 +87,9 @@ If return_object = TRUE, returns a Seurat object; otherwise returns NULL
 ``` r
 if (FALSE) { # \dontrun{
 # Convert spatial transcriptomics h5ad to Seurat
+configure_conda()
 seurat_obj <- h5ad2rds(
   file_path = "data/spatial_data.h5ad",
-  python_path = "~/anaconda3/envs/scanpy/bin/python",
   data_type = "stRNA",
   binsize = 100,
   reduction_index = TRUE,

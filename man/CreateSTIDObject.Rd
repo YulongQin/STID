@@ -16,8 +16,10 @@ CreateSTIDObject(
   y_colnm = NULL,
   pathogen_genes = NULL,
   data_format = NULL,
+  data_platform = NULL,
   binsize = NULL,
   coord_interval = NULL,
+  base_unit = NULL,
   project_id = NULL,
   description = NULL,
   ...
@@ -46,9 +48,13 @@ CreateSTIDObject(
 
 \item{data_format}{Character, data format - "square_grid" or "hex_grid"}
 
+\item{data_platform}{Character, data platform - "StereoSeq", "Visium", "VisiumHD", "SlideSeq", or "unknown"}
+
 \item{binsize}{Numeric, bin size for spatial data}
 
 \item{coord_interval}{Numeric, coordinate coord_interval}
+
+\item{base_unit}{Numeric, base unit for spatial coordinates, and the unit is mm}
 
 \item{project_id}{Character, project identifier}
 
@@ -72,7 +78,7 @@ ist_obj <- CreateSTIDObject(
   pathogen_grp = "virus",
   pathogen_org = "SARS-CoV-2",
   data_format = "square_grid",
-  data_fplatform = "StereoSeq"
+  data_platform = "StereoSeq"
 )
 }
 }

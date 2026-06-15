@@ -648,11 +648,11 @@ CalSampCAI <- function(STID_obj = NULL,
 # CalSampCoLoc：细胞间/基因间/基因分数间, noMS
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Calculate Niche Co-localization using MSTIDyR
+#' Calculate Niche Co-localization
 #'
-#' Performs spatial co-localization analysis using the MSTIDyR framework to
-#' identify intra-view, juxtaview, and paraview relationships between cell types
-#' or gene expression patterns within niches.
+#' Performs spatial co-localization analysis using the mistyR or Squidpy method to
+#' assess the spatial relationships between cell types, gene expression,
+#' or gene scores within niches. Generates co-localization metrics and visualizations for each sample.
 #'
 #' @param STID_obj An STID object containing niche analysis results
 #' @param loop_id Character, sample grouping identifier (default: "LoopAllSamp")
@@ -1173,6 +1173,54 @@ CalSampCoLoc <- function(STID_obj = NULL,
 # Plot_SpatialCoLoc: noMS
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
+#' Plot Spatial Co-localization
+#'
+#' Visualizes spatial co-localization of two cell groups, genes, or metadata
+#' features in selected samples or niches.
+#'
+#' @param STID_obj An STID object.
+#' @param loop_id Character, sample loop identifier
+#' (default: \code{"LoopAllSamp"}).
+#' @param meta_key Character, metadata key used when \code{niche_key} is
+#' \code{NULL}.
+#' @param niche_key Character, niche key used to retrieve niche cells.
+#' @param group_by Character, metadata column for group-based co-localization.
+#' @param group_use Character vector, groups to keep from \code{group_by}.
+#' @param features Character vector, feature or gene names for co-localization.
+#' @param feature_colnm Character vector, metadata columns used as features.
+#' @param exp_thres Numeric, threshold below which feature values are set to zero
+#' (default: \code{1}).
+#' @param col Character vector, color palette
+#' (default: \code{COLOR_LIST$PALETTE_WHITE_BG}).
+#' @param pt_size Numeric, point size for spatial plots
+#' (default: \code{1.5}).
+#'
+#' @return Invisibly returns \code{NULL}; spatial plots are printed.
+#'
+#' @importFrom Seurat FetchData
+#' @importFrom dplyr filter mutate if_else select
+#' @importFrom rlang sym
+#' @importFrom tidyselect all_of
+#' @importFrom stats as.formula model.matrix
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' Plot_SpatialCoLoc(
+#' STID_obj = STID_obj,
+#' niche_key = "niche_virulence",
+#' group_by = "cell_type",
+#' group_use = c("Macrophage", "T cell")
+#' )
+#'
+#' Plot_SpatialCoLoc(
+#' STID_obj = STID_obj,
+#' niche_key = "niche_virulence",
+#' features = c("Cxcl10", "Isg15")
+#' )
+#' }
 Plot_SpatialCoLoc <- function(STID_obj = NULL,
                               loop_id = "LoopAllSamp",
                               meta_key = NULL,
@@ -4532,16 +4580,16 @@ GeneEnrichment <- function(STID_obj = NULL,
 #' Calculates enrichment scores for GO terms and KEGG pathways based on
 #' ranked gene lists.
 #'
-#' @param DEGs Data frame, differential expression results with columns 'SYMBOL'
-#'        and 'LogFC'
+#' @param DEGs Data frame, differential expression results with columns
+#'        'gene' and 'avg_log2FC'
 #' @param org Character, organism - "human" or "mouse" (default: "human")
 #' @param simplify_index Logical, whether to simplify redundant GO terms
 #' @param maxGSSize Integer, maximum gene set size (default: 500)
+#' @param col Color palette for plots (default: c('#ED0000FF','#00468BFF'))
+#' @param internal Logical, whether to use internal KEGG database
+#' @param GO_num Integer, number of top pathways to display (default: 20)
 #' @param grp_nm Character, group name for output
 #' @param dir_nm Character, directory name for output
-#' @param col Color palette for plots (default: c('#ED0000FF','#00468BFF'))
-#' @param GO_num Integer, number of top pathways to display (default: 20)
-#' @param ... Additional arguments passed to gseGO/gseKEGG
 #'
 #' @return List of GSEA results for GO and KEGG
 #'

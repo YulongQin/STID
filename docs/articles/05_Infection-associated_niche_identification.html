@@ -92,9 +92,9 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This vignette describes how to identify infection-associated spatial
-niches using <code>STID</code> after preprocessing, background
-correction when required, and infection-associated spot detection.</p>
+<p>This vignette describes how to identify infection-associated niches
+using <code>STID</code> after preprocessing, background correction when
+required, and infection-associated spot detection.</p>
 <p><code>STID</code> supports three complementary niche identification
 modes according to the spatial organization of positive spots:</p>
 <ul>
@@ -110,10 +110,6 @@ distributed positive spots without strong regional aggregation.</li>
 </ul>
 <p>This vignette covers:</p>
 <ul>
-<li>preparing example <code>STID</code> objects for niche
-identification;</li>
-<li>detecting infection-associated spots from pathogen-derived and
-host-response signals;</li>
 <li>identifying foci-type niches using lasso-based spatial boundary
 detection;</li>
 <li>identifying aggregated-type niches using regional spatial
@@ -122,19 +118,22 @@ transcriptomic signal aggregation;</li>
 <li>visualizing niche boundaries and distance-dependent signal
 profiles.</li>
 </ul>
-<blockquote>
-<p><strong>Note:</strong> Update the input object names, sample
-identifiers, metadata columns, pathogen gene list, host-response gene
-list, gene-set collections, detection thresholds, niche-detection
-parameters, plotting colors, output group names, and figure paths
-according to the dataset used in your analysis.</p>
-</blockquote>
 <div class="figure" style="text-align: center">
 <img src="figures/Figure3_A.png" class="r-plt" alt="Overview of the three infection-associated niche identification strategies." width="600px"><p class="caption">
 Overview of the three infection-associated niche identification
 strategies.
 </p>
 </div>
+<blockquote>
+<p><strong>Note:</strong> Update the input object names,
+niche-identification parameters according to the dataset used in your
+analysis.</p>
+</blockquote>
+<blockquote>
+<p><strong>Reference code:</strong> For more runnable code examples,
+please refer to the <a href="https://github.com/YulongQin/STID/tree/main/article_code" class="external-link">article
+code</a>.</p>
+</blockquote>
 </div>
 <div class="section level2">
 <h2 id="prerequisites">Prerequisites<a class="anchor" aria-label="anchor" href="#prerequisites"></a>
@@ -148,180 +147,14 @@ strategies.
 <h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
 </h2>
 <p>The foci-type example uses the AE <code>STID_obj_after</code> object
-generated in the pathogen background correction workflow，and the
-analysis focuses on the <code>DPI_4d</code> sample.</p>
-<p>The aggregated-type and dispersed-type examples use the
-<code>PI4d</code> and <code>PI3d</code> samples from the
-<code>stRNA_JEV</code> dataset, respectively.</p>
-<p>The <code>stRNA_JEV</code> example data can be downloaded from <a href="https://doi.org/10.6084/m9.figshare.31839988" class="external-link">Figshare</a>.</p>
-<blockquote>
-<p><strong>Note:</strong> Replace <code>./stRNA_JEV.rds</code>,
-<code>STID_obj_after</code>, <code>DPI_4d</code>, <code>PI4d</code>, and
-<code>PI3d</code> with the corresponding file path, object names, and
-sample identifiers used in your dataset.</p>
-</blockquote>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span>file <span class="op">=</span> <span class="st">"./stRNA_JEV.rds"</span><span class="op">)</span></span>
-<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SeuratObject/man/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co"># stRNA &lt;- NormalizeData(stRNA)</span></span>
-<span><span class="va">meta_data</span> <span class="op">&lt;-</span> <span class="va">stRNA</span><span class="op">@</span><span class="va">meta.data</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">meta_data</span><span class="op">$</span><span class="va">new_samp</span><span class="op">)</span></span></code></pre></div>
-<p>If the input Seurat object already contains reliable normalization,
-metadata, and annotation fields, it can be converted directly into an
-<code>STID</code> object. Otherwise, run the preprocessing workflow
-described in the loading and preprocessing vignette before
-continuing.</p>
-<blockquote>
-<p><strong>Note:</strong> Confirm that the metadata columns passed to
-<code><a href="../reference/as.STID.html">as.STID()</a></code>, including <code>new_samp</code>,
-<code>new_cell</code>, and <code>grp</code> in this example, are present
-in <code>stRNA@meta.data</code>.</p>
-</blockquote>
-<div class="section level3">
-<h3 id="construct-the-stid-object">Construct the STID object<a class="anchor" aria-label="anchor" href="#construct-the-stid-object"></a>
-</h3>
-<p>The JEV example uses viral genes as pathogen-derived features and
-selected interferon- and inflammation-associated genes as host-response
-markers.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pathogen_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>  <span class="st">"NS5"</span>, <span class="st">"C"</span>, <span class="st">"NS3"</span>, <span class="st">"NS1"</span>, <span class="st">"E"</span>, <span class="st">"Prm"</span>, <span class="st">"NS4aAlt"</span>, <span class="st">"NS4bAlt"</span>, <span class="st">"NS2a"</span>, <span class="st">"NS2b"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">host_response_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Cxcl10"</span>, <span class="st">"Ifitm3"</span>, <span class="st">"Isg15"</span>, <span class="st">"Irf7"</span>, <span class="st">"Ccl5"</span>, <span class="st">"Ccl2"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/as.STID.html">as.STID</a></span><span class="op">(</span></span>
-<span>  <span class="va">stRNA</span>,</span>
-<span>  samp_colnm <span class="op">=</span> <span class="st">"new_samp"</span>,</span>
-<span>  samp_grp_colnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
-<span>  celltype_colnm <span class="op">=</span> <span class="st">"new_cell"</span>,</span>
-<span>  host_org <span class="op">=</span> <span class="st">"mouse"</span>,</span>
-<span>  pathogen_grp <span class="op">=</span> <span class="st">"virus"</span>,</span>
-<span>  pathogen_org <span class="op">=</span> <span class="st">"JEV"</span>,</span>
-<span>  pathogen_gene <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
-<span>  data_format <span class="op">=</span> <span class="st">"square_grid"</span>,</span>
-<span>  data_platform <span class="op">=</span> <span class="st">"StereoSeq"</span>,</span>
-<span>  binsize <span class="op">=</span> <span class="fl">35</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="infection-associated-spot-detection">Infection-associated spot detection<a class="anchor" aria-label="anchor" href="#infection-associated-spot-detection"></a>
-</h3>
-<p>Niche identification requires positive spots as input. In this
-example, pathogen-associated spots are defined from aggregated viral
-gene signal, and host-response spots are defined from either
-host-response genes or gene-set scores.</p>
-<blockquote>
-<p><strong>Note:</strong> If positive spots have already been generated
-in the infection-associated spot detection workflow, this section can be
-skipped. Update the metadata keys in later sections to match the
-previously generated detection results.</p>
-</blockquote>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">COLOR_DIS_CON</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  dis <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grey95"</span>, <span class="st">"#E34D4A"</span><span class="op">)</span>,</span>
-<span>  con <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#440154FF"</span>, <span class="st">"#3B528BFF"</span>, <span class="st">"#21908CFF"</span>, <span class="st">"#5DC863FF"</span>, <span class="st">"#FDE725FF"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pathogen_signal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetGeneStat.html">GetGeneStat</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
-<span>  features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
-<span>  prefix <span class="op">=</span> <span class="st">"all_gene"</span>,</span>
-<span>  func <span class="op">=</span> <span class="st">"sum"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/AddMetaColumn.html">AddMetaColumn</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
-<span>  add_data <span class="op">=</span> <span class="va">pathogen_signal</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="st">"raw"</span>,</span>
-<span>  ignore_rownm <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">pathogen_signal_columns</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span></span>
-<span>  <span class="st">"all_gene"</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span>,</span>
-<span>  value <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Gene.html">SpotDetect_Gene</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
-<span>  features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
-<span>  feature_colnm <span class="op">=</span> <span class="va">pathogen_signal_columns</span>,</span>
-<span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  PosThres_count <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
-<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
-<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  blur_n <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  blur_sigma <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_correct_before_all_gene_white"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Gene.html">SpotDetect_Gene</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
-<span>  features <span class="op">=</span> <span class="va">host_response_genes</span>,</span>
-<span>  feature_colnm <span class="op">=</span> <span class="va">pathogen_signal_columns</span>,</span>
-<span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  PosThres_count <span class="op">=</span> <span class="fl">4</span>,</span>
-<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
-<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
-<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  blur_n <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  blur_sigma <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_correct_before_host_gene_white"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">Gene_Geneset</span> <span class="op">&lt;-</span> <span class="fu">STID</span><span class="fu">::</span><span class="va"><a href="../reference/Gene_Geneset.html">Gene_Geneset</a></span></span>
-<span></span>
-<span><span class="va">pcd_geneset_df</span> <span class="op">&lt;-</span> <span class="va">Gene_Geneset</span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">Mouse_PCD_geneset</span></span>
-<span><span class="va">pcd_geneset_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">pcd_geneset_df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Geneset.html">SpotDetect_Geneset</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
-<span>  geneset_list <span class="op">=</span> <span class="va">pcd_geneset_list</span>,</span>
-<span>  score_method <span class="op">=</span> <span class="st">"AddModuleScore"</span>,</span>
-<span>  n_iter <span class="op">=</span> <span class="fl">5</span>,</span>
-<span>  nbin <span class="op">=</span> <span class="fl">24</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  PosThres_prob <span class="op">=</span> <span class="fl">0.75</span>,</span>
-<span>  PosThres_score <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
-<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
-<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_correct_before_PCD_white"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">viral_response_geneset_df</span> <span class="op">&lt;-</span> <span class="va">Gene_Geneset</span><span class="op">$</span><span class="va">Mouse</span><span class="op">$</span><span class="va">Geneset</span><span class="op">$</span><span class="va">Mouse_GO_BP_Detect_viral_geneset</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">viral_response_geneset_df</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span></span>
-<span>  <span class="st">"GOBP_"</span>,</span>
-<span>  <span class="st">""</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">viral_response_geneset_df</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">viral_response_geneset_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">viral_response_geneset_df</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">STID_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/SpotDetect_Geneset.html">SpotDetect_Geneset</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
-<span>  geneset_list <span class="op">=</span> <span class="va">viral_response_geneset_list</span>,</span>
-<span>  score_method <span class="op">=</span> <span class="st">"AddModuleScore"</span>,</span>
-<span>  n_iter <span class="op">=</span> <span class="fl">5</span>,</span>
-<span>  nbin <span class="op">=</span> <span class="fl">24</span>,</span>
-<span>  PosThres_prob <span class="op">=</span> <span class="fl">0.75</span>,</span>
-<span>  PosThres_score <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  pt_size <span class="op">=</span> <span class="fl">0.25</span>,</span>
-<span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
-<span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  blur_method <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  plot_method <span class="op">=</span> <span class="st">"single"</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"JEV_correct_before_GO_viral_white"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
+generated in infection-associated spot detection workflow, and the
+analysis focuses on the <code>DPI_4_2 (PI4d)</code> sample.</p>
+<p>The aggregated-type uses the JE <code>STID_obj</code> object
+generated in infection-associated spot detection workflow, and the
+analysis focuses on the <code>D5_1 (PI5d)</code> sample.</p>
+<p>The dispersed-type uses the JE <code>STID_obj</code> object generated
+in infection-associated spot detection workflow, and the analysis
+focuses on the <code>D3_1 (PI3d)</code> sample.</p>
 </div>
 <div class="section level2">
 <h2 id="foci-type-niche-identification">Foci-type niche identification<a class="anchor" aria-label="anchor" href="#foci-type-niche-identification"></a>
@@ -329,21 +162,17 @@ previously generated detection results.</p>
 <p>For foci-type niches, clear infectious foci were first confirmed in
 H&amp;E images. <code>NicheDetect_Lasso</code> was then used to
 delineate foci-associated niches by integrating infected spots,
-host-response spots, cell-type annotations, and H&amp;E histology.</p>
+host-responsive spots, cell-type annotations, and H&amp;E histology.</p>
 <p>Foci-type niche identification is designed for highly localized
-infection-associated regions. This example uses the background-corrected
-object <code>STID_obj_after</code> from the background correction
-workflow and focuses on the <code>DPI_4d</code> sample.</p>
+infection-associated regions.</p>
 <blockquote>
 <p><strong>Note:</strong> Replace <code>STID_obj_after</code>,
-<code>DPI_4d</code>, <code>anno</code>, <code>batch</code>, color
+<code>DPI_4_2</code>, <code>anno</code>, <code>batch</code>, color
 vectors, marker genes, gene-set names, and metadata keys with the
 corresponding values from your dataset.</p>
 </blockquote>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">STID_obj_foci</span> <span class="op">&lt;-</span> <span class="va">STID_obj_after</span></span>
-<span></span>
-<span><span class="va">foci_celltype_colors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">foci_celltype_colors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
 <span>  <span class="st">"HsPCs"</span> <span class="op">=</span> <span class="st">"#E41A1C"</span>,</span>
 <span>  <span class="st">"Hepatocytes"</span> <span class="op">=</span> <span class="st">"grey95"</span>,</span>
 <span>  <span class="st">"Infla Heps"</span> <span class="op">=</span> <span class="st">"#4DAF4A"</span>,</span>
@@ -355,18 +184,18 @@ corresponding values from your dataset.</p>
 <span>  <span class="st">"B/plasma cells"</span> <span class="op">=</span> <span class="st">"#A65628"</span>,</span>
 <span>  <span class="st">"Others"</span> <span class="op">=</span> <span class="st">"#8DA0CB"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STID_obj_lasso</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NicheDetect_Lasso.html">NicheDetect_Lasso</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_foci</span>,</span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_after</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="st">"coord"</span>,</span>
 <span>  group_by <span class="op">=</span> <span class="st">"anno"</span>,</span>
 <span>  col <span class="op">=</span> <span class="va">foci_celltype_colors</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"CE_lasso"</span></span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"AE_lasso"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">STID_obj_lasso</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">foci_lasso_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheDetect_Lasso_CE_lasso"</span></span>
+<span><span class="va">foci_lasso_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheDetect_Lasso_AE_lasso"</span></span>
 <span><span class="va">lasso_meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetMetaData.html">GetMetaData</a></span><span class="op">(</span></span>
 <span>  <span class="va">STID_obj_lasso</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="va">foci_lasso_key</span>,</span>
@@ -386,10 +215,11 @@ from median spot coordinates. Distances to the nearest center were then
 calculated, and bystander spots were assigned to the closest ROI.</p>
 <p>The following plots show the spatial distribution of lasso-defined
 regions of interest and the corresponding region labels.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">FOCI_DARK</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#F81B02FF"</span>, <span class="st">"#FC7715FF"</span>, <span class="st">"#FCB11C"</span><span class="op">)</span></span>
 <span><span class="va">FOCI_LIGHT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#F88A7E"</span>, <span class="st">"#FCC093"</span>, <span class="st">"#FCDB9A"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># ROI</span></span>
 <span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">lasso_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
@@ -406,6 +236,7 @@ regions of interest and the corresponding region labels.</p>
 <span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Region</span></span>
 <span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">lasso_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
@@ -431,19 +262,19 @@ bystander spots within a selected distance from each ROI boundary.</p>
 surrounding the detected foci. The expansion distance should be selected
 according to platform resolution, bin size, and the expected physical
 scale of infection-associated regions.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STID_obj_expand</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NicheExpand.html">NicheExpand</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_lasso</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="va">foci_lasso_key</span>,</span>
 <span>  pos_colnm <span class="op">=</span> <span class="st">"ROI_label"</span>,</span>
 <span>  center_colnm <span class="op">=</span> <span class="st">"ROI_center"</span>,</span>
 <span>  expand_dist <span class="op">=</span> <span class="fl">8</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"CE"</span></span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"AE_expand"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">STID_obj_expand</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">foci_expand_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheExpand_CE"</span></span>
+<span><span class="va">foci_expand_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheExpand_AE_expand"</span></span>
 <span><span class="va">expand_meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetMetaData.html">GetMetaData</a></span><span class="op">(</span></span>
 <span>  <span class="va">STID_obj_expand</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="va">foci_expand_key</span>,</span>
@@ -454,8 +285,9 @@ scale of infection-associated regions.</p>
 the bin size and the expected spatial radius of the niche boundary in
 your dataset.</p>
 </blockquote>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># ROI</span></span>
+<span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">expand_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
 <span>  y_colnm <span class="op">=</span> <span class="st">"y"</span>,</span>
@@ -471,6 +303,7 @@ your dataset.</p>
 <span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Region</span></span>
 <span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">expand_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
@@ -499,13 +332,13 @@ Expanded foci-type niche regions.
 surrounding tissue. Gene-expression profiles are smoothed with GAMs,
 while cell-composition profiles are calculated in distance bins; both
 outputs can be visualized with niche boundaries annotated.</p>
-<p>Distance profiles summarize how pathogen-derived genes, host-response
-genes, or gene-set scores change from the niche center toward the
-surrounding tissue.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">foci_gene_detection_key</span> <span class="op">&lt;-</span> <span class="st">"M1_SpotDetect_Gene_CE_correct_after_host_gene_white"</span></span>
-<span><span class="va">foci_pcd_detection_key</span> <span class="op">&lt;-</span> <span class="st">"M1_SpotDetect_Geneset_CE_correct_after_PCD_white"</span></span>
-<span><span class="va">foci_parasite_geneset_key</span> <span class="op">&lt;-</span> <span class="st">"M1_SpotDetect_Geneset_CE_correct_after_KEGG_Parasite_white"</span></span>
+<p>Distance profiles summarize how pathogen-derived genes,
+host-responsive genes, or gene-set scores change from the niche center
+toward the surrounding tissue.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">foci_gene_detection_key</span> <span class="op">&lt;-</span> <span class="st">"M1_SpotDetect_Gene_AE_correct_after_host_gene_white"</span></span>
+<span><span class="va">foci_pcd_detection_key</span> <span class="op">&lt;-</span> <span class="st">"M1_SpotDetect_Geneset_AE_correct_after_PCD_white"</span></span>
+<span><span class="va">foci_parasite_geneset_key</span> <span class="op">&lt;-</span> <span class="st">"M1_SpotDetect_Geneset_AE_correct_after_KEGG_Parasite_white"</span></span>
 <span></span>
 <span><span class="co"># Profiles before niche expansion.</span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
@@ -584,25 +417,21 @@ uses DBSCAN and hull reconstruction to define niche regions, whereas
 spot-level mode uses kNN graphs and connected components to delineate
 contiguous positive-spot clusters.</p>
 <p>Aggregated-type niche identification detects spatially clustered
-regions based on pathogen-associated or host-response positive spots. In
-the JEV example, the <code>PI4d</code> sample is used to illustrate
-aggregated spatial organization.</p>
+regions based on pathogen-infected or host-responsive positive spots. In
+the JEV example, the <code>D5_1 (PI5d)</code> sample is used to
+illustrate aggregated spatial organization.</p>
 <blockquote>
-<p><strong>Note:</strong> Replace <code>PI4d</code>, detection metadata
-keys, positive-label columns, <code>density_thres</code>,
+<p><strong>Note:</strong> Replace detection metadata keys,
+positive-label columns, <code>density_thres</code>,
 <code>region_detect_method</code>, and output group names according to
 the spatial aggregation pattern and detection results in your
 dataset.</p>
 </blockquote>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">aggregated_sample_id</span> <span class="op">&lt;-</span> <span class="st">"PI4d"</span></span>
-<span></span>
-<span><span class="va">STID_obj_aggregated</span> <span class="op">&lt;-</span> <span class="va">STID_obj</span></span>
-<span></span>
-<span><span class="co"># Pathogen-associated aggregated niches.</span></span>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># pathogen-infected niche</span></span>
 <span><span class="va">STID_obj_aggregated</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NicheDetect_STS.html">NicheDetect_STS</a></span><span class="op">(</span></span>
-<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_aggregated</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="st">"M1_SpotDetect_Gene_JEV_correct_before_all_gene_white"</span>,</span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
+<span>  meta_key <span class="op">=</span> <span class="st">"M1_SpotDetect_Gene_JEV_multisamp_microbe_gene"</span>,</span>
 <span>  spatial_scale_method <span class="op">=</span> <span class="st">"region"</span>,</span>
 <span>  region_detect_method <span class="op">=</span> <span class="st">"convex"</span>,</span>
 <span>  update_spots <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -610,21 +439,21 @@ dataset.</p>
 <span>  density_thres <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  pos_colnm <span class="op">=</span> <span class="st">"Label_all_gene_nFeature(sum)"</span>,</span>
 <span>  description <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"STS_JEV_microbe_region"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"STS_JEV_multisamp_microbe_region"</span>,</span>
 <span>  dir_nm <span class="op">=</span> <span class="st">"M2_NicheDetect_STS"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">pathogen_niche_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheDetect_STS_STS_JEV_microbe_region"</span></span>
+<span><span class="va">pathogen_niche_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheDetect_STS_STS_JEV_multisamp_microbe_region"</span></span>
 <span><span class="va">pathogen_meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetMetaData.html">GetMetaData</a></span><span class="op">(</span></span>
 <span>  <span class="va">STID_obj_aggregated</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="va">pathogen_niche_key</span>,</span>
 <span>  add_coord <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span></span>
-<span><span class="co"># Host-response aggregated niches.</span></span>
+<span><span class="co"># host-responsive niche</span></span>
 <span><span class="va">STID_obj_aggregated</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NicheDetect_STS.html">NicheDetect_STS</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_aggregated</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="st">"M1_SpotDetect_Geneset_JEV_correct_before_GO_viral_white"</span>,</span>
+<span>  meta_key <span class="op">=</span> <span class="st">"M1_SpotDetect_Gene_JEV_multisamp_GO_viral_white"</span>,</span>
 <span>  spatial_scale_method <span class="op">=</span> <span class="st">"region"</span>,</span>
 <span>  region_detect_method <span class="op">=</span> <span class="st">"convex"</span>,</span>
 <span>  update_spots <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -632,60 +461,33 @@ dataset.</p>
 <span>  density_thres <span class="op">=</span> <span class="fl">0.3</span>,</span>
 <span>  pos_colnm <span class="op">=</span> <span class="st">"Label_RESPONSE_TO_VIRUS"</span>,</span>
 <span>  description <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  grp_nm <span class="op">=</span> <span class="st">"STS_JEV_host_region"</span>,</span>
+<span>  grp_nm <span class="op">=</span> <span class="st">"STS_JEV_multisamp_host_region"</span>,</span>
 <span>  dir_nm <span class="op">=</span> <span class="st">"M2_NicheDetect_STS"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">STID_obj_aggregated</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">host_niche_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheDetect_STS_STS_JEV_host_region"</span></span>
+<span><span class="va">host_niche_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheDetect_STS_STS_JEV_multisamp_host_region"</span></span>
 <span><span class="va">host_meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/GetMetaData.html">GetMetaData</a></span><span class="op">(</span></span>
 <span>  <span class="va">STID_obj_aggregated</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="va">host_niche_key</span>,</span>
 <span>  add_coord <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a>
-</h4>
-<p>Key parameters include:</p>
-<ul>
-<li>
-<code>meta_key</code>: metadata key containing positive-spot
-detection results;</li>
-<li>
-<code>pos_colnm</code>: positive-label column used to define
-candidate spots;</li>
-<li>
-<code>spatial_scale_method</code>: spatial scale used for niche
-construction;</li>
-<li>
-<code>region_detect_method</code>: method used to delineate regional
-boundaries;</li>
-<li>
-<code>density_thres</code>: density threshold used to retain
-aggregated regions;</li>
-<li>
-<code>update_spots</code>: whether updated spot labels are written
-back to the object;</li>
-<li>
-<code>grp_nm</code>: group name used to store the aggregated niche
-results.</li>
-</ul>
 <p>The <code>density_thres</code> parameter should be calibrated to the
-expected compactness of pathogen-positive or host-response-positive
+expected compactness of pathogen-positive or host-responsive positive
 regions.</p>
-</div>
 <div class="section level3">
 <h3 id="visualize-aggregated-niches">Visualize aggregated niches<a class="anchor" aria-label="anchor" href="#visualize-aggregated-niches"></a>
 </h3>
 <p>The following plots show the spatial distributions of
-pathogen-associated and host-response aggregated niches.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+pathogen-infected and host-responsive aggregated niches.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">PATHOGEN_DARK</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#50C49FFF"</span>, <span class="st">"#FC7715FF"</span>, <span class="st">"#FCB11C"</span>, <span class="st">"#F81B02FF"</span>, <span class="st">"#3B95C4FF"</span>, <span class="st">"#B560D4FF"</span><span class="op">)</span></span>
 <span><span class="va">PATHOGEN_LIGHT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#BBBFA1"</span>, <span class="st">"#FCC093"</span>, <span class="st">"#FCDB9A"</span>, <span class="st">"#F88A7E"</span>, <span class="st">"#9DB7C4"</span>, <span class="st">"#D1CAD4"</span><span class="op">)</span></span>
 <span><span class="va">HOST_DARK</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#F81B02FF"</span>, <span class="st">"#FC7715FF"</span>, <span class="st">"#FCB11C"</span>, <span class="st">"#B560D4FF"</span><span class="op">)</span></span>
 <span><span class="va">HOST_LIGHT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#F88A7E"</span>, <span class="st">"#FCC093"</span>, <span class="st">"#FCDB9A"</span>, <span class="st">"#D1CAD4"</span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Pathogen: ROI</span></span>
 <span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">pathogen_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
@@ -702,6 +504,7 @@ pathogen-associated and host-response aggregated niches.</p>
 <span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Pathogen: Region</span></span>
 <span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">pathogen_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
@@ -718,6 +521,7 @@ pathogen-associated and host-response aggregated niches.</p>
 <span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Host: ROI</span></span>
 <span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">host_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
@@ -734,6 +538,7 @@ pathogen-associated and host-response aggregated niches.</p>
 <span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Host: Region</span></span>
 <span><span class="fu"><a href="../reference/Plot_Spatial.html">Plot_Spatial</a></span><span class="op">(</span></span>
 <span>  plot_data <span class="op">=</span> <span class="va">host_meta</span>,</span>
 <span>  x_colnm <span class="op">=</span> <span class="st">"x"</span>,</span>
@@ -750,8 +555,8 @@ pathogen-associated and host-response aggregated niches.</p>
 <span>  black_bg <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="figure" style="text-align: center">
-<img src="figures/Figure3_G.png" class="r-plt" alt="Spatial distribution of pathogen-associated and host-response aggregated niches." width="600px"><p class="caption">
-Spatial distribution of pathogen-associated and host-response aggregated
+<img src="figures/Figure3_G.png" class="r-plt" alt="Spatial distribution of pathogen-infected and host-responsive aggregated niches." width="600px"><p class="caption">
+Spatial distribution of pathogen-infected and host-responsive aggregated
 niches.
 </p>
 </div>
@@ -761,15 +566,16 @@ niches.
 </h3>
 <p>Distance profiles can be used to compare molecular signal gradients
 from the center of aggregated niches toward surrounding tissue.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Profiles for pathogen-infected niche.</span></span>
+<span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_aggregated</span>,</span>
 <span>  features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"NS5"</span>, <span class="st">"Ccl2"</span><span class="op">)</span>,</span>
 <span>  feature_colnm <span class="op">=</span> <span class="st">"all_gene_nFeature(sum)"</span>,</span>
 <span>  loop_id <span class="op">=</span> <span class="st">"D5_1"</span>,</span>
 <span>  col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#F81B02FF"</span>, <span class="st">"#3B95C4FF"</span>, <span class="st">"#F81B02FF"</span><span class="op">)</span>,</span>
 <span>  facet_grpnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_correct_before_all_gene_white"</span>, <span class="va">pathogen_niche_key</span><span class="op">)</span><span class="op">)</span></span>
+<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_multisamp_microbe_gene"</span>, <span class="va">pathogen_niche_key</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
@@ -779,7 +585,7 @@ from the center of aggregated niches toward surrounding tissue.</p>
 <span>  loop_id <span class="op">=</span> <span class="st">"D5_1"</span>,</span>
 <span>  col <span class="op">=</span> <span class="st">"#3B95C4FF"</span>,</span>
 <span>  facet_grpnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Geneset_JEV_correct_before_GO_viral_white"</span>, <span class="va">pathogen_niche_key</span><span class="op">)</span><span class="op">)</span></span>
+<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_multisamp_GO_viral_white"</span>, <span class="va">pathogen_niche_key</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
@@ -792,6 +598,7 @@ from the center of aggregated niches toward surrounding tissue.</p>
 <span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Geneset_JEV_correct_before_PCD_white"</span>, <span class="va">pathogen_niche_key</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Profiles for host-responsive niche.</span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_aggregated</span>,</span>
 <span>  features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"NS5"</span>, <span class="st">"Ccl2"</span><span class="op">)</span>,</span>
@@ -799,7 +606,7 @@ from the center of aggregated niches toward surrounding tissue.</p>
 <span>  loop_id <span class="op">=</span> <span class="st">"D5_1"</span>,</span>
 <span>  col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"#F81B02FF"</span>, <span class="st">"#3B95C4FF"</span>, <span class="st">"#F81B02FF"</span><span class="op">)</span>,</span>
 <span>  facet_grpnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_correct_before_all_gene_white"</span>, <span class="va">host_niche_key</span><span class="op">)</span><span class="op">)</span></span>
+<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_multisamp_microbe_gene"</span>, <span class="va">host_niche_key</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
@@ -809,7 +616,7 @@ from the center of aggregated niches toward surrounding tissue.</p>
 <span>  loop_id <span class="op">=</span> <span class="st">"D5_1"</span>,</span>
 <span>  col <span class="op">=</span> <span class="st">"#3B95C4FF"</span>,</span>
 <span>  facet_grpnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Geneset_JEV_correct_before_GO_viral_white"</span>, <span class="va">host_niche_key</span><span class="op">)</span><span class="op">)</span></span>
+<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_multisamp_GO_viral_white"</span>, <span class="va">host_niche_key</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
@@ -828,30 +635,28 @@ Distance-dependent feature profiles for aggregated niches.
 </div>
 </div>
 <div class="section level3">
-<h3 id="compare-pathogen-associated-and-host-response-niches">Compare pathogen-associated and host-response niches<a class="anchor" aria-label="anchor" href="#compare-pathogen-associated-and-host-response-niches"></a>
+<h3 id="compare-pathogen-infected-and-host-responsive-niches">Compare pathogen-infected and host-responsive niches<a class="anchor" aria-label="anchor" href="#compare-pathogen-infected-and-host-responsive-niches"></a>
 </h3>
 <p><code><a href="../reference/CompareNiche.html">CompareNiche()</a></code> quantifies the spatial relationship
-between two niche definitions, such as pathogen-associated niches and
-host-response niches.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+between two niche definitions, such as pathogen-infected niches and
+host-responsive niches.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/CompareNiche.html">CompareNiche</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_aggregated</span>,</span>
 <span>  meta_key1 <span class="op">=</span> <span class="va">pathogen_niche_key</span>,</span>
 <span>  meta_key2 <span class="op">=</span> <span class="va">host_niche_key</span>,</span>
 <span>  bins <span class="op">=</span> <span class="fl">15</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>The following plot shows the spatial overlap between
+pathogen-infected and host-responsive aggregated niches, as well as the
+distance distribution of host-responsive niche spots to the nearest
+pathogen-infected niche center.</p>
 <div class="figure" style="text-align: center">
-<img src="figures/Figure3_I.png" class="r-plt" alt="Spatial comparison between pathogen-associated and host-response aggregated niches." width="600px"><p class="caption">
-Spatial comparison between pathogen-associated and host-response
+<img src="figures/Figure3_I.png" class="r-plt" alt="Spatial comparison between pathogen-infected and host-responsive aggregated niches." width="600px"><p class="caption">
+Spatial comparison between pathogen-infected and host-responsive
 aggregated niches.
 </p>
 </div>
-<blockquote>
-<p><strong>Note:</strong> Update <code>loop_id</code>,
-<code>facet_grpnm</code>, <code>bins</code>, feature names, gene-set
-names, and metadata keys according to the samples and niche definitions
-used in your analysis.</p>
-</blockquote>
 </div>
 </div>
 <div class="section level2">
@@ -865,17 +670,15 @@ concentrated in continuous regions. In the JEV example, the
 <code>PI3d</code> sample is used to illustrate dispersed positive-spot
 organization.</p>
 <blockquote>
-<p><strong>Note:</strong> Replace <code>PI3d</code>, positive-label
-columns, metadata keys, and output group names according to the
-dispersed infection-associated signal in your dataset.</p>
+<p><strong>Note:</strong> Replace positive-label columns, metadata keys,
+and output group names according to the dispersed infection-associated
+spots in your dataset.</p>
 </blockquote>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">dispersed_sample_id</span> <span class="op">&lt;-</span> <span class="st">"PI3d"</span></span>
-<span></span>
-<span><span class="va">STID_obj_dispersed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NicheDetect_Spot.html">NicheDetect_Spot</a></span><span class="op">(</span></span>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">STID_obj_dispersed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/NicheDetect_Spot.html">NicheDetect_Spot</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
 <span>  pos_colnm <span class="op">=</span> <span class="st">"Label_all_gene_nFeature(sum)"</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="st">"M1_SpotDetect_Gene_JEV_correct_before_all_gene_white"</span>,</span>
+<span>  meta_key <span class="op">=</span> <span class="st">"M1_SpotDetect_Gene_JEV_multisamp_microbe_gene"</span>,</span>
 <span>  description <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="st">"D3_1"</span></span>
 <span><span class="op">)</span></span>
@@ -883,7 +686,7 @@ dispersed infection-associated signal in your dataset.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">STID_obj_dispersed</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">dispersed_niche_key</span> <span class="op">&lt;-</span> <span class="st">"M2_NicheDetect_Spot_D3_1"</span></span></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_dispersed</span>,</span>
 <span>  features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"NS5"</span>, <span class="st">"Ccl2"</span><span class="op">)</span>,</span>
@@ -893,7 +696,7 @@ dispersed infection-associated signal in your dataset.</p>
 <span>  distance_scale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  exp_scale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  facet_grpnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_correct_before_all_gene_white"</span>, <span class="va">dispersed_niche_key</span><span class="op">)</span><span class="op">)</span></span>
+<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_multisamp_microbe_gene"</span>, <span class="va">dispersed_niche_key</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
@@ -905,7 +708,7 @@ dispersed infection-associated signal in your dataset.</p>
 <span>  distance_scale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  exp_scale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  facet_grpnm <span class="op">=</span> <span class="st">"grp"</span>,</span>
-<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Geneset_JEV_correct_before_GO_viral_white"</span>, <span class="va">dispersed_niche_key</span><span class="op">)</span><span class="op">)</span></span>
+<span>  meta_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"M1_SpotDetect_Gene_JEV_multisamp_GO_viral_white"</span>, <span class="va">dispersed_niche_key</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/Plot_DistLine_Exp.html">Plot_DistLine_Exp</a></span><span class="op">(</span></span>
@@ -941,16 +744,24 @@ for non-contiguous positive spots.</li>
 resolution, bin size, tissue structure, and expected infection
 burden.</li>
 <li>Verify all metadata keys generated by spot detection and niche
-detection before plotting or comparing niches.</li>
-<li>Replace example genes, gene sets, sample IDs, and visualization
-parameters with values that correspond to the biological system under
-investigation.</li>
+identification before plotting or comparing niches.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p>This vignette identified infection-associated niches and, when
+needed, expanded niche boundaries for downstream spatial-gradient
+analysis. In the next vignette, we will use these niche labels to
+construct single-sample niche objects and characterize their spatial
+organization, cellular composition, molecular features, cell–cell
+communication, gene regulatory networks, and host–pathogen
+interactions.</p>
 </div>
 <div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.2.0 (2022-04-22 ucrt)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-w64-mingw32/x64 (64-bit)</span></span>

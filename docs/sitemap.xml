@@ -41,6 +41,7 @@
 <url><loc>https://yulongqin.github.io/STID/reference/clog.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/COLOR_DIS_CON.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/CompareNiche.html</loc></url>
+<url><loc>https://yulongqin.github.io/STID/reference/configure_conda.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/CorrectBackground.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/CreateSingleSampNiche.html</loc></url>
@@ -75,6 +76,7 @@
 <url><loc>https://yulongqin.github.io/STID/reference/Plot_DistLine_Ratio.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/Plot_NicheCellComm.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/Plot_Spatial.html</loc></url>
+<url><loc>https://yulongqin.github.io/STID/reference/Plot_SpatialCoLoc.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/print.STID.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/rds2h5ad.html</loc></url>
 <url><loc>https://yulongqin.github.io/STID/reference/RemoveMetaColumn.html</loc></url>

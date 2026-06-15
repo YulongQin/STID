@@ -25,7 +25,7 @@ set.seed(123)
 This vignette introduces the public plotting functions whose names start with `Plot_` in the STID analysis scripts:
 
 - `Plot_Spatial()` for spatial visualization of discrete labels or continuous scores;
-- `Plot_SpatialCoLoc()` for visualizing two-variable spatial co-localization;
+- `Plot_SpatialCoLoc()` for visualizing two-variable spatial colocalization;
 - `Plot_NicheCellComm()` for visualizing niche cell-cell communication results;
 - `Plot_DistLine_Exp()` for plotting expression trends along distance from ROI/niche centers;
 - `Plot_DistLine_Ratio()` for plotting cell-type ratio trends along distance from ROI/niche centers.
@@ -59,7 +59,7 @@ library(nichenetr)
 | Function | Main purpose | Typical use |
 |---|---|---|
 | `Plot_Spatial()` | Create spatial scatter plots from an STID object or a custom data frame | Visualize cell types, spot classes, gene scores, or continuous metadata on tissue coordinates |
-| `Plot_SpatialCoLoc()` | Visualize spatial co-localization of two groups, genes, or metadata features | Check whether two cell groups or two expression features overlap in niche/ROI regions |
+| `Plot_SpatialCoLoc()` | Visualize spatial colocalization of two groups, genes, or metadata features | Check whether two cell groups or two expression features overlap in niche/ROI regions |
 | `Plot_NicheCellComm()` | Plot CellChat-based niche cell communication results | Inspect interaction counts, interaction weights, signaling roles, pathway bubbles, and spatial signaling maps |
 | `Plot_DistLine_Exp()` | Plot gene or metadata-feature expression along distance from ROI/niche centers | Examine how expression changes from ROI center toward the edge and outside regions |
 | `Plot_DistLine_Ratio()` | Plot cell-type proportions along distance from ROI/niche centers | Examine how cell-type composition changes across binned distance layers |
@@ -113,12 +113,12 @@ p <- Plot_Spatial(
 p
 ```
 
-## Spatial co-localization plots
+## Spatial colocalization plots
 
-`Plot_SpatialCoLoc()` visualizes co-localization for exactly two variables. The variables can be two groups from a `group_by` column, two genes from `features`, two metadata features from `feature_colnm`, or a combination of gene and metadata features. When `niche_key` is supplied, the function focuses on niche cells; otherwise, it can use metadata through `meta_key`.
+`Plot_SpatialCoLoc()` visualizes colocalization for exactly two variables. The variables can be two groups from a `group_by` column, two genes from `features`, two metadata features from `feature_colnm`, or a combination of gene and metadata features. When `niche_key` is supplied, the function focuses on niche cells; otherwise, it can use metadata through `meta_key`.
 
 ```{r plot-spatial-coloc-cell-groups, eval = FALSE}
-# Co-localization of selected cell groups inside a niche
+# colocalization of selected cell groups inside a niche
 Plot_SpatialCoLoc(
   STID_obj = STID_obj,
   loop_id = "LoopAllSamp",
@@ -131,7 +131,7 @@ Plot_SpatialCoLoc(
 ```
 
 ```{r plot-spatial-coloc-features, eval = FALSE}
-# Co-localization of two gene-expression features
+# colocalization of two gene-expression features
 Plot_SpatialCoLoc(
   STID_obj = STID_obj,
   loop_id = "LoopAllSamp",
@@ -144,7 +144,7 @@ Plot_SpatialCoLoc(
 ```
 
 ```{r plot-spatial-coloc-metadata-features, eval = FALSE}
-# Co-localization using two numeric metadata columns
+# colocalization using two numeric metadata columns
 Plot_SpatialCoLoc(
   STID_obj = STID_obj,
   meta_key = "M2_NicheDetect_Lasso_20240101",
@@ -154,7 +154,7 @@ Plot_SpatialCoLoc(
 )
 ```
 
-> **Note:** This function is designed for two-variable co-localization. If more than two variables are supplied, the function stops with an error.
+> **Note:** This function is designed for two-variable colocalization. If more than two variables are supplied, the function stops with an error.
 
 ## Niche cell communication plots
 
@@ -289,7 +289,7 @@ Plot_Spatial(
   datatype = "discrete"
 )
 
-# 2. Visualize two-variable co-localization
+# 2. Visualize two-variable colocalization
 Plot_SpatialCoLoc(
   STID_obj = STID_obj,
   niche_key = "niche_virulence",

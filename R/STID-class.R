@@ -194,7 +194,7 @@ STID_analysis <- setClass(
         y_colnm = character(),
         pathogen_genes = character(),
         data_format = character(),
-        data_platfrom = character(),
+        data_platform = character(),
         binsize = numeric(),
         coord_interval = numeric(),
         base_unit = numeric() # * mm
@@ -232,7 +232,7 @@ STID_analysis <- setClass(
 
 #' The STID Class
 #'
-#' The STID (Integrated Single-cell Transcriptomics) object extends the Seurat
+#' The STID (Spatial Transcriptomics toolkit for Infectious Diseases) object extends the Seurat
 #' class to add specialized functionality for analyzing infection and spatial
 #' transcriptomics data. It inherits all functionality from Seurat objects while
 #' adding additional slots for tracking infection-related analyses.
@@ -700,19 +700,49 @@ setMethod("as.STID", "Seurat",
 #'   pathogen_grp = "virus",
 #'   pathogen_org = "SARS-CoV-2",
 #'   data_format = "square_grid",
-#'   data_fplatform = "StereoSeq"
+#'   data_platform = "StereoSeq"
 #' )
 #' }
-CreateSTIDObject <- function(seurat_obj = NULL, host_org = NULL, pathogen_grp = NULL, pathogen_org = NULL,
-                          samp_colnm = NULL, samp_grp_colnm = NULL, celltype_colnm = NULL,
-                          x_colnm = NULL, y_colnm = NULL,pathogen_genes = NULL,
-                          data_format = NULL, binsize = NULL, coord_interval = NULL,
-                          project_id = NULL, description = NULL,...){
-  as.STID(seurat_obj, host_org, pathogen_grp, pathogen_org,
-         samp_colnm, samp_grp_colnm, celltype_colnm,
-         x_colnm, y_colnm,pathogen_genes,
-         data_format, binsize, coord_interval,
-         project_id, description,...)
+CreateSTIDObject <- function(
+    seurat_obj = NULL,
+    host_org = NULL,
+    pathogen_grp = NULL,
+    pathogen_org = NULL,
+    samp_colnm = NULL,
+    samp_grp_colnm = NULL,
+    celltype_colnm = NULL,
+    x_colnm = NULL,
+    y_colnm = NULL,
+    pathogen_genes = NULL,
+    data_format = NULL,
+    data_platform = NULL,
+    binsize = NULL,
+    coord_interval = NULL,
+    base_unit = NULL,
+    project_id = NULL,
+    description = NULL,
+    ...
+) {
+  as.STID(
+    seurat_obj = seurat_obj,
+    host_org = host_org,
+    pathogen_grp = pathogen_grp,
+    pathogen_org = pathogen_org,
+    samp_colnm = samp_colnm,
+    samp_grp_colnm = samp_grp_colnm,
+    celltype_colnm = celltype_colnm,
+    x_colnm = x_colnm,
+    y_colnm = y_colnm,
+    pathogen_genes = pathogen_genes,
+    data_format = data_format,
+    data_platform = data_platform,
+    binsize = binsize,
+    coord_interval = coord_interval,
+    base_unit = base_unit,
+    project_id = project_id,
+    description = description,
+    ...
+  )
 }
 
 

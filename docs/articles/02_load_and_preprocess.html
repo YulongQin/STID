@@ -94,7 +94,7 @@
 </h2>
 <p>This vignette describes how to load and preprocess spatial
 transcriptomics data before constructing an <code>STID</code> object for
-downstream infection-aware spatial analysis.</p>
+downstream spatial transcriptomic analysis of infectious diseases.</p>
 <p>Preprocessing standardizes the input object so that the data are
 normalized, dimensionally reduced, clustered, and annotated in a format
 compatible with downstream STID modules.</p>
@@ -107,10 +107,20 @@ method;</li>
 <li>converting a processed Seurat object into an <code>STID</code>
 object.</li>
 </ul>
+<div class="figure" style="text-align: center">
+<img src="figures/Figure1_A_partial.png" class="r-plt" alt="Preprocessing modules in the STID workflow." width="600px"><p class="caption">
+Preprocessing modules in the STID workflow.
+</p>
+</div>
 <blockquote>
 <p><strong>Note:</strong> Update the example dataset name, organism
 information, pathogen gene prefix, and metadata column names according
 to the dataset used in your analysis.</p>
+</blockquote>
+<blockquote>
+<p><strong>Reference code:</strong> For more runnable code examples,
+please refer to the <a href="https://github.com/YulongQin/STID/tree/main/article_code" class="external-link">article
+code</a>.</p>
 </blockquote>
 </div>
 <div class="section level2">
@@ -127,15 +137,16 @@ the optional reference-based annotation step.</p>
 <h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
 </h2>
 <p>The example data can be downloaded from <a href="https://doi.org/10.6084/m9.figshare.31839988" class="external-link">Figshare</a>. In
-this vignette, we use the <code>stRNA_AE</code> dataset as an
-example.</p>
+this vignette, we use the <code>stRNA_AE</code> dataset as an example.
+Alveolar echinococcosis (AE) is a Stereo-seq-based mouse tissue dataset
+infected with <em>Echinococcus multilocularis</em>.</p>
 <blockquote>
 <p><strong>Note:</strong> Replace <code>./stRNA_AE.rds</code> with the
 correct local path or a package-provided example dataset.</p>
 </blockquote>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span>file <span class="op">=</span> <span class="st">"./stRNA_AE.rds"</span><span class="op">)</span></span>
-<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SeuratObject/man/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co"># stRNA &lt;- NormalizeData(stRNA)</span></span>
 <span><span class="va">meta_data</span> <span class="op">&lt;-</span> <span class="va">stRNA</span><span class="op">@</span><span class="va">meta.data</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">meta_data</span><span class="op">$</span><span class="va">batch</span><span class="op">)</span></span></code></pre></div>
@@ -206,45 +217,22 @@ labels.</p>
 <span>  seurat_colnm <span class="op">=</span> <span class="st">"seurat_clusters"</span>,</span>
 <span>  ref_colnm <span class="op">=</span> <span class="st">"label.main"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="details-1">Details<a class="anchor" aria-label="anchor" href="#details-1"></a>
-</h4>
 <p>The <code><a href="../reference/anno_SingleR.html">anno_SingleR()</a></code> function annotates query spots or
-cells using the <code>SingleR</code> framework.</p>
-<p>Key arguments include:</p>
-<ul>
-<li>
-<code>ref_obj</code>: a reference dataset with known cell-type
-annotations;</li>
-<li>
-<code>seurat_colnm</code>: the metadata column containing cluster
-labels in the query Seurat object;</li>
-<li>
-<code>ref_colnm</code>: the annotation column in the reference
-dataset.</li>
-</ul>
-<p>The resulting annotations are stored in the Seurat object and can be
-used for:</p>
-<ul>
-<li>interpreting infection-associated spatial niches;</li>
-<li>comparing host cell-type composition across samples or groups;</li>
-<li>downstream niche-level analysis in STID.</li>
-</ul>
+cells using the <code>SingleR</code> framework. The resulting
+annotations are stored in the Seurat object.</p>
 <blockquote>
-<p><strong>Note:</strong> Replace <code>MouseRNAseqData()</code> with a
+<p><strong>Note:</strong> Replace <code><a href="https://rdrr.io/pkg/SingleR/man/datasets.html" class="external-link">MouseRNAseqData()</a></code> with a
 reference dataset that matches the species, tissue, and experimental
 context of the query data. Also confirm that <code>seurat_colnm</code>
 and <code>ref_colnm</code> exist in the corresponding objects.</p>
 </blockquote>
 </div>
-</div>
 <div class="section level2">
 <h2 id="convert-the-seurat-object-into-an-stid-object">Convert the Seurat object into an STID object<a class="anchor" aria-label="anchor" href="#convert-the-seurat-object-into-an-stid-object"></a>
 </h2>
-<p>To support infection-aware spatial transcriptomics analysis, STID
-uses a dedicated object class that stores sample information, host-cell
-annotations, pathogen metadata, and platform-specific spatial
-information.</p>
+<p>To support spatial transcriptomic analysis of infectious diseases,
+STID uses a dedicated object class that stores sample information,
+pathogen metadata, and platform-specific spatial information.</p>
 <p>Before conversion, confirm the following information:</p>
 <ul>
 <li>the sample identifier column;</li>
@@ -266,41 +254,25 @@ information.</p>
 <span>  host_org <span class="op">=</span> <span class="st">"mouse"</span>,</span>
 <span>  pathogen_grp <span class="op">=</span> <span class="st">"parasite"</span>,</span>
 <span>  pathogen_org <span class="op">=</span> <span class="st">"EmuJ"</span>,</span>
-<span>  pathogen_gene <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
+<span>  pathogen_genes <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
 <span>  binsize <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  data_format <span class="op">=</span> <span class="st">"square_grid"</span>,</span>
 <span>  data_platform <span class="op">=</span> <span class="st">"StereoSeq"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">STID_obj</span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="details-2">Details<a class="anchor" aria-label="anchor" href="#details-2"></a>
-</h4>
 <p>The <code><a href="../reference/as.STID.html">as.STID()</a></code> function converts a processed Seurat
 object into an <code>STID</code> object. The generated object is used as
 the standard input for downstream STID analyses.</p>
-<p>The example above assumes that:</p>
-<ul>
-<li>
-<code>batch</code> stores sample identifiers;</li>
-<li>
-<code>group</code> stores sample-level experimental groups;</li>
-<li>
-<code>anno</code> stores cell-type annotations;</li>
-<li>pathogen genes are identified by the prefix <code>EmuJ-</code>;</li>
-<li>the spatial data were generated using the Stereo-seq platform and
-represented as a square grid.</li>
-</ul>
 <blockquote>
 <p><strong>Note:</strong> These assumptions are dataset-specific. Update
 <code>samp_colnm</code>, <code>samp_grp_colnm</code>,
 <code>celltype_colnm</code>, <code>host_org</code>,
 <code>pathogen_grp</code>, <code>pathogen_org</code>,
-<code>pathogen_gene</code>, <code>binsize</code>,
+<code>pathogen_genes</code>, <code>binsize</code>,
 <code>data_format</code>, and <code>data_platform</code> before using
 this workflow for another dataset.</p>
 </blockquote>
-</div>
 </div>
 <div class="section level2">
 <h2 id="inspect-the-stid-object">Inspect the STID object<a class="anchor" aria-label="anchor" href="#inspect-the-stid-object"></a>
@@ -329,16 +301,21 @@ Printed summary of the raw STID object.
 <h2 id="notes">Notes<a class="anchor" aria-label="anchor" href="#notes"></a>
 </h2>
 <ul>
-<li>Use a reference dataset that matches the species and tissue context
-of the spatial transcriptomics data.</li>
 <li>Verify that all metadata columns passed to <code><a href="../reference/as.STID.html">as.STID()</a></code>
 are present in <code>stRNA@meta.data</code>.</li>
 <li>Check the pathogen gene prefix carefully, because an incorrect
 pattern may remove pathogen-derived features from downstream
 analysis.</li>
-<li>For package vignettes, keep large example data outside the package
-or provide a small, lightweight example object.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p>This vignette generated a processed <code>STID</code> object
+containing spatial coordinates, sample information, and host–pathogen
+metadata. In the next vignette, we will use this object to correct
+pathogen-derived background signals before detecting
+infection-associated spots.</p>
 </div>
 <div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>

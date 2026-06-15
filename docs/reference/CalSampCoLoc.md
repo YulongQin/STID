@@ -1,8 +1,9 @@
-# Calculate Niche Co-localization using MSTIDyR
+# Calculate Niche Co-localization
 
-Performs spatial co-localization analysis using the MSTIDyR framework to
-identify intra-view, juxtaview, and paraview relationships between cell
-types or gene expression patterns within niches.
+Performs spatial co-localization analysis using the mistyR or Squidpy
+method to assess the spatial relationships between cell types, gene
+expression, or gene scores within niches. Generates co-localization
+metrics and visualizations for each sample.
 
 ## Usage
 

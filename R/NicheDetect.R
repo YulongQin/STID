@@ -1169,7 +1169,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 #' @param meta_data Data frame containing spatial coordinates and ROI labels
 #' @param ROI_label_colnm Character, column name containing ROI labels
 #' @param ROI_center_colnm Character, column name to store center status
-#' @param binsize Numeric, bin size of the spatial transcriptomics data
+#' @param coord_interval Numeric, coordinate interval for spatial data
 #'
 #' @return Modified data frame with added ROI_center column and potentially
 #'         adjusted coordinates for center spots
@@ -2131,7 +2131,7 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL,
 #'
 #' @import ggplot2
 #' @import FNN
-#' @import ggvenn ggvenn
+#' @importFrom ggvenn ggvenn
 #'
 #' @export
 #'

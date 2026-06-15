@@ -99,8 +99,8 @@ start with <code>Plot_</code> in the STID analysis scripts:</p>
 <code><a href="../reference/Plot_Spatial.html">Plot_Spatial()</a></code> for spatial visualization of discrete
 labels or continuous scores;</li>
 <li>
-<code>Plot_SpatialCoLoc()</code> for visualizing two-variable
-spatial co-localization;</li>
+<code><a href="../reference/Plot_SpatialCoLoc.html">Plot_SpatialCoLoc()</a></code> for visualizing two-variable
+spatial colocalization;</li>
 <li>
 <code><a href="../reference/Plot_NicheCellComm.html">Plot_NicheCellComm()</a></code> for visualizing niche cell-cell
 communication results;</li>
@@ -161,8 +161,8 @@ frame</td>
 metadata on tissue coordinates</td>
 </tr>
 <tr class="even">
-<td><code>Plot_SpatialCoLoc()</code></td>
-<td>Visualize spatial co-localization of two groups, genes, or metadata
+<td><code><a href="../reference/Plot_SpatialCoLoc.html">Plot_SpatialCoLoc()</a></code></td>
+<td>Visualize spatial colocalization of two groups, genes, or metadata
 features</td>
 <td>Check whether two cell groups or two expression features overlap in
 niche/ROI regions</td>
@@ -238,9 +238,9 @@ columns and a grouping column are supplied.</p>
 <span><span class="va">p</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="spatial-co-localization-plots">Spatial co-localization plots<a class="anchor" aria-label="anchor" href="#spatial-co-localization-plots"></a>
+<h2 id="spatial-colocalization-plots">Spatial colocalization plots<a class="anchor" aria-label="anchor" href="#spatial-colocalization-plots"></a>
 </h2>
-<p><code>Plot_SpatialCoLoc()</code> visualizes co-localization for
+<p><code><a href="../reference/Plot_SpatialCoLoc.html">Plot_SpatialCoLoc()</a></code> visualizes colocalization for
 exactly two variables. The variables can be two groups from a
 <code>group_by</code> column, two genes from <code>features</code>, two
 metadata features from <code>feature_colnm</code>, or a combination of
@@ -248,8 +248,8 @@ gene and metadata features. When <code>niche_key</code> is supplied, the
 function focuses on niche cells; otherwise, it can use metadata through
 <code>meta_key</code>.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Co-localization of selected cell groups inside a niche</span></span>
-<span><span class="fu">Plot_SpatialCoLoc</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># colocalization of selected cell groups inside a niche</span></span>
+<span><span class="fu"><a href="../reference/Plot_SpatialCoLoc.html">Plot_SpatialCoLoc</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
 <span>  loop_id <span class="op">=</span> <span class="st">"LoopAllSamp"</span>,</span>
 <span>  niche_key <span class="op">=</span> <span class="st">"niche_virulence"</span>,</span>
@@ -259,8 +259,8 @@ function focuses on niche cells; otherwise, it can use metadata through
 <span>  pt_size <span class="op">=</span> <span class="fl">1.5</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Co-localization of two gene-expression features</span></span>
-<span><span class="fu">Plot_SpatialCoLoc</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># colocalization of two gene-expression features</span></span>
+<span><span class="fu"><a href="../reference/Plot_SpatialCoLoc.html">Plot_SpatialCoLoc</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
 <span>  loop_id <span class="op">=</span> <span class="st">"LoopAllSamp"</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="st">"coord"</span>,</span>
@@ -270,8 +270,8 @@ function focuses on niche cells; otherwise, it can use metadata through
 <span>  pt_size <span class="op">=</span> <span class="fl">1.5</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Co-localization using two numeric metadata columns</span></span>
-<span><span class="fu">Plot_SpatialCoLoc</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># colocalization using two numeric metadata columns</span></span>
+<span><span class="fu"><a href="../reference/Plot_SpatialCoLoc.html">Plot_SpatialCoLoc</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
 <span>  meta_key <span class="op">=</span> <span class="st">"M2_NicheDetect_Lasso_20240101"</span>,</span>
 <span>  feature_colnm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Score_A"</span>, <span class="st">"Score_B"</span><span class="op">)</span>,</span>
@@ -280,7 +280,7 @@ function focuses on niche cells; otherwise, it can use metadata through
 <span><span class="op">)</span></span></code></pre></div>
 <blockquote>
 <p><strong>Note:</strong> This function is designed for two-variable
-co-localization. If more than two variables are supplied, the function
+colocalization. If more than two variables are supplied, the function
 stops with an error.</p>
 </blockquote>
 </div>
@@ -424,8 +424,8 @@ detection, and downstream niche analysis.</p>
 <span>  datatype <span class="op">=</span> <span class="st">"discrete"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Visualize two-variable co-localization</span></span>
-<span><span class="fu">Plot_SpatialCoLoc</span><span class="op">(</span></span>
+<span><span class="co"># 2. Visualize two-variable colocalization</span></span>
+<span><span class="fu"><a href="../reference/Plot_SpatialCoLoc.html">Plot_SpatialCoLoc</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
 <span>  niche_key <span class="op">=</span> <span class="st">"niche_virulence"</span>,</span>
 <span>  group_by <span class="op">=</span> <span class="st">"cell_type"</span>,</span>

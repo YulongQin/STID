@@ -13,7 +13,6 @@
 #' @param message Character, the log message to display
 #' @param char Character, prefix character(s) for the log message (default: ">>>")
 #' @param level Character, log level - one of "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
-#' @param call. Logical, whether to include call information in error messages (default: TRUE)
 #'
 #' @return NULL (invisible), messages are printed to console
 #'
@@ -101,6 +100,7 @@ clog_title <- function(message){clog(message,char = " >>>> ", level = "INFO")}
 clog_warn <- function(message){clog(message,char = " !!!! ", level = "WARN")}
 
 #' @rdname clog
+#' @param call. Logical, whether to include call information in error messages (default: TRUE)
 #' @export
 clog_error <- function(message, call. = TRUE){
   clog(message,char = "!!!", level = "ERROR")

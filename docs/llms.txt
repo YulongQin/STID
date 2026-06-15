@@ -154,7 +154,7 @@ remotes::install_github("YulongQin/STID")
 ## Quick Start
 
 You can click
-[here](https://yulongqin.github.io/STID/articles/00_Quick_start.html) to
+[here](https://yulongqin.github.io/STID/articles/Get_started.html) to
 access the quick start tutorial, which provides a concise overview of
 the main functions and workflow of STID.
 
@@ -250,7 +250,7 @@ Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
 - [`CalSampCellComm()`](https://yulongqin.github.io/STID/reference/CalSampCellComm.md)
   : Calculate Niche Cell Communication using CellChat
 - [`CalSampCoLoc()`](https://yulongqin.github.io/STID/reference/CalSampCoLoc.md)
-  : Calculate Niche Co-localization using MSTIDyR
+  : Calculate Niche Co-localization
 - [`CalSampComp()`](https://yulongqin.github.io/STID/reference/CalSampComp.md)
   : Calculate Niche Cell Type Composition
 - [`CalSampDEGs()`](https://yulongqin.github.io/STID/reference/CalSampDEGs.md)
@@ -285,6 +285,8 @@ Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
   : Predefined color palettes
 - [`CompareNiche()`](https://yulongqin.github.io/STID/reference/CompareNiche.md)
   : Compare two niche detection results
+- [`configure_conda()`](https://yulongqin.github.io/STID/reference/configure_conda.md)
+  : Configure Python Conda Environment
 - [`CorrectBackground()`](https://yulongqin.github.io/STID/reference/CorrectBackground.md)
   : Correct background expression in spatial transcriptomics data
 - [`CreateMultiSampNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
@@ -354,6 +356,8 @@ Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
   : Plot Niche Cell Communication Results
 - [`Plot_Spatial()`](https://yulongqin.github.io/STID/reference/Plot_Spatial.md)
   : Create spatial plots for STID data
+- [`Plot_SpatialCoLoc()`](https://yulongqin.github.io/STID/reference/Plot_SpatialCoLoc.md)
+  : Plot Spatial Co-localization
 - [`print(`*`<STID>`*`)`](https://yulongqin.github.io/STID/reference/print.STID.md)
   : Print method for STID objects
 - [`rds2h5ad()`](https://yulongqin.github.io/STID/reference/rds2h5ad.md)
@@ -389,17 +393,17 @@ Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
 ### All vignettes
 
 - [Installation](https://yulongqin.github.io/STID/articles/01_Installation.md):
-- [Load and preprocess spatial transcriptomics
-  data](https://yulongqin.github.io/STID/articles/02_load_and_preprocess.md):
+- [Load and
+  preprocess](https://yulongqin.github.io/STID/articles/02_load_and_preprocess.md):
 - [Pathogen background
   correction](https://yulongqin.github.io/STID/articles/03_Pathogen_background_correction.md):
 - [Infection-associated spot
   detection](https://yulongqin.github.io/STID/articles/04_Infection-associated_spot_detection.md):
 - [Infection-associated niche
   identification](https://yulongqin.github.io/STID/articles/05_Infection-associated_niche_identification.md):
-- [Single-sample niche
+- [Single-sample
   analysis](https://yulongqin.github.io/STID/articles/06_Single-sample_analysis.md):
-- [Multi-sample niche
+- [Multi-sample
   analysis](https://yulongqin.github.io/STID/articles/07_Multi-sample_analysis.md):
 - [Datasets and gene
   sets](https://yulongqin.github.io/STID/articles/Datasets_and_Gene_sets.md):

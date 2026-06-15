@@ -173,7 +173,7 @@ spatial coordinates, sample identifiers, and, when available, cell-type
 or spot annotations.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"./stRNA_AE.rds"</span><span class="op">)</span></span>
-<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/SeuratObject/man/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">stRNA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressMessages</a></span><span class="op">(</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/UpdateSeuratObject.html" class="external-link">UpdateSeuratObject</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Inspect sample metadata before running STID</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">stRNA</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span></span>
@@ -562,7 +562,17 @@ analysis.
 used to infer pathogen invasion trajectories, spatial organizational
 entropy, and temporal gene modules.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/CalSampPathoTrack.html">CalSampPathoTrack</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">STID_obj_MS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CreateMultiSampNiche.html">CreateMultiSampNiche</a></span><span class="op">(</span></span>
+<span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_SS</span>,</span>
+<span>  multi_id <span class="op">=</span> <span class="st">"Temporal_1_2_3"</span>,</span>
+<span>  loop_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"D0_1"</span>,<span class="st">"D3_1"</span>, <span class="st">"D5_1"</span>, <span class="st">"D7_1"</span><span class="op">)</span>,</span>
+<span>  compare_mode <span class="op">=</span> <span class="st">"Temporal"</span>,</span>
+<span>  niche_key <span class="op">=</span> <span class="st">"Niche"</span>,</span>
+<span>  description <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/CalSampPathoTrack.html">CalSampPathoTrack</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_MS</span>,</span>
 <span>  loop_id <span class="op">=</span> <span class="st">"Temporal_1_2_3"</span>,</span>
 <span>  pos_colnm <span class="op">=</span> <span class="st">"Label_all_gene_nFeature(sum)"</span>,</span>
@@ -610,104 +620,32 @@ entropy, and temporal gene modules.</p>
 <tbody>
 <tr class="odd">
 <td>Install <code>STID</code> and dependencies</td>
-<td><code>01_Installation.Rmd</code></td>
+<td><a href="https://yulongqin.github.io/STID/articles/01_Installation.html"><code>01_Installation.Rmd</code></a></td>
 </tr>
 <tr class="even">
 <td>Load a Seurat object and construct an <code>STID</code> object</td>
-<td><code>02_load_and_preprocess.Rmd</code></td>
+<td><a href="https://yulongqin.github.io/STID/articles/02_load_and_preprocess.html"><code>02_load_and_preprocess.Rmd</code></a></td>
 </tr>
 <tr class="odd">
 <td>Correct pathogen background signal</td>
-<td><code>03_Pathogen_background_correction.Rmd</code></td>
+<td><a href="https://yulongqin.github.io/STID/articles/03_Pathogen_background_correction.html"><code>03_Pathogen_background_correction.Rmd</code></a></td>
 </tr>
 <tr class="even">
 <td>Detect infection-associated spots</td>
-<td><code>04_Infection-associated_spot_detection.Rmd</code></td>
+<td><a href="https://yulongqin.github.io/STID/articles/04_Infection-associated_spot_detection.html"><code>04_Infection-associated_spot_detection.Rmd</code></a></td>
 </tr>
 <tr class="odd">
 <td>Identify foci-type, aggregated-type, or dispersed-type niches</td>
-<td><code>05_Infection-associated_niche_identification.Rmd</code></td>
+<td><a href="https://yulongqin.github.io/STID/articles/05_Infection-associated_niche_identification.html"><code>05_Infection-associated_niche_identification.Rmd</code></a></td>
 </tr>
 <tr class="even">
 <td>Analyze composition, aggregation, DEGs, enrichment, communication,
 and host-pathogen associations within one sample</td>
-<td><code>06_Single-sample_analysis.Rmd</code></td>
+<td><a href="https://yulongqin.github.io/STID/articles/06_Single-sample_analysis.html"><code>06_Single-sample_analysis.Rmd</code></a></td>
 </tr>
 <tr class="odd">
 <td>Compare niches across samples or time points</td>
-<td><code>07_Multi-sample_analysis.Rmd</code></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level2">
-<h2 id="parameters-to-customize">Parameters to customize<a class="anchor" aria-label="anchor" href="#parameters-to-customize"></a>
-</h2>
-<p>Most errors in first-time analyses come from dataset-specific names
-rather than the workflow itself. Before running the code, update the
-following parameters.</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr class="header">
-<th>Parameter</th>
-<th>What to check</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><code>samp_colnm</code></td>
-<td>Metadata column containing sample IDs</td>
-</tr>
-<tr class="even">
-<td><code>samp_grp_colnm</code></td>
-<td>Metadata column containing experimental groups</td>
-</tr>
-<tr class="odd">
-<td>
-<code>celltype_colnm</code> / <code>group_by</code>
-</td>
-<td>Cell-type or spot annotation column</td>
-</tr>
-<tr class="even">
-<td><code>pathogen_gene</code></td>
-<td>Pathogen-derived genes or features present in
-<code>rownames(stRNA)</code>
-</td>
-</tr>
-<tr class="odd">
-<td><code>bg_samp_id</code></td>
-<td>Background or uninfected control samples</td>
-</tr>
-<tr class="even">
-<td>
-<code>assay_id</code>, <code>layer_id</code>
-</td>
-<td>Assay and expression layer used for counts or normalized data</td>
-</tr>
-<tr class="odd">
-<td>
-<code>data_format</code>, <code>data_platform</code>,
-<code>binsize</code>
-</td>
-<td>Spatial platform and coordinate format</td>
-</tr>
-<tr class="even">
-<td><code>meta_key</code></td>
-<td>Metadata key generated by the previous STID step</td>
-</tr>
-<tr class="odd">
-<td>
-<code>PosThres_prob</code>, <code>PosThres_count</code>,
-<code>PosThres_score</code>
-</td>
-<td>Detection thresholds for positive spots or gene-set scores</td>
-</tr>
-<tr class="even">
-<td><code>loop_id</code></td>
-<td>Sample IDs, comparison IDs, or temporal IDs used in downstream
-analysis</td>
+<td><a href="https://yulongqin.github.io/STID/articles/07_Multi-sample_analysis.html"><code>07_Multi-sample_analysis.Rmd</code></a></td>
 </tr>
 </tbody>
 </table>

@@ -1496,6 +1496,7 @@ CalSampGeneTrend <- function(STID_obj = NULL, loop_id = NULL, # must support
 }
 
 
+#' Fitting pipeline for gene trend analysis
 #'
 #' Performs linear regression (slope) and quadratic regression (a coefficient)
 #' on gene expression across time points to classify genes into four trend types:

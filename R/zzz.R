@@ -5,7 +5,7 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' Get default parallelization plan based on OS
-
+#'
 #' Returns the default parallelization plan to use based on the operating system.
 # For Windows, it returns "multisession", and for other OS, it returns "multicore".
 #' @return Character, "multisession" for Windows, "multicore" for other OS

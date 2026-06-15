@@ -154,7 +154,7 @@ remotes::install_github("YulongQin/STID")
 ## Quick Start
 
 You can click
-[here](https://yulongqin.github.io/STID/articles/00_Quick_start.html) to
+[here](https://yulongqin.github.io/STID/articles/Get_started.html) to
 access the quick start tutorial, which provides a concise overview of
 the main functions and workflow of STID.
 
