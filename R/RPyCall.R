@@ -249,9 +249,28 @@ h5ad2rds <- function(
   }else if(convert_mode == "scanpy"){
     clog_normal("Converting h5ad to rds by scanpy mode")
     ad <- read_h5ad(file_path)
+    py$ad_tmp <- ad
+
+    py_run_string("
+import pandas as pd
+
+dfs = [ad_tmp.obs, ad_tmp.var]
+
+if ad_tmp.raw is not None:
+    dfs.append(ad_tmp.raw.var)
+
+for df in dfs:
+    df.index = df.index.astype(str)
+
+    for col in df.columns:
+        if isinstance(df[col].dtype, pd.CategoricalDtype):
+            df[col] = df[col].astype(str)
+")
+    ad <- py$ad_tmp
     clog_normal('if an invalid class dgRMatrix object: x slot is not of type double error occurs,
           please use adata.X = adata.raw.X.astype("float32") in python')
 
+    #>
     if(is.null(ad$raw) | X_index =="X") {
       clog_normal(paste0("your X_index is ",X_index))
       clog_warn("No raw data, use X as counts")
@@ -662,6 +681,7 @@ rds2h5ad <- function(
     meta_key = NULL,
     group_by = NULL,
     group_use = NULL,
+    squidpy_params = NULL,
     coord_interval = NULL,
     tmp_dir = NULL,
     output_dir = NULL,
@@ -738,7 +758,8 @@ plt.rcParams['savefig.dpi'] = 900
   clog_normal(paste0("read and process h5ad data"))
   py_run_string("import scanpy as sc; import numpy as np")
   py_run_string(paste0("adata = sc.read_h5ad('",output_dir,"/seurat_obj.h5ad')"))
-  py_run_string("adata.obsm['spatial'] = adata.obs[['x','y']].to_numpy(dtype=np.uint32)")
+  # py_run_string("adata.obsm['spatial'] = adata.obs[['x','y']].to_numpy(dtype=np.uint32)")
+  py_run_string("adata.obsm['spatial'] = adata.obs[['x','y']].to_numpy(dtype=np.float64)")
   py_run_string("adata.__dict__['_raw'].__dict__['_var'] = adata.__dict__['_raw'].__dict__['_var'].rename(columns={'_index': 'features'})")
   py_run_string(paste0("adata.write_h5ad('",output_dir,"/adata.h5ad')"))
 
@@ -784,17 +805,38 @@ plt.rcParams['savefig.dpi'] = 900
       # sq$gr$spatial_neighbors(i_adata, n_rings=2, coord_type="grid", n_neighs=4)
     }else if(data_format == "hex_grid" & data_platform == "Visium") {
       sq$gr$spatial_neighbors(i_adata, n_rings=2, coord_type="grid", n_neighs=6) # added to adata.obsp, adata.uns
+    }else if(data_format == "single_cell"){
+      sq$gr$spatial_neighbors(
+        i_adata,
+        coord_type = "generic",
+        n_neighs = 8L
+      )
     }
     sq$gr$nhood_enrichment(i_adata, cluster_key = group_by,n_perms = 100) # added to adata.uns
-    arr <- np$array(i_adata$uns[[paste0(group_by,"_nhood_enrichment")]][["zscore"]])
+    enrichment_mode <- squidpy_params$enrichment_mode
+    clog_normal(paste0("nhood_enrichment mode: ",enrichment_mode))
+    arr <- np$array(i_adata$uns[[paste0(group_by,"_nhood_enrichment")]][[enrichment_mode]])
     results_list[[i_single]] <- arr %>% as.data.frame()
-    vmax_value <- quantile(arr %>% as.vector(), probs = 0.9,na.rm = TRUE)
-    # vmin_value <- quantile(arr %>% as.vector(), probs = 0.1,na.rm = TRUE)
+    vmin_default <- squidpy_params$vmin
+    vmax_default <- squidpy_params$vmax
+    if(!is.null(vmin_default) ) {
+      vmin_value <- vmin_default
+    } else {
+      vmin_value <- quantile(arr %>% as.vector(), probs = 0.1, na.rm = TRUE)
+    }
+    if(!is.null(vmax_default) ) {
+      vmax_value <- vmax_default
+    } else {
+      vmax_value <- quantile(arr %>% as.vector(), probs = 0.9,na.rm = TRUE)
+    }
+    clog_normal(paste0("nhood_enrichment vmin: ",vmin_value,", vmax: ",vmax_value))
+
+    #>
     sq$pl$nhood_enrichment(
       i_adata,
       cluster_key = group_by,
-      mode = "zscore",
-      vmin = 0, vmax = vmax_value,
+      mode = enrichment_mode,
+      vmin = vmin_value, vmax = vmax_value,
       # save = "nhood_enrichment.pdf",
       cmap = 'Blues'
     )

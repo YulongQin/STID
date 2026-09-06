@@ -36,15 +36,15 @@ Graphical abstract
 
 ### Key Functionalities
 
-| Function Category      | Supported Methods                             |
-|:-----------------------|:----------------------------------------------|
-| Data conversion        | `h5ad2rds`, `rds2h5ad`                        |
-| Preprocessing          | `Seurat_pipeline`, `anno_SingleR`             |
-| Background correction  | `CorrectBackground`                           |
-| Spot detection         | `SpotDetect_Gene`, `SpotDetect_Geneset`       |
-| Niche identification   | `NicheDetect_Lasso`, `NicheDetect_STS`, etc.  |
-| Single-Sample analysis | `CalSampComp`, `CalSampDEGs`, etc.            |
-| Multi-Sample analysis  | `CalSampPathoTrack`, `CalSampGeneTrend`, etc. |
+| Function Category | Supported Methods |
+|:---|:---|
+| Data conversion | `h5ad2rds`, `rds2h5ad` |
+| Preprocessing | `Seurat_pipeline`, `anno_SingleR` |
+| Background correction | `CorrectBackground` |
+| Spot detection | `ScanThreshold`, `SpotDetect_Gene`, `SpotDetect_Geneset` |
+| Niche identification | `NicheDetect_Lasso`, `NicheDetect_STS`, etc. |
+| Single-Sample analysis | `CalSampComp`, `CalSampDEGs`, etc. |
+| Multi-Sample analysis | `CalSampPathoTrack`, `CalSampGeneTrend`, etc. |
 
 ## Installation
 
@@ -241,7 +241,7 @@ Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
   : Add annotations to SingleSampNiche genes
 - [`anno_SingleR()`](https://yulongqin.github.io/STID/reference/anno_SingleR.md)
   : Annotate Cell Types Using SingleR
-- [`as.Seurat(`*`<STID>`*`)`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
+- [`as.Seurat.STID()`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
   : Convert STID object to Seurat object
 - [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md) :
   Convert Seurat object to STID object
@@ -288,7 +288,7 @@ Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
 - [`configure_conda()`](https://yulongqin.github.io/STID/reference/configure_conda.md)
   : Configure Python Conda Environment
 - [`CorrectBackground()`](https://yulongqin.github.io/STID/reference/CorrectBackground.md)
-  : Correct background expression in spatial transcriptomics data
+  : Correct background expression
 - [`CreateMultiSampNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
   [`CreateMSNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
   : Create a MultiSampNiche object for cross-sample comparison
@@ -366,6 +366,8 @@ Transcriptomic Analysis Framework for Infectious Diseases*. bioRxiv
   : Remove columns from existing metadata
 - [`RemoveMetaData()`](https://yulongqin.github.io/STID/reference/RemoveMetaData.md)
   : Remove metadata from STID object
+- [`ScanThreshold()`](https://yulongqin.github.io/STID/reference/ScanThreshold.md)
+  : Scan pathogen count thresholds before SpotDetect_Geneset
 - [`SetInfo()`](https://yulongqin.github.io/STID/reference/SetInfo.md) :
   Set information in STID object
 - [`Seurat_pipeline()`](https://yulongqin.github.io/STID/reference/Seurat_pipeline.md)

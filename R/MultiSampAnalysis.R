@@ -74,7 +74,7 @@ CalSampPathoTrack <- function(STID_obj = NULL, loop_id = NULL, # must support
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(loop_id, pos_colnm, col)
+  .check_not_any_null(loop_id, pos_colnm, col)
   if(is.null(group_by)){
     clog_warn("group_by is NULL, will use the default celltype_colnm from STID object.")
     group_by <- GetInfo(STID_obj, info_key = "data_info",sub_key = "celltype_colnm")[[1]]
@@ -470,7 +470,7 @@ CalSampOSE <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(loop_id, col)
+  .check_not_any_null(loop_id, col)
   if(is.null(group_by)){
     clog_warn("group_by is NULL, will use the default celltype_colnm from STID object.")
     group_by <- GetInfo(STID_obj, info_key = "data_info",sub_key = "celltype_colnm")[[1]]
@@ -634,6 +634,12 @@ CalSampOSE <- function(STID_obj = NULL,
   STID_obj <- as.Seurat(STID_obj)
 
   #> process the coord
+  if(data_format == "single_cell"){
+    clog_error(
+      "CalSampOSE does not support single_cell data_format currently.
+     Please use square_grid or hex_grid data_format."
+    )
+  }
   if(data_platform == "Visium"){
     min_x <- min(STID_obj@meta.data$x)
     min_y <- min(STID_obj@meta.data$y)
@@ -1099,7 +1105,7 @@ CalSampOSE <- function(STID_obj = NULL,
       aes(x0 = col, y0 = row,
           r0 = 0,
           r = scales::rescale(label_num/mean(label_num),to = c(0.8, 1.4))*p2_merge_r,
-          amount = percent,,
+          amount = percent,
           fill = type),
       # color = "grey90",
       alpha = 1,
@@ -1209,7 +1215,7 @@ CalSampOSE <- function(STID_obj = NULL,
         aes(x0 = col, y0 = row,
             r0 = 0,
             r = (label_num/mean(label_num))*p2_merge_r,
-            amount = percent,,
+            amount = percent,
             fill = type),
         # color = "grey90",
         alpha = 1,
@@ -1357,7 +1363,7 @@ CalSampGeneTrend <- function(STID_obj = NULL, loop_id = NULL, # must support
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(loop_id, col)
+  .check_not_any_null(loop_id, col)
   match.arg(method, choices = c("fitting", "mfuzz"))
   valid_genes <- rownames(STID_obj)[!rownames(STID_obj) %in% remove_genes]
   # >>> End check

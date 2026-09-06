@@ -21,7 +21,7 @@
 #'       - samp_colnm: Column name for sample identifiers in meta_data (required if STID_obj is NULL)
 #'       - x_colnm: Column name for x coordinates in meta_data (default: "x")
 #'       - y_colnm: Column name for y coordinates in meta_data (default: "y")
-#'       - data_format: Format of spatial data, either "square_grid" or "hex_grid" (default: "square_grid")
+#'       - data_format: Format of spatial data, One of "square_grid", "hex_grid", or "single_cell". (default: "square_grid")
 #'       - data_platform: Platform of spatial data, either "StereoSeq" or "Visium" (default: "StereoSeq")
 #'       - binsize: Bin size for spatial data (default: 1)
 #'       - coord_interval: Coordinate interval for spatial data (default: 1)
@@ -45,7 +45,7 @@
 #' \dontrun{
 #' # Launch interactive ROI selection
 #' STID_obj <- NicheDetect_Lasso(
-#'   STID_obj = ist_object,
+#'   STID_obj = STID_object,
 #'   group_by = "cell_type",
 #'   meta_key = "coord"
 #' )
@@ -64,7 +64,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
                                 binsize = 1,
                                 coord_interval = 1
                               ),
-                              col = COLOR_LIST$PALETTE_WHITE_BG,
+                              col = NULL,
                               description = NULL,
                               grp_nm = NULL, dir_nm = "M2_NicheDetect_Lasso"
                               ){
@@ -86,16 +86,14 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
     }
   }
   clog_normal(paste0("Your ggplot2 version is: ", packageVersion("ggplot2")))
-  .check_null_args(meta_key, group_by)
+  .check_not_any_null(meta_key, group_by)
 
   #>
   if(inherits(STID_obj, "STID")){
     loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
-    all_single <- GetInfo(STID_obj, info_key = "samp_info",sub_key = "samp_id")[[1]]
   }else{
     meta_data <- lasso_para$meta_data
     loop_single <- lasso_para$meta_data[[lasso_para$samp_colnm]] %>% unique() %>% as.character()
-    all_single <- lasso_para$meta_data[[lasso_para$samp_colnm]] %>% unique() %>% as.character()
   }
   # >>> End check
 
@@ -128,35 +126,44 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
     k <- 8; edge_thres <- 1
   }else if(data_format == "hex_grid" & data_platform == "Visium"){
     k <- 6; edge_thres <- 1
+  }else if(data_format == "single_cell"){
+    k <- 8; edge_thres <- 1
   }
   meta2STID_list <- list()
   n <- 1
-  for(i in seq_along(all_single)){
-    i_single <- all_single[i]
+
+  #>
+  if(is.null(col)){
+    if(meta_data[[group_by]] %>% is.numeric()){
+      col <- c("#440154FF", "#3B528BFF", "#21908CFF", "#5DC863FF", "#FDE725FF")
+    }else{
+      col <- COLOR_LIST$PALETTE_WHITE_BG
+    }
+  }
+  for(i in seq_along(loop_single)){
+    i_single <- loop_single[i]
     i_coord_interval <- coord_interval[i]
     i_meta_data <- meta_data %>% filter(!!sym(samp_colnm) == i_single)
-    if(!i_single %in% loop_single){
-      meta2STID_list[[i_single]] <- i_meta_data
-      next
-    }
+
+    #>
     clog_loop(paste0("Processing samp_id: ", i_single, " (", n, "/", length(loop_single), ")"))
     n <- n+1
-    i_now_time <- format(Sys.time(), "%Y%m%d_%H%M%S")
-    file_nm <- paste0("NicheDetect_",i_single,"_",i_now_time, ".zip")
+    file_prefix <- paste0("NicheDetect_Lasso_",i_single)
     i_output_dir <- paste0(output_dir,"/",i_single,"/")
     i_photo_dir <- paste0(photo_dir,"/",i_single,"/")
     dir.create(i_output_dir,recursive = TRUE,showWarnings = FALSE)
     dir.create(i_photo_dir,recursive = TRUE,showWarnings = FALSE)
-    clog_warn("Please make sure to finish the lasso selection and save the results before closing the app.")
+    clog_normal("Start interactive lasso selection...")
     print(
       .NicheDetect_lasso_shiny(meta_data = i_meta_data, samp_id = paste0(i_single," (", i, "/", length(loop_single), ")"),
                                group_by = group_by,x_colnm = x_colnm, y_colnm = y_colnm,
                                col = col,
-                               file_nm =  file_nm ,output_dir = i_output_dir, photo_dir = i_photo_dir)
+                               file_prefix =  file_prefix ,output_dir = i_output_dir, photo_dir = i_photo_dir)
     )
+    clog_normal("Interactive lasso selection finished.")
 
     # >
-    ROI_meta_path <- paste0(i_output_dir,"/","NicheDetect_Lasso_points.txt")
+    ROI_meta_path <- paste0(i_output_dir,"/",file_prefix,"_points.txt")
     if(!file.exists(ROI_meta_path)){
       clog_warn(paste0("The ROI meta file not found for samp_id: ", i_single))
       clog_warn("Skip this samp and  continue to the next samp.")
@@ -179,10 +186,10 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 
     #> CalDist2Center
     common_ids <- intersect(rownames(i_meta_data), rownames(res_meta_data))
-    i_meta_data$ROI_label   <- "neg" # NA -> "neg"
-    i_meta_data$ROI_count   <- NA_integer_
-    i_meta_data[common_ids, "ROI_label"]   <- res_meta_data[common_ids, "ROI_label"]
-    i_meta_data[common_ids, "ROI_count"]   <- res_meta_data[common_ids, "ROI_count"]
+    i_meta_data$ROI_label <- "neg" # NA -> "neg"
+    i_meta_data$ROI_count <- NA_integer_
+    i_meta_data[common_ids, "ROI_label"] <- res_meta_data[common_ids, "ROI_label"]
+    i_meta_data[common_ids, "ROI_count"] <- res_meta_data[common_ids, "ROI_count"]
     i_meta_data <- .CalROIedge(meta_data = i_meta_data,
                                ROI_label_colnm = "ROI_label",
                                ROI_edge_colnm = "ROI_edge",
@@ -215,7 +222,6 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
     STID_obj <- meta2STID
   }
 
-
   # >>> Final
   .save_function_params("NicheDetect_Lasso", envir = environment(), file = paste0(output_dir,"Log_function_params_(NicheDetect_Lasso).log") )
   clog_end()
@@ -235,7 +241,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 #' @param y_colnm Character, column name for y coordinates
 #' @param group_by Character, column name for coloring points
 #' @param col Color palette for visualization
-#' @param file_nm Character, filename for saving results
+#' @param file_prefix Character, filename for saving results
 #' @param output_dir Character, output directory path
 #' @param photo_dir Character, directory path for saving plots
 #'
@@ -254,9 +260,9 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 .NicheDetect_lasso_shiny <- function(meta_data = NULL,samp_id = NULL,
                                      x_colnm = NULL, y_colnm = NULL,group_by = NULL,
                                      col = NULL,
-                                     file_nm = NULL,output_dir = NULL, photo_dir = NULL){
+                                     file_prefix = NULL,output_dir = NULL, photo_dir = NULL){
 
-  clog_normal("Launch Multi-ROI Lasso Shiny App...")
+  clog_normal("Launch NicheDetect Lasso Shiny App...")
   ui <- fluidPage(
     titlePanel(strong("NicheDetect Lasso Tool"), windowTitle = "NicheDetect Lasso Tool"),
 
@@ -647,7 +653,8 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
 
     #> Next Sample
     observeEvent(input$`Next Sample`, {
-      showNotification("App is closing...", type = "message")
+      showNotification("Saving data before moving to next sample...")
+      save_lasso_result() # shiny中的代码是没有先后顺序的
       stopApp()
     })
 
@@ -682,7 +689,7 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
       #   need(currentVars$value %in% names(currentVars), 0, showNotification(paste("Column not found: value =", currentVars$value)))
       # )
       if (nrow(currentData) == 0) {
-        showNotification("❌ ERROR: The dnput ata has 0 rows. Please check your file.", type = "error", duration = 5)
+        showNotification("❌ ERROR: The input data has 0 rows. Please check your file.", type = "error", duration = 5)
         return()
       }
       if (!(currentVars$x %in% names(currentData))) {
@@ -712,14 +719,12 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
     make_plot <- function() {
       req(values$plot_data)
 
-
       p <- ggplot() +
         geom_point(data = values$plot_data, aes(x = x, y = y, color = value),
                    size = input$point_size,alpha = input$point_alpha,
                    shape = 16,stroke = 0) +
         theme_test() +
         labs(title = currentVars$title_nm, x = currentVars$x, y = currentVars$y, color = currentVars$value) +
-        scale_color_manual(values = col) +
         theme(
           # legend.position = "none",
           # panel.grid = element_blank(),
@@ -733,7 +738,11 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
           legend.text = element_text(size = 10,face = 'bold',hjust = 0),
           legend.key.size = unit(20, "pt")
         )
-      # browser()
+      if(is.numeric(values$plot_data$value)){
+        p <- p + scale_color_gradientn(colors = col)
+      }else{
+        p <- p + scale_color_manual(values = col)
+      }
 
       #
       if(input$plot_grid){
@@ -1009,104 +1018,115 @@ NicheDetect_Lasso <- function(STID_obj = NULL,
       samp_id
     })
 
+    #> Download
+    save_lasso_result <- function(){
+      i_now_time <- format(Sys.time(), "%Y%m%d_%H%M%S")
+
+      if (is.null(values$polygons) || length(values$polygons) == 0) {
+        message_path <- file.path(output_dir, paste0(file_prefix,"_error.txt"))
+        writeLines("No lasso ROIs available for download. Please create some ROIs first.", message_path)
+
+        zip::zip(
+          zipfile = file,
+          files = paste0(file_prefix,"_error.txt"),
+          root = output_dir
+        )
+        return()
+      }
+
+      # polygon_df
+      polygon_df <- data.frame()
+      for (i in seq_along(values$polygons)) {
+        poly_data <- values$polygons[[i]]$points
+        poly_data$ROI_label <- values$polygons[[i]]$label
+        polygon_df <- rbind(polygon_df, poly_data)
+      }
+      txt_path <- file.path(output_dir, paste0(file_prefix,"_ROIcoords.txt"))
+      write.table(polygon_df, txt_path, sep = "\t", col.names = NA, row.names = TRUE, quote = FALSE)
+
+      # slect_point_df
+      spot_name <- rownames(currentData) # meta_data = currentData
+      x_all <- currentData[[currentVars$x]] # currentVars$x
+      y_all <- currentData[[currentVars$y]]
+      polygon_list <- split(polygon_df, polygon_df["ROI_label"])
+      list_inside <- lapply(polygon_list, function(poly) {
+        px <- poly$x # 提取多边形 x, y 坐标
+        py <- poly$y
+        inside <- point.in.polygon(x_all, y_all, px, py) # 0=outside, 1,2=inside/border,3=vertex
+        return(inside)
+      })
+      logic_inside <- lapply(list_inside, function(x) {
+        return(x > 0)
+      })
+      logic_edge <- lapply(list_inside, function(x) {
+        return(x > 1) # TRUE if inside，根据逻辑值取点
+      })
+      logic_inside_matrix <- bind_cols(logic_inside)
+      logic_edge_matrix <- bind_cols(logic_edge)
+      colnm <- colnames(logic_inside_matrix) # 多边形名字
+      ROI_label <- apply(logic_inside_matrix, 1, function(row) {
+        included_rois <- colnm[which(row)]
+        if (length(included_rois) == 0) {
+          return(NA_character_)
+        } else {
+          return(paste(included_rois, collapse = "; "))
+        }
+      })
+      ROI_count <- rowSums(logic_inside_matrix)
+      ROI_edge <- rowSums(logic_edge_matrix) > 0
+
+      # >
+      meta_data <- currentData %>% # !!!
+        # cbind(data.frame(ROI_label,ROI_count,ROI_edge)) %>%
+        cbind(data.frame(ROI_label,ROI_count)) %>%
+        filter(!is.na(ROI_label)) # is.na ir true, not neg
+      write.table(meta_data,
+                  file = file.path(output_dir, paste0(file_prefix,"_points.txt")),
+                  sep = "\t", col.names = NA, row.names = TRUE, quote = FALSE)
+
+      # plot
+      pdf_path <- file.path(output_dir, paste0(file_prefix,"_plot.pdf"))
+      pdf(pdf_path,width = 12,height = 10)
+      print(make_plot())
+      dev.off()
+      png_path <- file.path(output_dir, paste0(file_prefix,"_plot.png"))
+      png(png_path, width = 12, height = 10, units = "in",res = 90)
+      print(make_plot())
+      dev.off()
+
+      # summary
+      summary_path <- file.path(output_dir, paste0(file_prefix,"_summary.txt"))
+      summary_text <- c(
+        "Lasso Analysis Summary",
+        "======================",
+        paste("Number of polygons:", length(values$polygons)),
+        paste("Total ROI coords:", nrow(polygon_df)),
+        paste("Total ROI points:", nrow(meta_data)),
+        paste("Generated on:", Sys.time())
+      )
+      writeLines(summary_text, summary_path)
+      zip::zip(
+        zipfile = paste0(file_prefix,"_",i_now_time, ".zip"),
+        files = c(paste0(file_prefix,"_ROIcoords.txt"),
+                  paste0(file_prefix,"_points.txt"),
+                  paste0(file_prefix,"_plot.pdf"),
+                  paste0(file_prefix,"_plot.png"),
+                  paste0(file_prefix,"_summary.txt")), # 只写文件名
+        root = output_dir  # 文件所在目录指定根目录
+      )
+
+      file.rename(pdf_path, file.path(photo_dir, paste0(file_prefix,"_plot.pdf")))
+      file.rename(png_path, file.path(photo_dir, paste0(file_prefix,"_plot.png")))
+    }
+
     # 下载区域数据
     output$download_data <- downloadHandler(
       filename = function() {
-        file_nm
+        paste0(file_prefix,"_",i_now_time, ".zip")
       },
-      content = function(file) { # 下载这个file，文件名在filename了
-        if (is.null(values$polygons) || length(values$polygons) == 0) {
-          message_path <- file.path(output_dir, "NicheDetect_Lasso_error.txt")
-          writeLines("No lasso ROIs available for download. Please create some ROIs first.", message_path)
-
-          zip::zip(
-            zipfile = file,
-            files = "NicheDetect_Lasso_error.txt",
-            root = output_dir
-          )
-          return()
-        }
-
-        # polygon_df
-        polygon_df <- data.frame()
-        for (i in seq_along(values$polygons)) {
-          poly_data <- values$polygons[[i]]$points
-          poly_data$ROI_label <- values$polygons[[i]]$label
-          polygon_df <- rbind(polygon_df, poly_data)
-        }
-        txt_path <- file.path(output_dir, "NicheDetect_Lasso_ROIcoords.txt")
-        write.table(polygon_df, txt_path, sep = "\t", col.names = NA, row.names = TRUE, quote = FALSE)
-
-        # slect_point_df
-        spot_name <- rownames(currentData) # meta_data = currentData
-        x_all <- currentData[[currentVars$x]] # currentVars$x
-        y_all <- currentData[[currentVars$y]]
-        polygon_list <- split(polygon_df, polygon_df["ROI_label"])
-        list_inside <- lapply(polygon_list, function(poly) {
-          px <- poly$x # 提取多边形 x, y 坐标
-          py <- poly$y
-          inside <- point.in.polygon(x_all, y_all, px, py) # 0=outside, 1,2=inside/border,3=vertex
-          return(inside)
-        })
-        logic_inside <- lapply(list_inside, function(x) {
-          return(x > 0)
-        })
-        logic_edge <- lapply(list_inside, function(x) {
-          return(x > 1) # TRUE if inside，根据逻辑值取点
-        })
-        logic_inside_matrix <- bind_cols(logic_inside)
-        logic_edge_matrix <- bind_cols(logic_edge)
-        colnm <- colnames(logic_inside_matrix) # 多边形名字
-        ROI_label <- apply(logic_inside_matrix, 1, function(row) {
-          included_rois <- colnm[which(row)]
-          if (length(included_rois) == 0) {
-            return(NA_character_)
-          } else {
-            return(paste(included_rois, collapse = "; "))
-          }
-        })
-        ROI_count <- rowSums(logic_inside_matrix)
-        ROI_edge <- rowSums(logic_edge_matrix) > 0
-
-        # >
-        meta_data <- currentData %>% # !!!
-          # cbind(data.frame(ROI_label,ROI_count,ROI_edge)) %>%
-          cbind(data.frame(ROI_label,ROI_count)) %>%
-          filter(!is.na(ROI_label)) # is.na ir true, not neg
-        write.table(meta_data,
-                    file = file.path(output_dir, "NicheDetect_Lasso_points.txt"),
-                    sep = "\t", col.names = NA, row.names = TRUE, quote = FALSE)
-
-        # plot
-        pdf_path <- file.path(output_dir, "NicheDetect_Lasso_plot.pdf")
-        pdf(pdf_path,width = 12,height = 10)
-        print(make_plot())
-        dev.off()
-        png_path <- file.path(output_dir, "NicheDetect_Lasso_plot.png")
-        png(png_path, width = 12, height = 10, units = "in",res = 90)
-        print(make_plot())
-        dev.off()
-
-        # summary
-        summary_path <- file.path(output_dir, "NicheDetect_Lasso_summary.txt")
-        summary_text <- c(
-          "Lasso Analysis Summary",
-          "======================",
-          paste("Number of polygons:", length(values$polygons)),
-          paste("Total ROI coords:", nrow(polygon_df)),
-          paste("Total ROI points:", nrow(meta_data)),
-          paste("Generated on:", Sys.time())
-        )
-        writeLines(summary_text, summary_path)
-        zip::zip(
-          zipfile = file,
-          files = c("NicheDetect_Lasso_ROIcoords.txt", "NicheDetect_Lasso_points.txt",
-                    "NicheDetect_Lasso_plot.pdf","NicheDetect_Lasso_plot.png", "NicheDetect_Lasso_summary.txt"),  # 只写文件名
-          root = output_dir  # 文件所在目录指定根目录
-        )
-
-        file.rename(pdf_path, file.path(photo_dir, "NicheDetect_Lasso_plot.pdf"))
-        file.rename(png_path, file.path(photo_dir, "NicheDetect_Lasso_plot.png"))
+      content = function(file) {
+        save_lasso_result()
+        file.copy(from = file.path(output_dir, paste0(file_prefix,"_",i_now_time, ".zip")), to = file)
       }
     )
   }
@@ -1379,13 +1399,12 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(meta_key, pos_colnm)
+  .check_not_any_null(meta_key, pos_colnm)
   match.arg(region_detect_method, c('convex', 'concave'))
   match.arg(spatial_scale_method, c("region", "spot"))
 
   # >
   loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
-  all_single <- GetInfo(STID_obj, info_key = "samp_info",sub_key = "samp_id")[[1]]
   if(density_thres < 0 | density_thres > 1){
     clog_error("density_thres must be between 0 and 1")
   }
@@ -1410,16 +1429,14 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL,
   meta2STID_list <- list()
   n <- 1
   raw_ROI_size <- ROI_size
-  for(i in seq_along(all_single)){
-    i_single <- all_single[i]
+  for(i in seq_along(loop_single)){
+    i_single <- loop_single[i]
     i_coord_interval <- coord_interval[i]
     i_meta_data <- meta_data %>%
       filter(!!sym(samp_colnm) == i_single) %>%
       dplyr::select(!!sym(samp_colnm), !!sym(x_colnm), !!sym(y_colnm), !!sym(pos_colnm))
-    if(!i_single %in% loop_single){
-      meta2STID_list[[i_single]] <- i_meta_data
-      next
-    }
+
+    #>
     clog_loop(paste0("Processing samp_id: ", i_single, " (", n, "/", length(loop_single), ")"))
     n <- n+1
     i_output_dir <- paste0(output_dir,"/",i_single,"/")
@@ -1464,6 +1481,12 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL,
       k_update <- 8; neg2pos_thres <- 5; pos2neg_thres <- 1; edge_thres <- 1; diff_thres <- len_pos_value*0.001
     }else if(data_format == "hex_grid" & data_platform == "Visium"){
       k_update <- 6; neg2pos_thres <- 4; pos2neg_thres <- 1; edge_thres <- 1; diff_thres <- 0
+    }else if(data_format == "single_cell"){
+      k_update <- 8
+      neg2pos_thres <- ceiling(k_update * 0.6)
+      pos2neg_thres <- max(1, floor(k_update * 0.15))
+      edge_thres <- 1
+      diff_thres <- len_pos_value*0.001
     }
 
     if(update_spots){
@@ -1523,7 +1546,12 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL,
         if(is.null(minPts)){
           minPts <- 4 # 6*0.6 = 4
         }
+      }else if(data_format == "single_cell"){
+        if(is.null(minPts)){
+          minPts <- ceiling(k_update * 0.6)
+        }
       }
+
       if(is.null(k_kNNdist)){
         k_kNNdist <- minPts
       }
@@ -1574,7 +1602,14 @@ NicheDetect_STS <- function(STID_obj = NULL, meta_key = NULL,
         adj_matrix <- .as_adjMatrix(coords = pos_meta_data[c("x","y")], k_neighbors = 8, dist_thres = i_coord_interval*1.25)
       }else if(data_format == "hex_grid" & data_platform == "Visium"){
         adj_matrix <- .as_adjMatrix(coords = pos_meta_data[c("x","y")], k_neighbors = 6, dist_thres = i_coord_interval*1.25)
+      }else if(data_format == "single_cell"){
+        adj_matrix <- .as_adjMatrix(
+          coords = pos_meta_data[c("x","y")],
+          k_neighbors = 8,
+          dist_thres = NULL # ???
+        )
       }
+
       res_meta_data <- .CalAdjMatrixCluster(adj_matrix = adj_matrix, pos_meta_data = pos_meta_data, ROI_size = ROI_size)
       if(nrow(res_meta_data) == 0){
         clog_warn("No ROIs detected after adjacency matrix clustering, skipping...")
@@ -2155,7 +2190,7 @@ CompareNiche <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(meta_key1, meta_key2)
+  .check_not_any_null(meta_key1, meta_key2)
   samp_colnm <- GetInfo(STID_obj, info_key = "data_info", sub_key = "samp_colnm")[[1]]
   x_colnm <- GetInfo(STID_obj, info_key = "data_info", sub_key = "x_colnm")[[1]]
   y_colnm <- GetInfo(STID_obj, info_key = "data_info", sub_key = "y_colnm")[[1]]
@@ -2307,9 +2342,8 @@ NicheDetect_Spot <- function(STID_obj = NULL, loop_id = "LoopAllSamp",
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(meta_key, pos_colnm)
+  .check_not_any_null(meta_key, pos_colnm)
   loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
-  all_single <- GetInfo(STID_obj, info_key = "samp_info",sub_key = "samp_id")[[1]]
   # >>> End check
 
   # >>> dir
@@ -2329,14 +2363,12 @@ NicheDetect_Spot <- function(STID_obj = NULL, loop_id = "LoopAllSamp",
   binsize <- GetInfo(STID_obj, info_key = "data_info",sub_key = "binsize")[[1]]
   meta2STID_list <- list()
   n <- 1
-  for(i in seq_along(all_single)){
-    i_single <- all_single[i]
+  for(i in seq_along(loop_single)){
+    i_single <- loop_single[i]
     i_meta_data <- meta_data %>% filter(!!sym(samp_colnm) == i_single)
     i_meta_data <- i_meta_data[, c(samp_colnm, x_colnm, y_colnm, pos_colnm)]
-    if(!i_single %in% loop_single){
-      meta2STID_list[[i_single]] <- i_meta_data
-      next
-    }
+
+    #>
     clog_loop(paste0("Processing samp_id: ", i_single, " (", n, "/", length(loop_single), ")"))
     n <- n + 1
 
@@ -2440,9 +2472,8 @@ NicheExpand <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAllSamp
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(meta_key, pos_colnm)
+  .check_not_any_null(meta_key, pos_colnm)
   loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
-  all_single <- GetInfo(STID_obj, info_key = "samp_info",sub_key = "samp_id")[[1]]
   # >>> End check
 
   # >>> dir
@@ -2458,24 +2489,24 @@ NicheExpand <- function(STID_obj = NULL, meta_key = NULL, loop_id = "LoopAllSamp
   x_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "x_colnm")[[1]]
   y_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "y_colnm")[[1]]
   data_format <- GetInfo(STID_obj, info_key = "data_info",sub_key = "data_format")[[1]]
+  data_platform <- GetInfo(STID_obj,info_key = "data_info",sub_key = "data_platform")[[1]]
   if(data_format  == "square_grid"){
     k <- 8; edge_thres <- 1
   }else if(data_format == "hex_grid" & data_platform == "Visium"){
     k <- 6; edge_thres <- 1
+  }else if(data_format == "single_cell"){
+    k <- 8; edge_thres <- 1
   }
   meta2STID_list <- list()
   n <- 1
-  for(i in seq_along(all_single)){
-    i_single <- all_single[i]
+  for(i in seq_along(loop_single)){
+    i_single <- loop_single[i]
     i_meta_data <- meta_data %>% filter(!!sym(samp_colnm) == i_single)
     i_meta_data <- i_meta_data[,c(samp_colnm,x_colnm,y_colnm,center_colnm,pos_colnm)]
-    if(!i_single %in% loop_single){
-      meta2STID_list[[i_single]] <- i_meta_data
-      next
-    }
+
+    #>
     clog_loop(paste0("Processing samp_id: ", i_single, " (", n, "/", length(loop_single), ")"))
     n <- n + 1
-
 
     #>
     pos_meta_data <- i_meta_data %>%

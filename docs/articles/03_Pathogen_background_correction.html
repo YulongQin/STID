@@ -105,8 +105,8 @@ infectious diseases.</p>
 <ul>
 <li>preparing a processed <code>STID</code> object and a pathogen
 feature list;</li>
-<li>selecting background or control samples for background
-modeling;</li>
+<li>selecting control samples or spatial background regions for
+background modeling;</li>
 <li>running <code><a href="../reference/CorrectBackground.html">CorrectBackground()</a></code>;</li>
 <li>summarizing pathogen-derived background signal before and after
 correction;</li>
@@ -143,8 +143,9 @@ code</a>.</p>
 <h2 id="example-data">Example data<a class="anchor" aria-label="anchor" href="#example-data"></a>
 </h2>
 <p>This vignette uses the processed AE STID_obj object and a pathogen
-feature list that have already been generated in the preprocessing
-step.</p>
+feature list that have already been generated in the preprocessing step.
+Background can be estimated from control samples or, when needed, from
+spatially defined background regions.</p>
 <blockquote>
 <p><strong>Note:</strong> Replace <code>STID_obj</code>,
 <code>pathogen_genes</code>, and <code>DPI_0_1</code> with the object
@@ -163,24 +164,29 @@ in your dataset.</p>
 <div class="section level2">
 <h2 id="background-correction">Background correction<a class="anchor" aria-label="anchor" href="#background-correction"></a>
 </h2>
-<p>To reduce background noise from pathogen-associated genes, a
-control-based background correction strategy is applied. For each
-pathogen-associated feature, the 95th percentile of nonzero expression
-values in the background samples is calculated and used as the
-background expression threshold.</p>
-<p>To account for differences in sequencing depth, this threshold is
-adjusted by the ratio of average unique molecular identifier (UMI)
-counts between the background samples and all samples. The adjusted
-threshold is then subtracted from expression values across all spots or
-cells, and negative corrected values are set to zero.</p>
+<p>To reduce background noise from pathogen-associated genes, background
+signal can be estimated from control samples, predefined background
+regions, or interactively selected background regions.
+<code><a href="../reference/CorrectBackground.html">CorrectBackground()</a></code> uses <code>ctrl_samp_id</code> for
+control samples, <code>bg_region_cell</code> for predefined regions, and
+<code>bg_region_lasso = TRUE</code> for interactive lasso selection.
+When both control samples and background regions are supplied, the
+larger correction value is used.</p>
+<p>For control-sample correction, UMI adjustment is enabled by default
+(<code>adjust_UMI = TRUE</code>) to account for sequencing-depth
+differences. Corrected values below zero are set to zero.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span><span class="st">"parallel_workers"</span> <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">STID_obj_after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CorrectBackground.html">CorrectBackground</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj_before</span>,</span>
-<span>  bg_samp_id <span class="op">=</span> <span class="va">background_sample_ids</span>,</span>
+<span>  ctrl_samp_id <span class="op">=</span> <span class="va">background_sample_ids</span>,</span>
 <span>  bg_features <span class="op">=</span> <span class="va">background_features</span>,</span>
 <span>  PosThres_prob <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  <span class="co"># Optional region-based background definition:</span></span>
+<span>  <span class="co"># group_by = "nCount_Spatial",</span></span>
+<span>  <span class="co"># bg_region_cell = NULL,</span></span>
+<span>  <span class="co"># bg_region_lasso = TRUE,</span></span>
 <span>  assay_id <span class="op">=</span> <span class="st">"Spatial"</span>,</span>
 <span>  layer_id <span class="op">=</span> <span class="st">"counts"</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="st">"Final_CE_0.95"</span>,</span>
@@ -269,7 +275,7 @@ pathogen background correction.</p>
 <span>  features <span class="op">=</span> <span class="va">high_exp_genes</span>,</span>
 <span>  feature_colnm <span class="op">=</span> <span class="va">pathogen_signal_columns_before</span>,</span>
 <span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  PosThres_count <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  PosThres_count <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grey20"</span>, <span class="st">"#80FFFF"</span><span class="op">)</span>,</span>
 <span>  black_bg <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  pt_size <span class="op">=</span> <span class="fl">1</span>,</span>
@@ -292,7 +298,7 @@ pathogen background correction.</p>
 <span>  features <span class="op">=</span> <span class="va">high_exp_genes</span>,</span>
 <span>  feature_colnm <span class="op">=</span> <span class="va">pathogen_signal_columns_after</span>,</span>
 <span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  PosThres_count <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  PosThres_count <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grey20"</span>, <span class="st">"#80FFFF"</span><span class="op">)</span>,</span>
 <span>  black_bg <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  pt_size <span class="op">=</span> <span class="fl">1</span>,</span>
@@ -318,8 +324,11 @@ after background correction.
 <ul>
 <li>Apply pathogen background correction before downstream
 infection-associated spatial transcriptomic analysis.</li>
-<li>Confirm that background samples represent true baseline conditions
-before running correction.</li>
+<li>Confirm that control samples or selected spatial background regions
+represent true baseline conditions before running correction.</li>
+<li>Use <code>ctrl_samp_id</code> for control samples; use
+<code>bg_region_cell</code> or <code>bg_region_lasso = TRUE</code> when
+the background must be defined spatially.</li>
 <li>The corrected STID object preserves the original object structure
 while updating pathogen gene expression.</li>
 <li>Recalibrate <code>PosThres_prob</code> when applying this workflow

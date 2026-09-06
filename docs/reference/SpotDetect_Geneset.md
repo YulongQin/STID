@@ -19,7 +19,8 @@ SpotDetect_Geneset(
   assay_id = "Spatial",
   layer_id = "data",
   PosThres_prob = 0,
-  PosThres_score = 0,
+  PosThres_score = 1,
+  PosThres_operator = c(">=", ">"),
   col = COLOR_DIS_CON,
   pt_size = 0.5,
   vmin = NULL,
@@ -81,7 +82,12 @@ SpotDetect_Geneset(
 
 - PosThres_score:
 
-  Numeric, absolute score threshold for positive detection (default: 0)
+  Numeric, absolute score threshold for positive detection (default: 1)
+
+- PosThres_operator:
+
+  Character, operator for threshold comparison - "\>=" or "\>" (default:
+  "\>=")
 
 - col:
 

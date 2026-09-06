@@ -77,8 +77,8 @@ of gene expression patterns.</p>
 <span>  assay_id <span class="op">=</span> <span class="st">"Spatial"</span>,</span>
 <span>  layer_id <span class="op">=</span> <span class="st">"counts"</span>,</span>
 <span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  PosThres_count <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  PosThres_gene <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  PosThres_count <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  PosThres_operator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"&gt;="</span>, <span class="st">"&gt;"</span><span class="op">)</span>,</span>
 <span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
 <span>  pt_size <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  vmin <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -129,11 +129,12 @@ of gene expression patterns.</p>
 
 <dt id="arg-posthres-count">PosThres_count<a class="anchor" aria-label="anchor" href="#arg-posthres-count"></a></dt>
 <dd><p>Numeric, absolute count threshold for positive detection
-(default: 0)</p></dd>
+(default: 1)</p></dd>
 
 
-<dt id="arg-posthres-gene">PosThres_gene<a class="anchor" aria-label="anchor" href="#arg-posthres-gene"></a></dt>
-<dd><p>Numeric, gene number threshold (default: 1)</p></dd>
+<dt id="arg-posthres-operator">PosThres_operator<a class="anchor" aria-label="anchor" href="#arg-posthres-operator"></a></dt>
+<dd><p>Character, operator for threshold comparison - "&gt;=" or "&gt;"
+(default: "&gt;=")</p></dd>
 
 
 <dt id="arg-col">col<a class="anchor" aria-label="anchor" href="#arg-col"></a></dt>

@@ -27,7 +27,11 @@
 #' @keywords internal
 #' @noRd
 .get_parallel_workers <- function() {
-  min(4, parallel::detectCores() - 2)
+  n_cores <- parallel::detectCores()
+  if (is.na(n_cores)) {
+    return(1L)
+  }
+  max(1L, min(4L, n_cores - 2L))
 }
 
 #' Internal environment for STID options
@@ -89,7 +93,7 @@ get_STID_options <- function() {
 #' @noRd
 .STID_globals <- new.env(parent = emptyenv())
 .STID_globals$supported_types <- c("scRNA", "stRNA")
-.STID_globals$supported_formats <- c("square_grid", "hex_grid")
+.STID_globals$supported_formats <- c("square_grid", "hex_grid","single_cell")
 .STID_globals$supported_platforms <- c("StereoSeq", "Visium","VisiumHD","SlideSeq","unknown")
 .STID_globals$supported_hosts <- c("human", "mouse", "unknown")
 .STID_globals$supported_pathogens <- c("virus", "bacteria", "parasite", "unknown")

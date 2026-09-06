@@ -21,7 +21,6 @@ CalSampDEGs(
   logfc_thres = 1,
   min_pct = 0.01,
   padj_thres = 0.05,
-  adjust_method = "BH",
   topGeneN = 5,
   remove_genes = NULL,
   col = COLOR_LIST[["PALETTE_WHITE_BG"]],
@@ -87,13 +86,9 @@ CalSampDEGs(
 
   Numeric, adjusted p-value threshold (default: 0.05)
 
-- adjust_method:
-
-  Character, p-value adjustment method (default: "BH")
-
 - topGeneN:
 
-  Integer, number of top genes to label (default: 3)
+  Integer, number of top genes to label (default: 5)
 
 - remove_genes:
 

@@ -46,7 +46,7 @@ Seurat_pipeline <- function(seurat_obj = NULL,data_type = "stRNA",
 
   # >>> Check input patameter
   clog_check()
-  if(have_null(seurat_obj)){
+  if(.any_null(seurat_obj)){
     clog_error("The seurat_obj, ref_obj, seurat_colnm and ref_colnm must be provided")
   }
   match.arg(data_type, choices = .STID_globals$supported_types)
@@ -218,7 +218,7 @@ anno_SingleR <- function(seurat_obj = NULL,
   if (!requireNamespace("SingleR", quietly = TRUE)) {
     clog_error("Package 'SingleR' is required but is not installed.")
   }
-  if(have_null(seurat_obj, ref_obj, seurat_colnm, ref_colnm)){
+  if(.any_null(seurat_obj, ref_obj, seurat_colnm, ref_colnm)){
     clog_error("The seurat_obj, ref_obj, seurat_colnm and ref_colnm must be provided")
   }
   clog_normal(paste0("Your seurat_colnm is ",seurat_colnm))
@@ -261,7 +261,7 @@ anno_SingleR <- function(seurat_obj = NULL,
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# paese the gtf
+# parse the gtf
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -331,7 +331,7 @@ parse_gtf <- function(gtf_file = NULL, fil_label = "gene"){
     table(res_gtf[,ncol(res_gtf)],useNA = "always") %>% print()
     error_df <- res_gtf %>%
       filter(!is.na(res_gtf[,ncol(res_gtf)]))
-    clog_error("The number of columns is not odd number! please check the delim of separate_wider_delim function!")
+    clog_error("The number of columns is odd number! please check the delim of separate_wider_delim function!")
   }
   clog_normal(paste("The number of key-value pairs in gtf file is: ", ncol(res_gtf)/2))
   res_gtf <- res_gtf %>%

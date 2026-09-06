@@ -27,7 +27,7 @@ Accurate detection of pathogen-derived background signals requires explicit mode
 This vignette covers:
 
 -   preparing a processed `STID` object and a pathogen feature list;
--   selecting background or control samples for background modeling;
+-   selecting control samples or spatial background regions for background modeling;
 -   running `CorrectBackground()`;
 -   summarizing pathogen-derived background signal before and after correction;
 -   generating spatial distribution maps of pathogen-derived background signals.
@@ -54,7 +54,7 @@ library(STID)
 
 ## Example data
 
-This vignette uses the processed AE STID_obj object and a pathogen feature list that have already been generated in the preprocessing step.
+This vignette uses the processed AE STID_obj object and a pathogen feature list that have already been generated in the preprocessing step. Background can be estimated from control samples or, when needed, from spatially defined background regions.
 
 > **Note:** Replace `STID_obj`, `pathogen_genes`, and `DPI_0_1` with the object name, pathogen feature vector, and background or control sample IDs used in your dataset.
 
@@ -70,18 +70,22 @@ background_features <- pathogen_genes
 
 ## Background correction
 
-To reduce background noise from pathogen-associated genes, a control-based background correction strategy is applied. For each pathogen-associated feature, the 95th percentile of nonzero expression values in the background samples is calculated and used as the background expression threshold.
+To reduce background noise from pathogen-associated genes, background signal can be estimated from control samples, predefined background regions, or interactively selected background regions. `CorrectBackground()` uses `ctrl_samp_id` for control samples, `bg_region_cell` for predefined regions, and `bg_region_lasso = TRUE` for interactive lasso selection. When both control samples and background regions are supplied, the larger correction value is used.
 
-To account for differences in sequencing depth, this threshold is adjusted by the ratio of average unique molecular identifier (UMI) counts between the background samples and all samples. The adjusted threshold is then subtracted from expression values across all spots or cells, and negative corrected values are set to zero.
+For control-sample correction, UMI adjustment is enabled by default (`adjust_UMI = TRUE`) to account for sequencing-depth differences. Corrected values below zero are set to zero.
 
 ```{r correct-background, eval = FALSE}
 options("parallel_workers" = 4)
 
 STID_obj_after <- CorrectBackground(
   STID_obj = STID_obj_before,
-  bg_samp_id = background_sample_ids,
+  ctrl_samp_id = background_sample_ids,
   bg_features = background_features,
   PosThres_prob = 0.95,
+  # Optional region-based background definition:
+  # group_by = "nCount_Spatial",
+  # bg_region_cell = NULL,
+  # bg_region_lasso = TRUE,
   assay_id = "Spatial",
   layer_id = "counts",
   grp_nm = "Final_CE_0.95",
@@ -166,7 +170,7 @@ STID_obj_before <- SpotDetect_Gene(
   features = high_exp_genes,
   feature_colnm = pathogen_signal_columns_before,
   PosThres_prob = 0,
-  PosThres_count = 1,
+  PosThres_count = 2,
   col = c("grey20", "#80FFFF"),
   black_bg = TRUE,
   pt_size = 1,
@@ -189,7 +193,7 @@ STID_obj_after <- SpotDetect_Gene(
   features = high_exp_genes,
   feature_colnm = pathogen_signal_columns_after,
   PosThres_prob = 0,
-  PosThres_count = 1,
+  PosThres_count = 2,
   col = c("grey20", "#80FFFF"),
   black_bg = TRUE,
   pt_size = 1,
@@ -213,7 +217,8 @@ if (file.exists("figures/Figure2_A.png")) {
 ## Notes
 
 -   Apply pathogen background correction before downstream infection-associated spatial transcriptomic analysis.
--   Confirm that background samples represent true baseline conditions before running correction.
+-   Confirm that control samples or selected spatial background regions represent true baseline conditions before running correction.
+-   Use `ctrl_samp_id` for control samples; use `bg_region_cell` or `bg_region_lasso = TRUE` when the background must be defined spatially.
 -   The corrected STID object preserves the original object structure while updating pathogen gene expression.
 -   Recalibrate `PosThres_prob` when applying this workflow to datasets with different sequencing depth, pathogen burden, or background contamination levels.
 

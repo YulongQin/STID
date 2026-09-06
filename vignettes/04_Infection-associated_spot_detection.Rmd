@@ -28,6 +28,7 @@ This vignette covers:
 
 
 - defining pathogen-derived and host-responsive gene sets;
+- scanning candidate pathogen-count thresholds when needed;
 - detecting infection-associated spots using gene-level signals;
 - detecting infection-associated spots using gene-set scores;
 - visualizing threshold-based detection results and spatial distributions.
@@ -90,7 +91,7 @@ STID_obj <- as.STID(
   host_org = "mouse",
   pathogen_grp = "parasite",
   pathogen_org = "trypanosome",
-  pathogen_gene = pathogen_genes,
+  pathogen_genes = pathogen_genes,
   data_format = "hex_grid",
   data_platform = "Visium"
 )
@@ -98,7 +99,7 @@ STID_obj <- as.STID(
 print(STID_obj)
 ```
 
-> **Note:** Update `samp_colnm`, `samp_grp_colnm`, `celltype_colnm`, `host_org`, `pathogen_grp`, `pathogen_org`, `data_format`, and `data_platform` to match the metadata and spatial platform of the analyzed dataset.
+> **Note:** Update `samp_colnm`, `samp_grp_colnm`, `celltype_colnm`, `host_org`, `pathogen_grp`, `pathogen_org`, `pathogen_genes`, `data_format`, and `data_platform` to match the metadata and spatial platform of the analyzed dataset.
 
 Because a subset of pathogen-derived features in the `stRNA_Tbb` example shows atypical signal patterns, this vignette demonstrates infection-associated spot detection without applying pathogen background correction to this dataset. For datasets with suitable background or control samples, pathogen background correction should be performed before formal infection-associated spot detection.
 
@@ -135,7 +136,7 @@ STID_obj <- as.STID(
   host_org = "mouse",
   pathogen_grp = "virus",
   pathogen_org = "JEV",
-  pathogen_gene = pathogen_genes,
+  pathogen_genes = pathogen_genes,
   data_format = "square_grid",
   data_platform = "StereoSeq",
   binsize = 35
@@ -158,6 +159,25 @@ The processed AE `STID_obj_after` object has already been generated in the patho
 Gene-level detection identifies positive spots from pathogen-derived gene expression or host-responsive gene expression. For each sample, the expression distribution is evaluated, and a quantile-based threshold is used to classify spots as positive or negative. By default, nonzero expression values can be used to estimate the threshold, and the selected cutoff should be calibrated according to spatial expression patterns and frequency distributions.
 
 For multiple genes, aggregated expression across the selected features is used for spot-level detection. Optional smoothing can be applied before thresholding to reduce local noise.
+
+The current `SpotDetect_Gene()` interface uses `PosThres_operator = ">="` by default. For integer count thresholds, code written for a previous strict `>` cutoff can be reproduced either by setting `PosThres_operator = ">"` or by increasing the integer cutoff by 1 while keeping the new default. The examples below follow the updated `>=` convention.
+
+When the count cutoff is not known in advance, `ScanThreshold()` can be used before `SpotDetect_Gene()` to scan candidate pathogen-count thresholds and inspect turning points in the number of positive spots.
+
+```{r scan-gene-detection-threshold, eval = FALSE}
+threshold_res <- ScanThreshold(
+  STID_obj = STID_obj,
+  pathogen_features = pathogen_genes,
+  loop_id = "LoopAllSamp",
+  meta_key = "raw",
+  assay_id = "Spatial",
+  layer_id = "counts",
+  grp_nm = "pathogen_threshold_scan",
+  dir_nm = "M1_ScanThreshold"
+)
+```
+
+For comparisons across spatial resolutions, `turning_transform = "zscore"` can be used for the turning-point calculation.
 
 
 ### African trypanosomiasis infection model
@@ -212,7 +232,7 @@ STID_obj <- SpotDetect_Gene(
   features = pathogen_genes,
   feature_colnm = pathogen_signal_columns,
   PosThres_prob = 0,
-  PosThres_count = 2,
+  PosThres_count = 3,
   col = COLOR_DIS_CON,
   black_bg = FALSE,
   pt_size = 2.2,
@@ -236,7 +256,7 @@ STID_obj <- SpotDetect_Gene(
   features = host_response_genes,
   feature_colnm = host_response_signal_columns,
   PosThres_prob = 0,
-  PosThres_count = 2,
+  PosThres_count = 3,
   col = COLOR_DIS_CON,
   black_bg = FALSE,
   pt_size = 2.2,
@@ -307,7 +327,7 @@ STID_obj <- SpotDetect_Gene(
   features = pathogen_genes,
   feature_colnm = pathogen_signal_columns,
   PosThres_prob = 0,
-  PosThres_count = 1,
+  PosThres_count = 2,
   col = COLOR_DIS_CON,
   black_bg = FALSE,
   pt_size = 0.25,
@@ -323,7 +343,7 @@ STID_obj <- SpotDetect_Gene(
   features = host_response_genes,
   feature_colnm = host_response_signal_columns,
   PosThres_prob = 0,
-  PosThres_count = 4,
+  PosThres_count = 5,
   col = COLOR_DIS_CON,
   black_bg = FALSE,
   pt_size = 0.25,
@@ -349,7 +369,7 @@ STID_obj_after <- SpotDetect_Gene(
     value = TRUE
   ),
   PosThres_prob = 0,
-  PosThres_count = 3,
+  PosThres_count = 4,
   col = COLOR_DIS_CON,
   black_bg = FALSE,
   pt_size = 1,
@@ -363,9 +383,11 @@ STID_obj_after <- SpotDetect_Gene(
 
 STID_obj_after <- SpotDetect_Gene(
   STID_obj_after,
-  features = NULL,
+  # Replace with AE-specific host-responsive genes if different.
+  features = host_response_genes,
+  feature_colnm = NULL,
   PosThres_prob = 0,
-  PosThres_count = 3, 
+  PosThres_count = 4, 
   col = COLOR_DIS_CON,
   black_bg = FALSE,
   pt_size = 1,
@@ -382,7 +404,7 @@ STID_obj_after <- SpotDetect_Gene(
 
 Gene-set score-based detection identifies spatial locations with elevated activity of predefined biological programs. `STID` supports algorithm-based scoring methods, such as `AddModuleScore`, `AUCell`, and `UCell`, as well as expression-based summary metrics such as mean or total expression.
 
-The same thresholding strategy used for gene-level detection can be applied to gene-set scores. Spots with scores above the selected threshold are classified as positive.
+The same thresholding strategy used for gene-level detection can be applied to gene-set scores. `SpotDetect_Geneset()` also supports `PosThres_operator`, with `">="` as the current default.
 
 ### African trypanosomiasis infection model
 

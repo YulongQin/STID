@@ -292,10 +292,11 @@ groups across multi-sample comparisons. The example filters predicted
 genes and pathogen-derived features before testing host transcriptional
 differences.
 
-> **Note:** Set `loop_id`, `group_by`, `group_value`, `assay_id`,
-> thresholds, gene filters, and `grp_nm` for the comparison and feature
-> space. If the selected `niche_key` yields too few genes, use broader
-> annotation groups or adjust the tested group set.
+> **Note:** Set `loop_id`, `niche_key`, `group_by`, `group_value`,
+> `assay_id`, thresholds, gene filters, and `grp_nm` for the comparison
+> and feature space. The updated article workflow performs this
+> comparison within `niche_key = "Niche"`; set `niche_key = NULL` only
+> when the intended comparison is across all selected spots.
 
 ``` r
 MS_DEGs <- CalSampDEGs(
@@ -304,6 +305,7 @@ MS_DEGs <- CalSampDEGs(
   loop_id = "Comparative_2_4",
   samp_grp_index = TRUE,
   logfc_thres = 2,
+  niche_key = "Niche",
   group_by = "anno",
   group_value = c("Neutrophils", "Spp1+ MoMFs", "Fibroblasts", "B/plasma cells"),
   assay_id = "Spatial",

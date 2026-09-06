@@ -12,7 +12,7 @@ NicheDetect_Lasso(
   lasso_para = list(meta_data = NULL, samp_colnm = NULL, x_colnm = "x", y_colnm = "y",
     data_format = "square_grid", data_platform = "StereoSeq", binsize = 1, coord_interval
     = 1),
-  col = COLOR_LIST$PALETTE_WHITE_BG,
+  col = NULL,
   description = NULL,
   grp_nm = NULL,
   dir_nm = "M2_NicheDetect_Lasso"
@@ -33,7 +33,7 @@ information (default: "coord")}
 - samp_colnm: Column name for sample identifiers in meta_data (required if STID_obj is NULL)
 - x_colnm: Column name for x coordinates in meta_data (default: "x")
 - y_colnm: Column name for y coordinates in meta_data (default: "y")
-- data_format: Format of spatial data, either "square_grid" or "hex_grid" (default: "square_grid")
+- data_format: Format of spatial data, One of "square_grid", "hex_grid", or "single_cell". (default: "square_grid")
 - data_platform: Platform of spatial data, either "StereoSeq" or "Visium" (default: "StereoSeq")
 - binsize: Bin size for spatial data (default: 1)
 - coord_interval: Coordinate interval for spatial data (default: 1)}
@@ -60,7 +60,7 @@ for downstream analysis.
 \dontrun{
 # Launch interactive ROI selection
 STID_obj <- NicheDetect_Lasso(
-  STID_obj = ist_object,
+  STID_obj = STID_object,
   group_by = "cell_type",
   meta_key = "coord"
 )

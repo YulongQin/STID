@@ -12,6 +12,7 @@ Plot_Spatial(
   y_colnm = NULL,
   group_by = NULL,
   facet_grpnm = NULL,
+  ncol = NULL,
   datatype = "discrete",
   col = COLOR_DIS_CON,
   pt_size = 1.1,

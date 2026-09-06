@@ -79,7 +79,8 @@ or gene scores within niches. Generates co-localization metrics and visualizatio
 <span>  features <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  feature_colnm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"mistyR"</span>,</span>
-<span>  mistyR_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>juxtaview_radius <span class="op">=</span> <span class="fl">15</span>, paraview_radius <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
+<span>  mistyR_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>juxtaview_radius <span class="op">=</span> <span class="fl">15</span>, paraview_radius <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
+<span>  squidpy_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>vmin <span class="op">=</span> <span class="fl">0</span>, vmax <span class="op">=</span> <span class="cn">NULL</span>, enrichment_mode <span class="op">=</span> <span class="st">"zscore"</span><span class="op">)</span>,</span>
 <span>  return_data <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  grp_nm <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  dir_nm <span class="op">=</span> <span class="st">"M3_CalSampCoLoc"</span></span>
@@ -127,9 +128,16 @@ or gene scores within niches. Generates co-localization metrics and visualizatio
 
 
 <dt id="arg-mistyr-params">mistyR_params<a class="anchor" aria-label="anchor" href="#arg-mistyr-params"></a></dt>
-<dd><p>Numeric vector, parameters for MSTIDyR analysis (default: c(juxtaview_radius = 15, paraview_radius = 10))
+<dd><p>list, parameters for MSTIDyR analysis (default: list(juxtaview_radius = 15, paraview_radius = 10))
 - juxtaview_radius: radius for juxtaview in spatial units
 - paraview_radius: radius for paraview in spatial units</p></dd>
+
+
+<dt id="arg-squidpy-params">squidpy_params<a class="anchor" aria-label="anchor" href="#arg-squidpy-params"></a></dt>
+<dd><p>list, parameters for Squidpy analysis (default: list(vmin = 0, vmax = NULL, enrichment_mode = "zscore"))
+- vmin: minimum value for colormap
+- vmax: maximum value for colormap
+- enrichment_mode: mode for enrichment calculation ("zscore", "count")</p></dd>
 
 
 <dt id="arg-return-data">return_data<a class="anchor" aria-label="anchor" href="#arg-return-data"></a></dt>

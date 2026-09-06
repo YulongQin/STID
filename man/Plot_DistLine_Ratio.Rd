@@ -13,7 +13,6 @@ Plot_DistLine_Ratio(
   celltypes = NULL,
   coord_interval_ratio = NULL,
   linewidth = 1,
-  ncol = 4,
   col = COLOR_LIST[["PALETTE_WHITE_BG"]]
 )
 }
@@ -33,8 +32,6 @@ Plot_DistLine_Ratio(
 \item{coord_interval_ratio}{Numeric, multiplier for coord_interval to set bin width}
 
 \item{linewidth}{Numeric, line width (default: 1)}
-
-\item{ncol}{Integer, number of facet columns (default: 4)}
 
 \item{col}{Color palette (default: COLOR_LIST$PALETTE_WHITE_BG)}
 }

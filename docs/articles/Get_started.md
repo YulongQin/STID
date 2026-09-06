@@ -142,7 +142,7 @@ STID_obj <- as.STID(
   host_org = "mouse",
   pathogen_grp = "parasite",
   pathogen_org = "EmuJ",
-  pathogen_gene = pathogen_genes,
+  pathogen_genes = pathogen_genes,
   binsize = 50,
   data_format = "square_grid",
   data_platform = "StereoSeq"
@@ -157,7 +157,7 @@ and pathogen features:
 - `samp_colnm` identifies individual samples.
 - `samp_grp_colnm` identifies experimental groups or conditions.
 - `celltype_colnm` stores cell-type or spot annotations, if available.
-- `pathogen_gene` contains pathogen-derived features present in
+- `pathogen_genes` contains pathogen-derived features present in
   `rownames(stRNA)`.
 - `data_format`, `data_platform`, and `binsize` match the spatial
   technology and coordinate system.
@@ -174,7 +174,7 @@ background_sample_ids <- c("DPI_0_1")
 
 STID_obj_corrected <- CorrectBackground(
   STID_obj = STID_obj,
-  bg_samp_id = background_sample_ids,
+  ctrl_samp_id = background_sample_ids,
   bg_features = pathogen_genes,
   PosThres_prob = 0.95,
   assay_id = "Spatial",
@@ -184,9 +184,11 @@ STID_obj_corrected <- CorrectBackground(
 )
 ```
 
-If no appropriate control sample is available, users may start from the
-uncorrected `STID_obj`, but downstream detection thresholds should be
-interpreted more carefully.
+If no appropriate control sample is available but a reliable spatial
+background region can be defined, use `bg_region_cell` or
+`bg_region_lasso = TRUE`. Start from the uncorrected `STID_obj` only
+when neither a suitable control sample nor a defensible background
+region is available.
 
 ## Detect infection-associated spots
 

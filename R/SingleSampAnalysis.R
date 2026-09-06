@@ -1,10 +1,11 @@
 
+
 #' @include RPyCall.R
 NULL
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# CalSampComp: 第一种模式SS/MS，不需要多线程
+# CalSampComp
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' Calculate Niche Cell Type Composition
@@ -73,7 +74,7 @@ CalSampComp <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(loop_id,col)
+  .check_not_any_null(loop_id,col)
   match.arg(samp_mode, .STID_globals$samp_modes)
   if(is.null(group_by)){
     clog_warn("group_by is NULL, will use the default celltype_colnm from STID object.")
@@ -85,7 +86,7 @@ CalSampComp <- function(STID_obj = NULL,
   results_list <- list()
   if(samp_mode  == "SS"){
     clog_normal("Execute single-sample analysis...")
-    .check_null_args(niche_key);.check_one_arg(niche_key)
+    .check_not_any_null(niche_key);.check_one_arg(niche_key)
     loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
 
     #> main pipeline
@@ -320,7 +321,7 @@ CalSampCAI <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(loop_id,col)
+  .check_not_any_null(loop_id,col)
   match.arg(samp_mode, .STID_globals$samp_modes)
   if(is.null(group_by)){
     clog_warn("group_by is NULL, will use the default celltype_colnm from STID object.")
@@ -332,16 +333,17 @@ CalSampCAI <- function(STID_obj = NULL,
   clog_step("Calculating the cell aggregation index...")
   if(samp_mode  == "SS"){
     clog_normal("Execute single-sample analysis...")
-    .check_null_args(niche_key)
+    .check_not_any_null(niche_key)
     .check_one_arg(niche_key)
     loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
   }else if(samp_mode  == "MS"){
     clog_normal("Execute multi-sample analysis...")
-    loop_single <- lapply(STID_obj_MS@STID_analysis@MultiSampNiche,function(x){ x@samp_info$samp_id}) %>%
+    loop_single <- lapply(STID_obj@STID_analysis@MultiSampNiche,function(x){ x@samp_info$samp_id}) %>%
       unlist(use.names = F) %>% unique()
   }
 
   # >>> plot_data
+  samp_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "samp_colnm")[[1]]
   all_metrics <- data.frame()
   for (i in seq_along(loop_single)) {
     i_single <- loop_single[i]
@@ -663,9 +665,13 @@ CalSampCAI <- function(STID_obj = NULL,
 #' @param features Character vector, gene names to analyze
 #' @param feature_colnm Character vector, metadata column names to analyze
 #' @param method Character, method for co-localization analysis - "mistyR" or "squidpy" (default: "mistyR")
-#' @param mistyR_params Numeric vector, parameters for MSTIDyR analysis (default: c(juxtaview_radius = 15, paraview_radius = 10))
+#' @param mistyR_params list, parameters for MSTIDyR analysis (default: list(juxtaview_radius = 15, paraview_radius = 10))
 #'       - juxtaview_radius: radius for juxtaview in spatial units
 #'       - paraview_radius: radius for paraview in spatial units
+#' @param squidpy_params list, parameters for Squidpy analysis (default: list(vmin = 0, vmax = NULL, enrichment_mode = "zscore"))
+#'      - vmin: minimum value for colormap
+#'      - vmax: maximum value for colormap
+#'      - enrichment_mode: mode for enrichment calculation ("zscore", "count")
 #' @param return_data Logical, whether to return the results list (default: TRUE)
 #' @param grp_nm Character, group name for output organization (default: NULL)
 #' @param dir_nm Character, directory name for output (default: "M3_CalSampCoLoc")
@@ -695,8 +701,10 @@ CalSampCoLoc <- function(STID_obj = NULL,
                          features = NULL,
                          feature_colnm = NULL,
                          method = "mistyR",
-                         mistyR_params = c(juxtaview_radius = 15,
-                                           paraview_radius = 10),
+                         mistyR_params = list(juxtaview_radius = 15,
+                                              paraview_radius = 10),
+                         squidpy_params = list(vmin = 0, vmax = NULL,
+                                               enrichment_mode = "zscore"),
                          return_data = TRUE,
                          grp_nm = NULL,dir_nm = "M3_CalSampCoLoc"
 ){
@@ -712,7 +720,9 @@ CalSampCoLoc <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  # .check_null_args(niche_key)
+  # .check_not_any_null(niche_key)
+
+
   match.arg(method, c("mistyR", "squidpy"))
   if(.all_null(group_by,features,feature_colnm)){
     clog_warn("group_by, features and feature_colnm are all NULL, will use
@@ -760,6 +770,7 @@ CalSampCoLoc <- function(STID_obj = NULL,
                                      meta_key = meta_key,
                                      group_by = group_by,
                                      group_use = group_use,
+                                     squidpy_params = squidpy_params,
                                      coord_interval = coord_interval,
                                      output_dir = output_dir,
                                      photo_dir = photo_dir)
@@ -789,7 +800,7 @@ CalSampCoLoc <- function(STID_obj = NULL,
 #' @param group_use Specific groups to include
 #' @param features Gene names to analyze
 #' @param feature_colnm Metadata columns to analyze
-#' @param mistyR_params Numeric vector of length 2: c(juxtaview_radius, paraview_radius)
+#' @param mistyR_params list, parameters for MSTIDyR analysis (default: list(juxtaview_radius = 15, paraview_radius = 10))
 #' @param coord_interval Spatial scaling coord_intervals
 #' @param tmp_dir Temporary directory
 #' @param output_dir Output directory
@@ -816,6 +827,7 @@ CalSampCoLoc <- function(STID_obj = NULL,
   if(length(mistyR_params) != 2) {
     clog_error("mistyR_params should be a numeric vector of length 2: c(juxtaview_radius, paraview_radius).")
   }
+  samp_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "samp_colnm")[[1]]
   results_list <- list()
   tmp_dir <- tempdir()
   for(i in seq_along(loop_single)){
@@ -886,9 +898,9 @@ CalSampCoLoc <- function(STID_obj = NULL,
     clog_normal("Create mistyR intraview, juxtaview and paraview. It may take a while...")
     misty.intra <- mistyR::create_initial_view(expr)
     misty.views <- misty.intra %>%
-      mistyR::add_juxtaview(pos, neighbor.thr = mistyR_params[1]*i_coord_interval) %>%  # add_juxtaview，阈值和半径过大会比较慢
-      mistyR::add_paraview(pos, l = mistyR_params[2]*i_coord_interval)
-    view_nms <- c("intra", paste0("juxta.", mistyR_params[1]), paste0("para.", mistyR_params[2]))
+      mistyR::add_juxtaview(pos, neighbor.thr = mistyR_params$juxtaview_radius*i_coord_interval) %>%  # add_juxtaview，阈值和半径过大会比较慢
+      mistyR::add_paraview(pos, l = mistyR_params$paraview_radius*i_coord_interval)
+    view_nms <- c("intra", paste0("juxta.", mistyR_params$juxtaview_radius), paste0("para.", mistyR_params$paraview_radius))
     results_list[[i_single]][["data"]][["misty_views"]] <- misty.views
 
     #>
@@ -1241,7 +1253,7 @@ Plot_SpatialCoLoc <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(niche_key,col)
+  .check_not_any_null(niche_key,col)
   if(.all_null(group_by,features,feature_colnm)){
     clog_warn("group_by, features and feature_colnm are all NULL, will use the default celltype_colnm from STID object as group_by.")
     group_by <- GetInfo(STID_obj, info_key = "data_info",sub_key = "celltype_colnm")[[1]]
@@ -1367,8 +1379,7 @@ Plot_SpatialCoLoc <- function(STID_obj = NULL,
 #' @param logfc_thres Numeric, log2 fold change threshold (default: 1)
 #' @param min_pct Numeric, minimum percentage of cells expressing gene (default: 0.01)
 #' @param padj_thres Numeric, adjusted p-value threshold (default: 0.05)
-#' @param adjust_method Character, p-value adjustment method (default: "BH")
-#' @param topGeneN Integer, number of top genes to label (default: 3)
+#' @param topGeneN Integer, number of top genes to label (default: 5)
 #' @param col Color palette for visualization (default: COLOR_LIST$PALETTE_WHITE_BG)
 #' @param remove_genes Character vector, genes to exclude from analysis
 #' @param return_data Logical, whether to return results list (default: TRUE)
@@ -1407,7 +1418,6 @@ CalSampDEGs <- function(STID_obj = NULL,
                         logfc_thres = 1,
                         min_pct = 0.01,
                         padj_thres = 0.05,
-                        adjust_method = "BH",
                         topGeneN = 5,
                         remove_genes = NULL,
                         col = COLOR_LIST[["PALETTE_WHITE_BG"]],
@@ -1427,7 +1437,7 @@ CalSampDEGs <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(col)
+  .check_not_any_null(col)
   match.arg(samp_mode, .STID_globals$samp_modes)
   if(is.null(group_by)){
     clog_warn("group_by is NULL, will use the default celltype_colnm from STID object.")
@@ -1447,7 +1457,7 @@ CalSampDEGs <- function(STID_obj = NULL,
   clog_step("Start calculating DEGs...")
   if(samp_mode  == "SS"){
     clog_normal("Execute single-sample analysis...")
-    .check_null_args(niche_key);.check_one_arg(niche_key)
+    .check_not_any_null(niche_key);.check_one_arg(niche_key)
     loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
 
     #>
@@ -1741,7 +1751,7 @@ CalSampDEGs <- function(STID_obj = NULL,
           clusterOrder = valid_celltypes
         )
         ggsave(filename = paste0(photo_dir,"/",plot_id,"_DEGs_per_Celltype_Volcano.pdf"),
-               plot = p2, width = 6, height = 5)
+               plot = p2, width = 6, height = 6)
         print(p2)
 
         results_list[[plot_id]] <- list(
@@ -1823,6 +1833,7 @@ CalSampDEGs <- function(STID_obj = NULL,
 #' @param backH Numeric, background height
 #' @param myMarkers Character vector, specific markers to highlight
 #' @param clusterOrder Character vector, order of clusters
+#' @param pCap Numeric, maximum -log10(p-value) for plotting
 #'
 #' @return A ggplot object
 #'
@@ -1835,13 +1846,19 @@ CalSampDEGs <- function(STID_obj = NULL,
                             topGeneN = 3, col = NULL,
                             orderBy="avg_log2FC_cap", plotTitle = NULL,
                             log2FC_thres = 4, backH=0.1,
-                            myMarkers=NULL, clusterOrder=NULL
+                            myMarkers=NULL, clusterOrder=NULL,
+                            pCap=20
 ){
 
   diff.marker <- diffData %>%
     filter(abs(avg_log2FC_cap)>=log2FC_thres ) %>%
-    filter(p_val_adj_cap < 0.05) %>%
-    mutate(type = ifelse(avg_log2FC_cap>0, "Up", "Down")) %>%
+    filter(p_val_adj_cap < 0.05) %>% # !!!
+    mutate(
+      type = ifelse(avg_log2FC_cap>0, "Up", "Down"),
+      negLog10P_raw = -log10(pmax(p_val_adj_cap, .Machine$double.xmin)),
+      negLog10P = pmin(negLog10P_raw, pCap),
+      colorValue = ifelse(avg_log2FC_cap>0, negLog10P, -negLog10P)
+    ) %>%
     dplyr::rename(cluster = !!sym(group_by))
 
   cluster_values <- diff.marker$cluster
@@ -1882,7 +1899,7 @@ CalSampDEGs <- function(STID_obj = NULL,
   diff.marker$topNShape <- ifelse(
     paste0(diff.marker$cluster, diff.marker$gene) %in% paste0(top.marker$cluster, top.marker$gene), 1, "")
   diff.marker$topNCol <- ifelse(
-    paste0(diff.marker$cluster, diff.marker$gene) %in% paste0(top.marker$cluster, top.marker$gene), "grey50", "white")
+    paste0(diff.marker$cluster, diff.marker$gene) %in% paste0(top.marker$cluster, top.marker$gene), "grey30", "white")
   diff.marker$topNAlpha <- ifelse(
     paste0(diff.marker$cluster, diff.marker$gene) %in% paste0(top.marker$cluster, top.marker$gene), 1, 0)
 
@@ -1897,14 +1914,16 @@ CalSampDEGs <- function(STID_obj = NULL,
 
   tile.data <- data.frame(cluster = unique(diff.marker$cluster))
 
+  maxP <- max(diff.marker$negLog10P, na.rm = TRUE)
+
   #> plot
   p1 <- ggplot(data = diff.marker.xj, aes(x = xj, y = avg_log2FC_cap)) +
-    geom_col(data = back.data, aes(x = cluster, y = min), fill = "grey98") +
-    geom_col(data = back.data, aes(x = cluster, y = max), fill = "grey98") +
-    geom_point(aes(color = type)) +
+    geom_col(data = back.data, aes(x = cluster, y = min), fill = "grey99") +
+    geom_col(data = back.data, aes(x = cluster, y = max), fill = "grey99") +
+    geom_point(aes(color = colorValue),size = 0.75) +
     geom_point( # highlight topN genes
       aes(x = xj, y = avg_log2FC_cap, shape = topNShape),
-      size = 2.5, stroke = 1,
+      size = 2, stroke = 0.5,
       color = diff.marker.xj$topNCol,
       alpha = diff.marker.xj$topNAlpha,
       show.legend = FALSE
@@ -1920,7 +1939,7 @@ CalSampDEGs <- function(STID_obj = NULL,
     geom_text_repel(
       data = diff.marker.xj,
       aes(x = xj, y = avg_log2FC_cap, label = topN),
-      color = "grey50",
+      color = "grey30",
       max.overlaps = 100
     ) +
     geom_text(
@@ -1932,23 +1951,31 @@ CalSampDEGs <- function(STID_obj = NULL,
     scale_shape_manual(
       values = c(0, 1)
     ) +
-    scale_color_manual(
-      values = c(Down = "#a121f0", Up = "#ffad21")
+    scale_color_gradient2(
+      name = "-log10(adj.P)",
+      low = "#800080",
+      mid = "grey95",
+      high = "#FFA500",
+      midpoint = 0,
+      limits = c(-maxP, maxP),
+      breaks = seq(-maxP, maxP, length.out = 7),
+      labels = function(x) round(abs(x), 1)
     ) +
     scale_fill_manual(values = col) +
     scale_y_continuous(n.breaks = 10,guide = "prism_offset") +
     # scale_y_continuous(n.breaks = 10) +
     labs(x = "Clusters", y = "Average log2FoldChange",title = plotTitle) +
     guides(
-      color = guide_legend(
-        override.aes = list(size = 4)
+      color = guide_colorbar(
+        title.position = "top",
+        title.hjust = 0.5
       )
     )+
     theme_classic() +
     theme(
       plot.title = element_text(hjust = 0.5,face = "bold"),
       panel.grid = element_blank(),
-      legend.title = element_blank(),
+      legend.title = element_text(size = 9),
       legend.background = element_blank(),
       axis.line.x = element_blank(),
       axis.text.x = element_blank(),
@@ -2009,6 +2036,7 @@ CalSampCellComm <- function(STID_obj = NULL,
                             is_Spatial = TRUE, # 是否进行空间cellchat，默认TRUE
                             spatial.factors = NULL,
                             interaction.range = 250,
+
                             remove_genes = NULL,
                             col = NULL, # COLOR_LIST[["PALETTE_WHITE_BG"]]
                             return_data = TRUE,
@@ -2029,7 +2057,7 @@ CalSampCellComm <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  # .check_null_args(niche_key) # can be NULL
+  # .check_not_any_null(niche_key) # can be NULL
   if(is.null(group_by)){
     clog_warn("group_by is NULL, will use the default celltype_colnm from STID object.")
     group_by <- GetInfo(STID_obj, info_key = "data_info",sub_key = "celltype_colnm")[[1]]
@@ -2107,7 +2135,7 @@ CalSampCellComm <- function(STID_obj = NULL,
     spatial.locs <- meta_data[c("x","y")]
     if(is_Spatial){
       if(is.null(spatial.factors)){
-        if(data_format == "square_grid"){
+        if(data_format %in% c("square_grid", "single_cell")){
           spatial.factors <- data.frame(
             ratio = base_unit*binsize/i_coord_interval,
             tol = base_unit*binsize/2
@@ -2121,7 +2149,7 @@ CalSampCellComm <- function(STID_obj = NULL,
       }
       i_cellchat <- CellChat::createCellChat(
         object = data.input,
-        meta = meta_data, # 创建即添加meta
+        meta = meta_data,
         group.by = group_by,
         datatype = "spatial",
         coordinates = spatial.locs,
@@ -2353,7 +2381,7 @@ Plot_NicheCellComm <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(CellComm_data)
+  .check_not_any_null(CellComm_data)
   match.arg(samp_mode, .STID_globals$samp_modes)
   if(!is.null(col)){
     if(is.null(names(col))){
@@ -2715,7 +2743,7 @@ CalSampGRN <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(niche_key,sender_celltypes,target_features)
+  .check_not_any_null(niche_key,sender_celltypes,target_features)
   if(is.null(receiver_celltypes)) {
     celltype_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "celltype_colnm")[[1]]
     receiver_celltypes <- STID_obj@meta.data[[celltype_colnm]]  %>% as.character() %>% unique() %>% sort()
@@ -3064,9 +3092,9 @@ CalSampGeneCor <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  # .check_null_args(niche_key)
-  .check_at_least_one_null(p.features,p.feature_colnm)
-  .check_at_least_one_null(h.features,h.feature_colnm)
+  # .check_not_any_null(niche_key)
+  .check_not_all_null(p.features,p.feature_colnm)
+  .check_not_all_null(h.features,h.feature_colnm)
   match.arg(method, choices = c("spearman", "pearson"))
   loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
   if(!is.null(p.features)){
@@ -3302,7 +3330,7 @@ CalSampGeneCor <- function(STID_obj = NULL,
         `colnames<-`(c("Variable1", "Variable2", "length","Correlation", "P-value")) %>%
         mutate(Correlation = as.numeric(Correlation),
                `P-value` = as.numeric(`P-value`)) %>%
-        arrange(Variable2, "P-value")
+        arrange(Variable2, `P-value`)
       write.table(res_cor,
                   file = paste0(output_dir,'/cont2cont2_',method,'_fast.txt'),
                   sep = "\t",row.names = F,col.names = T,quote = F)
@@ -3418,7 +3446,7 @@ CalSampPPI <- function(
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(p.fasta_path, h.fasta_path, p.symbol2protein_path, h.symbol2protein_path)
+  .check_not_any_null(p.fasta_path, h.fasta_path, p.symbol2protein_path, h.symbol2protein_path)
   if(is.null(p.features)){
     p.features <- GetInfo(STID_obj, info_key = "data_info", sub_key = "pathogen_genes")[[1]]
   }
@@ -3840,8 +3868,8 @@ Plot_DistLine_Exp <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(col)
-  .check_at_least_one_null(features,feature_colnm,facet_grpnm,meta_key)
+  .check_not_any_null(col)
+  .check_not_all_null(features,feature_colnm,facet_grpnm,meta_key)
   if(length(STID_obj@STID_analysis@SingleSampNiche) == 0){
     loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id, mode = 1)
   }else{
@@ -3949,7 +3977,6 @@ Plot_DistLine_Exp <- function(STID_obj = NULL,
 #' @param coord_interval_ratio Numeric, multiplier for coord_interval to set bin width
 #' @param col Color palette (default: COLOR_LIST$PALETTE_WHITE_BG)
 #' @param linewidth Numeric, line width (default: 1)
-#' @param ncol Integer, number of facet columns (default: 4)
 #'
 #' @return A ggplot object
 #'
@@ -3973,7 +4000,7 @@ Plot_DistLine_Ratio <- function(STID_obj = NULL,
                                 facet_grpnm = NULL,
                                 celltypes = NULL,
                                 coord_interval_ratio = NULL ,
-                                linewidth = 1,ncol = 4,
+                                linewidth = 1,
                                 col = COLOR_LIST[["PALETTE_WHITE_BG"]]
 
 ){
@@ -3985,8 +4012,8 @@ Plot_DistLine_Ratio <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(col)
-  .check_at_least_one_null(celltypes,group_by,facet_grpnm,meta_key,coord_interval_ratio)
+  .check_not_any_null(col)
+  .check_not_all_null(celltypes,group_by,facet_grpnm,meta_key,coord_interval_ratio)
   loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
 
   # >
@@ -4038,14 +4065,15 @@ Plot_DistLine_Ratio <- function(STID_obj = NULL,
   p1 <- ggplot(data = plot_data_line,aes(x = cut_label, y = celltype_ratio,
                                          color = !!sym(group_by),fill = !!sym(group_by),
                                          group = !!sym(group_by)))+
-    facet_grid(cols = vars(!!sym(samp_colnm)),rows = vars(!!sym(group_by)),scales = "free")+
+    facet_grid(cols = vars(!!sym(samp_colnm)),rows = vars(!!sym(group_by)),
+               scales = "free")+
     geom_rect(data = plot_data_edge,
               aes(x= NULL,y = NULL,xmin = -Inf, xmax = median_edge,ymin = -Inf ,ymax = Inf,),
               color = NA,fill = scales::alpha("#E64B35FF",0.1),inherit.aes = F)+
     geom_vline(data = plot_data_edge,aes(xintercept = median_edge),
                alpha = 0.8,color = scales::alpha("#E64B35FF",0.1),
                lty = "dashed", lwd = 0.5)+
-    geom_line(linewidth=1,alpha = 0.8) +
+    geom_line(linewidth = linewidth,alpha = 0.8) +
     geom_point(size=2.5,shape=21,stroke = 1) +
     scale_color_manual(values = scales::alpha(col,0.9))+
     scale_fill_manual(values = scales::alpha(col_hex_add,0.9))+
@@ -4169,7 +4197,7 @@ GeneEnrichment <- function(STID_obj = NULL,
     )
   }else if(method == "GSEA_GO_KEGG"){
     clog_step("Performing GSEA GO and KEGG enrichment analysis")
-    .check_null_args(DEGs)
+    .check_not_any_null(DEGs)
     results_list <- .GSEA_GO_KEGG(DEGs = DEGs,
                                   org = host_org,
                                   grp_nm = dir_list$grp_nm,
@@ -4612,7 +4640,7 @@ GeneEnrichment <- function(STID_obj = NULL,
 
 
   #> check
-  .check_null_args(DEGs)
+  .check_not_any_null(DEGs)
   must_colnm <- c("gene","avg_log2FC")
   if(!all(c(must_colnm) %in% colnames(DEGs))){
     clog_error(paste0("DEGs must contain columns 'gene' and 'avg_log2FC', but the following columns are missing: ",
@@ -4703,7 +4731,7 @@ GeneEnrichment <- function(STID_obj = NULL,
       gsea_GO_res <- gsea_GO@result
 
       if(nrow(gsea_GO_res) == 0) {
-        clog_warning(paste0("No significant results for GO: ", go_i))
+        clog_warn(paste0("No significant results for GO: ", go_i))
         next
       }
 
@@ -4894,7 +4922,7 @@ GeneEnrichment <- function(STID_obj = NULL,
         dev.off()
       }
     } else {
-      clog_warning("No significant results for KEGG analysis")
+      clog_warn("No significant results for KEGG analysis")
     }
 
   }, error = function(e) {

@@ -46,7 +46,10 @@ CreateSTIDObject(
 
 \item{pathogen_genes}{Character vector, names of pathogen genes}
 
-\item{data_format}{Character, data format - "square_grid" or "hex_grid"}
+\item{data_format}{Character, spatial data format.
+One of "square_grid", "hex_grid", or "single_cell".
+For "single_cell", the default spatial unit, binsize,
+and coord_interval are 1 unless otherwise specified.}
 
 \item{data_platform}{Character, data platform - "StereoSeq", "Visium", "VisiumHD", "SlideSeq", or "unknown"}
 

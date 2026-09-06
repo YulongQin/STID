@@ -227,7 +227,7 @@ sample information stored in the <code>batch</code> and
 <span>  host_org <span class="op">=</span> <span class="st">"mouse"</span>,</span>
 <span>  pathogen_grp <span class="op">=</span> <span class="st">"parasite"</span>,</span>
 <span>  pathogen_org <span class="op">=</span> <span class="st">"EmuJ"</span>,</span>
-<span>  pathogen_gene <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
+<span>  pathogen_genes <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
 <span>  binsize <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  data_format <span class="op">=</span> <span class="st">"square_grid"</span>,</span>
 <span>  data_platform <span class="op">=</span> <span class="st">"StereoSeq"</span></span>
@@ -246,7 +246,7 @@ conditions.</li>
 <code>celltype_colnm</code> stores cell-type or spot annotations, if
 available.</li>
 <li>
-<code>pathogen_gene</code> contains pathogen-derived features
+<code>pathogen_genes</code> contains pathogen-derived features
 present in <code>rownames(stRNA)</code>.</li>
 <li>
 <code>data_format</code>, <code>data_platform</code>, and
@@ -266,7 +266,7 @@ infection calls.</p>
 <span></span>
 <span><span class="va">STID_obj_corrected</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CorrectBackground.html">CorrectBackground</a></span><span class="op">(</span></span>
 <span>  STID_obj <span class="op">=</span> <span class="va">STID_obj</span>,</span>
-<span>  bg_samp_id <span class="op">=</span> <span class="va">background_sample_ids</span>,</span>
+<span>  ctrl_samp_id <span class="op">=</span> <span class="va">background_sample_ids</span>,</span>
 <span>  bg_features <span class="op">=</span> <span class="va">pathogen_genes</span>,</span>
 <span>  PosThres_prob <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>  assay_id <span class="op">=</span> <span class="st">"Spatial"</span>,</span>
@@ -274,9 +274,11 @@ infection calls.</p>
 <span>  grp_nm <span class="op">=</span> <span class="st">"Final_CE_0.95"</span>,</span>
 <span>  dir_nm <span class="op">=</span> <span class="st">"M1_CorrectBackground"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>If no appropriate control sample is available, users may start from
-the uncorrected <code>STID_obj</code>, but downstream detection
-thresholds should be interpreted more carefully.</p>
+<p>If no appropriate control sample is available but a reliable spatial
+background region can be defined, use <code>bg_region_cell</code> or
+<code>bg_region_lasso = TRUE</code>. Start from the uncorrected
+<code>STID_obj</code> only when neither a suitable control sample nor a
+defensible background region is available.</p>
 </div>
 <div class="section level2">
 <h2 id="detect-infection-associated-spots">Detect infection-associated spots<a class="anchor" aria-label="anchor" href="#detect-infection-associated-spots"></a>

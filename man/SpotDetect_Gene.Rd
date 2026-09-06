@@ -12,8 +12,8 @@ SpotDetect_Gene(
   assay_id = "Spatial",
   layer_id = "counts",
   PosThres_prob = 0,
-  PosThres_count = 0,
-  PosThres_gene = 1,
+  PosThres_count = 1,
+  PosThres_operator = c(">=", ">"),
   col = COLOR_DIS_CON,
   pt_size = 0.5,
   vmin = NULL,
@@ -45,9 +45,10 @@ SpotDetect_Gene(
 (default: 0)}
 
 \item{PosThres_count}{Numeric, absolute count threshold for positive detection
-(default: 0)}
+(default: 1)}
 
-\item{PosThres_gene}{Numeric, gene number threshold (default: 1)}
+\item{PosThres_operator}{Character, operator for threshold comparison - ">=" or ">"
+(default: ">=")}
 
 \item{col}{Color palette for visualization (default: COLOR_DIS_CON)}
 

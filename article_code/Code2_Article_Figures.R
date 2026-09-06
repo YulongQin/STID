@@ -30,19 +30,50 @@ if(0){
 # load rds file from Code1_Data_Process.R
 
 
-#### 一、Figure 2 ####
+#### 一、Figures 2 and S1 ####
 ###  1.CorrectBackground  ####
-### 1.1 AE ####
+### 1.1 AE and AE_raw ####
+#> stRNA
 options("parallel_workers" = 4)
 STID_obj_before <- STID_obj
-STID_obj_after <- CorrectBackground(STID_obj = STID_obj_before, bg_samp_id = c("DPI_0_1"),
+STID_obj_after <- CorrectBackground(STID_obj = STID_obj_before, 
+                                    ctrl_samp_id = c("DPI_0_1"),
                                     bg_features = pathogen_genes,
                                    PosThres_prob = 0.95,
                                    assay_id = "Spatial", layer_id = "counts",
                                    grp_nm = "Final_CE_0.95", dir_nm = "M1_CorrectBackground")
 
+#> stRNA_raw
+options("parallel_workers" = 4)
+STID_obj_before <- STID_obj
+rm(STID_obj);gc()
 
-### 1.2 SpotDetect_Gene/Geneset
+pdf(file = "./photo/Z_other/20260724_FigureS1_result/AE_raw/AE_raw_plot_spatial.pdf",width =24 ,height = 8)
+Plot_Spatial(STID_obj_before,meta_key = "raw",group_by = "nCount_Spatial",datatype = "continuous")
+dev.off()
+
+STID_obj_after_bg <- CorrectBackground(STID_obj = STID_obj_before, 
+                                    # ctrl_samp_id = c("DPI_0_1"),
+                                    group_by = "nCount_Spatial",
+                                    bg_region_cell = NULL, # dataframe: sample_id bg_cell
+                                    bg_region_lasso = TRUE,
+                                    bg_features = pathogen_genes,
+                                    PosThres_prob = 0.95,
+                                    assay_id = "Spatial", layer_id = "counts",
+                                    grp_nm = "AE_raw_lasso", dir_nm = "M1_CorrectBackground")
+STID_obj_after_bg_ctrl <- CorrectBackground(STID_obj = STID_obj_before, 
+                                            ctrl_samp_id = c("DPI_0_1"),
+                                            group_by = "nCount_Spatial",
+                                            bg_region_cell = NULL, # dataframe: sample_id bg_cell
+                                            bg_region_lasso = TRUE,
+                                            bg_features = pathogen_genes,
+                                            PosThres_prob = 0.95,
+                                            assay_id = "Spatial", layer_id = "counts",
+                                            grp_nm = "AE_raw_lasso", dir_nm = "M1_CorrectBackground")
+
+
+### 1.2 before and after ####
+# AE and AE_raw
 high_exp_genes <- GetTopGenes(STID_obj_before, top_n = 10, pattern = "EmuJ-",
                               grp_by_samp = F, grp_by_celltype = F,
                               assay_id = "Spatial", layer_id = "counts")
@@ -68,11 +99,11 @@ STID_obj_after <- GetGeneStat(STID_obj = STID_obj_after, features = pathogen_gen
                 igrnore_rownm = FALSE)
 meta_data <- STID_obj_before@meta.data
 
-#> only valid in Figure 1
+#> AE
 STID_obj_before <- SpotDetect_Gene(STID_obj_before,
                                    features = high_exp_genes,
                                    feature_colnm = grep("top10_gene",colnames(STID_obj_before@meta.data),value = T),
-                                   PosThres_prob = 0, PosThres_count = 1,
+                                   PosThres_prob = 0, PosThres_count = 2, # old: 1
                                    col = c("grey20","#80FFFF"),
                                    black_bg = T,pt_size = 1,
                                    # blur_method = "isoblur",
@@ -85,7 +116,7 @@ tmp <- GetSapThreshold(STID_obj_before,
 STID_obj_before <- SpotDetect_Gene(STID_obj_before,
                                    features = high_exp_genes,
                                    feature_colnm = grep("all_gene",colnames(STID_obj_before@meta.data),value = T),
-                                   PosThres_prob = 0, PosThres_count = 1,
+                                   PosThres_prob = 0, PosThres_count = 2, # old: 1
                                    col = c("grey20","#80FFFF"),
                                    black_bg = T,pt_size = 1,
                                    # blur_method = "isoblur",
@@ -96,7 +127,7 @@ STID_obj_before <- SpotDetect_Gene(STID_obj_before,
 STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   features = high_exp_genes,
                                   feature_colnm = grep("top10_gene",colnames(STID_obj_after@meta.data),value = T),
-                                  PosThres_prob = 0, PosThres_count = 1,
+                                  PosThres_prob = 0, PosThres_count = 2, # old: 1
                                   col = c("grey20","#80FFFF"),
                                   black_bg = T,pt_size = 1,
                                   # blur_method = "isoblur",
@@ -107,7 +138,7 @@ STID_obj_after <- SpotDetect_Gene(STID_obj_after,
 STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   features = high_exp_genes,
                                   feature_colnm = grep("all_gene",colnames(STID_obj_after@meta.data),value = T),
-                                  PosThres_prob = 0, PosThres_count = 1,
+                                  PosThres_prob = 0, PosThres_count = 2, # old: 1
                                   col = c("grey20","#80FFFF"),
                                   black_bg = T,pt_size = 1,
                                   # blur_method = "isoblur",
@@ -116,6 +147,31 @@ STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   plot_method = "single",
                                   grp_nm = "CE_correct_after_all_gene_black")
 
+#> AE_raw
+options("parallel_workers" = 1)
+STID_obj_before <- SpotDetect_Gene(STID_obj_before,
+                                   features = high_exp_genes,
+                                   feature_colnm = grep("all_gene",colnames(STID_obj_before@meta.data),value = T),
+                                   PosThres_prob = 0, PosThres_count = 2, # old: 1
+                                   col = c("grey20","#80FFFF"),
+                                   black_bg = T,pt_size = 1,
+                                   # blur_method = "isoblur",
+                                   blur_method = NULL,
+                                   blur_n = 1,blur_sigma = 0.5,
+                                   plot_method = "single",
+                                   grp_nm = "AE_raw_correct_before_all_gene_black")
+STID_obj_after <- SpotDetect_Gene(STID_obj_after,
+                                  features = high_exp_genes,
+                                  feature_colnm = grep("all_gene",colnames(STID_obj_after@meta.data),value = T),
+                                  PosThres_prob = 0, PosThres_count = 2, # old: 1
+                                  col = c("grey20","#80FFFF"),
+                                  black_bg = T,pt_size = 1,
+                                  # blur_method = "isoblur",
+                                  blur_method = NULL,
+                                  blur_n = 1,blur_sigma = 0.5,
+                                  plot_method = "single",
+                                  grp_nm = "AE_raw_correct_after_all_gene_black")
+
 
 ### 2.SpotDetect_Gene/Geneset ####
 ## 2.1 AE ####
@@ -123,7 +179,7 @@ STID_obj_after <- SpotDetect_Gene(STID_obj_after,
 STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   features = high_exp_genes,
                                   feature_colnm = grep("all_gene",colnames(STID_obj_after@meta.data),value = T),
-                                  PosThres_prob = 0, PosThres_count = 3,
+                                  PosThres_prob = 0, PosThres_count = 4, # old: 3
                                   col = COLOR_DIS_CON,
                                   black_bg = F,pt_size = 1,
                                   # blur_method = "isoblur",
@@ -134,7 +190,7 @@ STID_obj_after <- SpotDetect_Gene(STID_obj_after,
 STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   features = host_genes,
                                   feature_colnm = grep("all_gene",colnames(STID_obj_after@meta.data),value = T),
-                                  PosThres_prob = 0, PosThres_count = 3, # D4_2为3，D15_2为10
+                                  PosThres_prob = 0, PosThres_count = 4, # old: 3 # D4_2为4，D15_2为11
                                   col = COLOR_DIS_CON,
                                   black_bg = F,pt_size = 1,
                                   blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
@@ -142,7 +198,7 @@ STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   grp_nm = "CE_correct_after_host_gene_white")
 
 #> geneset
-# you can access these genesets from STID::Gene_Genesets
+# 这些基因集可以从STID::Gene_Geneset中获取
 geneset_df <- STID::Gene_Geneset$Mouse$Geneset$Mouse_PCD_geneset
 # geneset_df <- read.table(file = "./inputdata/Gene_Geneset/Mouse/Geneset/Mouse_PCD_geneset.txt",
 #                          sep = "\t",row.names = NULL,header = T,na.strings = "")
@@ -183,7 +239,7 @@ saveRDS(STID_obj_after,file = "./rds/STID_obj_CE_SpotDetect.rds")
 STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   features = high_exp_genes,
                                   feature_colnm = grep("all_gene",colnames(STID_obj_after@meta.data),value = T),
-                                  PosThres_prob = 0, PosThres_count = 0,
+                                  PosThres_prob = 0, PosThres_count = 1, # old: 0
                                   col = COLOR_DIS_CON,
                                   black_bg = F,pt_size = 0.5,
                                   # blur_method = "isoblur",
@@ -194,7 +250,7 @@ STID_obj_after <- SpotDetect_Gene(STID_obj_after,
 STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   features = host_genes,
                                   feature_colnm = grep("all_gene",colnames(STID_obj_after@meta.data),value = T),
-                                  PosThres_prob = 0, PosThres_count = 0,
+                                  PosThres_prob = 0, PosThres_count = 1, # old: 0
                                   col = COLOR_DIS_CON,
                                   black_bg = F,pt_size = 0.5,
                                   blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
@@ -246,7 +302,7 @@ STID_obj <- GetGeneStat(STID_obj = STID_obj, features = pathogen_genes,prefix = 
 STID_obj <- SpotDetect_Gene(STID_obj,
                             features = pathogen_genes,
                             feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
-                            PosThres_prob = 0, PosThres_count = 1,
+                            PosThres_prob = 0, PosThres_count = 2, # old: 1
                             col = COLOR_DIS_CON,
                             black_bg = F,pt_size = 0.25,
                             # blur_method = "isoblur",
@@ -259,7 +315,7 @@ STID_obj <- SpotDetect_Gene(STID_obj,
                             # features = c("Ccl5","Irf7"),
                             features = host_genes,
                             feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
-                            PosThres_prob = 0, PosThres_count = 4,
+                            PosThres_prob = 0, PosThres_count = 5, # old: 4
                             col = COLOR_DIS_CON,
                             black_bg = F,pt_size = 0.25,
                             blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
@@ -305,6 +361,19 @@ saveRDS(STID_obj,file = "./rds/STID_obj_JEV_SpotDetect_D3_1.rds")
 
 
 ## 2.4 Tbb ####
+# ScanThreshold
+threshold_res <- ScanThreshold(
+  STID_obj = STID_obj,
+  pathogen_features = "Tb927.6.4280",
+  # threshold_range = 1:20,
+  loop_id = "LoopAllSamp",
+  meta_key = "raw",
+  assay_id = "Spatial",
+  layer_id = "counts",
+  grp_nm = "Tbb",
+  dir_nm = "M1_ScanThreshold"
+)
+
 # gene
 STID_obj <- GetGeneStat(STID_obj = STID_obj, features = host_genes,prefix = "all_gene",func = "sum") %>%
   AddMetaColumn(STID_obj = STID_obj,
@@ -314,7 +383,7 @@ STID_obj <- GetGeneStat(STID_obj = STID_obj, features = host_genes,prefix = "all
 STID_obj <- SpotDetect_Gene(STID_obj,
                             features = pathogen_genes,
                             feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
-                            PosThres_prob = 0, PosThres_count = 2,
+                            PosThres_prob = 0, PosThres_count = 3, # old: 2
                             col = COLOR_DIS_CON,
                             black_bg = F,pt_size = 2.2,vmax = "p99",
                             # blur_method = "isoblur",
@@ -325,7 +394,7 @@ STID_obj <- SpotDetect_Gene(STID_obj,
 STID_obj <- SpotDetect_Gene(STID_obj,
                             features = host_genes,
                             feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
-                            PosThres_prob = 0, PosThres_count = 2,
+                            PosThres_prob = 0, PosThres_count = 3, # old: 2
                             # col = c("grey95","red"),
                             col = COLOR_DIS_CON,
                             black_bg = F,pt_size = 2.2,
@@ -368,18 +437,19 @@ STID_obj <- SpotDetect_Geneset(STID_obj,
                                grp_nm = "Tbb_correct_before_KEGG_parasite_white")
 
 
-#### 二、Figure S1 ####
+#### 二、Figures S1, S2 and S3 ####
 ### 1.CorrectBackground ####
 ### 1.1 TB ####
 STID_obj_before <- STID_obj
 STID_obj_after <- CorrectBackground(STID_obj = STID_obj_before,
-                                   bg_samp_id = c("WT_1"),
+                                   ctrl_samp_id = c("WT_1"),
                                    bg_features = pathogen_genes,
-                                   PosThres_prob = 0.9, adjust_UMI = F,
+                                   PosThres_prob = 0.9,  # 0.9
+                                   adjust_UMI = F,
                                    assay_id = "Spatial", layer_id = "counts",
                                    grp_nm = "Final_TB_0.95_noadj_20260425", dir_nm = "M1_CorrectBackground")
 
-### 1.2 SpotDetect_Gene
+### 1.2 before and after ####
 #> gene
 high_exp_genes <- GetTopGenes(STID_obj_before, top_n = 2, pattern = "^Rv",
                               grp_by_samp = F, grp_by_celltype = F,
@@ -408,7 +478,7 @@ meta_data <- STID_obj_before@meta.data
 STID_obj_before <- SpotDetect_Gene(STID_obj_before,
                                    features = high_exp_genes,
                                    feature_colnm = grep("all_gene",colnames(STID_obj_before@meta.data),value = T),
-                                   PosThres_prob = 0, PosThres_count = 0,
+                                   PosThres_prob = 0, PosThres_count = 1, # old: 0
                                    col = c("grey20","#80FFFF"),
                                    black_bg = T,pt_size = 0.75, # ctrl是0.75
                                    # blur_method = "isoblur",
@@ -419,7 +489,7 @@ STID_obj_before <- SpotDetect_Gene(STID_obj_before,
 STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   features = high_exp_genes,
                                   feature_colnm = grep("all_gene",colnames(STID_obj_after@meta.data),value = T),
-                                  PosThres_prob = 0, PosThres_count = 0,
+                                  PosThres_prob = 0, PosThres_count = 1, # old: 2
                                   col = c("grey20","#80FFFF"),
                                   black_bg = T,pt_size = 0.75, # ctrl是0.75
                                   # blur_method = "isoblur",
@@ -428,6 +498,78 @@ STID_obj_after <- SpotDetect_Gene(STID_obj_after,
                                   plot_method = "single",
                                   grp_nm = "TB_correct_after_all_gene_black_20260425")
 STID_obj_after
+
+## 1.3 CFU ####
+#> Corrected percentage
+# total counts
+(1425-38)/1425 # 0.973
+(28510-10316)/28510 # 0.638
+(22112-6143)/22112 # 0.722
+# total pos spots
+(1187-34)/1187 # 0.971
+(14186-4740)/14186 # 0.666
+(13763-3721)/13763 # 0.729
+
+# plot_data
+plot_data <- data.frame(
+  grp1 = c(rep("counts",3),rep("pos_spots",3)),
+  grp2 = rep(c("PI1d","PI4w","PI8w"),2),
+  value = c(
+    (1425-38)/1425,
+    (28510-10316)/28510,
+    (22112-6143)/22112,
+    (1187-34)/1187,
+    (14186-4740)/14186,
+    (13763-3721)/13763
+  )
+)
+
+# 折线图
+p1 <- ggplot(plot_data, aes(x = grp2, y = value, group = grp1, color = grp1)) +
+  geom_line(size = 1.5) +
+  geom_point(size = 4,alpha = 0.8,shape = 16) +
+  # geom_text(aes(label = scales::percent(value, accuracy = 0.1)), vjust = -0.5, size = 5) +
+  scale_color_manual(values = c("counts" = "#56B4E9", "pos_spots" = "#F86959")) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(x = "Time Point", y = "Proportion", color = "Group") +
+  theme_bw()
+pdf(file = "./photo/Z_other/20260724_FigureS1_result/TB/TB_count_spots_decline.pdf",width = 5,height = 4)
+print(p1)
+dev.off()
+
+#> MTB CFU的比例
+dat <- read.delim(
+  "./inputdata/Z_other/MTB/MTB_mouse_CFU.txt",
+  header = TRUE,
+  stringsAsFactors = FALSE
+)
+# 非参数秩和检验
+res <- wilcox.test(
+  dat$value[dat$group=="PI1d"],
+  dat$value[dat$group=="PI4w"],
+  alternative = "two.sided",
+  mu=0,paired = F,exact = F,correct = T
+)
+res$p.value
+
+res <- wilcox.test(
+  dat$value[dat$group=="PI1d"],
+  dat$value[dat$group=="PI8w"],
+  alternative = "two.sided",
+  mu=0,paired = F,exact = F,correct = T
+)
+res$p.value
+
+res <- wilcox.test(
+  dat$value[dat$group=="PI4w"],
+  dat$value[dat$group=="PI8w"],
+  alternative = "two.sided",
+  mu=0,paired = F,exact = F,correct = T
+)
+res$p.value
+
+# matplotlib
+
 
 
 ### 2.SpotDetect_Gene/Geneset ####
@@ -443,7 +585,7 @@ if(0){
   SpotDetect_Gene(STID_obj,
                   features = pathogen_genes,
                   feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T), # no any gene
-                  PosThres_prob = 0, PosThres_count = 0,
+                  PosThres_prob = 0, PosThres_count = 1, # old: 0
                   col = COLOR_DIS_CON,
                   black_bg = F,pt_size = 2.4,
                   # blur_method = "isoblur",
@@ -456,7 +598,7 @@ options("parallel_workers" = 4)
 STID_obj <- SpotDetect_Gene(STID_obj,
                             features = host_genes,
                             feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
-                            PosThres_prob = 0, PosThres_count = 4,
+                            PosThres_prob = 0, PosThres_count = 5, # old: 4
                             col = COLOR_DIS_CON,
                             black_bg = F,pt_size = 2.4,
                             blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
@@ -524,7 +666,7 @@ if(0){
 STID_obj <- SpotDetect_Gene(STID_obj,
                             features = host_genes,
                             feature_colnm = NULL,
-                            PosThres_prob = 0, PosThres_count = 4,
+                            PosThres_prob = 0, PosThres_count = 5, # old: 4
                             col = COLOR_DIS_CON,
                             black_bg = F,pt_size = 2.2,
                             blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
@@ -568,7 +710,7 @@ STID_obj <- SpotDetect_Geneset(STID_obj,
 STID_obj <- SpotDetect_Gene(STID_obj,
                             features = host_genes,
                             feature_colnm = NULL,
-                            PosThres_prob = 0, PosThres_count = 4,
+                            PosThres_prob = 0, PosThres_count = 5, # old: 4
                             vmax = "p95",
                             black_bg = F,pt_size = 2.2,
                             blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
@@ -628,7 +770,7 @@ STID_obj <- SpotDetect_Gene(STID_obj,
                             features = host_genes,
                             feature_colnm = c(grep("all_gene",colnames(STID_obj@meta.data),value = T),
                                               grep("ISG",colnames(STID_obj@meta.data),value = T)),
-                            PosThres_prob = 0, PosThres_count = 30,
+                            PosThres_prob = 0, PosThres_count = 31, # old: 30
                             col = COLOR_DIS_CON,
                             black_bg = F,pt_size = 2,
                             blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
@@ -668,6 +810,180 @@ STID_obj <- SpotDetect_Geneset(STID_obj,
                                black_bg = F, blur_method = NULL,
                                plot_method = "single",
                                grp_nm = "Ma_correct_before_KEGG_parasite_white")
+
+## 2.5 HBV: human ####
+options("parallel_workers" = 1)
+
+#> gene
+# 关注CHB_4
+STID_obj <- SpotDetect_Gene(STID_obj,
+                            features = host_genes,
+                            feature_colnm = NULL,
+                            PosThres_prob = 0, PosThres_count = 4, # old: CXCL10 3
+                            vmax = "p95",
+                            black_bg = F,pt_size = 1,
+                            blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
+                            plot_method = "single",
+                            grp_nm = "HBV_correct_before_host_gene_white")
+
+#> geneset
+geneset_df <- read.table(file = "./inputdata/Gene_Geneset/Human//Geneset/Human_PCD_geneset.txt",
+                         sep = "\t",row.names = NULL,header = T,na.strings = "")
+geneset_df <- geneset_df[c(1,5,10,15)]
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+names(geneset_list)
+STID_obj <- SpotDetect_Geneset(STID_obj,
+                               geneset_list = geneset_list,
+                               score_method = "AddModuleScore", n_iter = 5, nbin = 24,seed = 10,
+                               PosThres_prob = 0.75, PosThres_score = 0,
+                               pt_size = 1,
+                               col = COLOR_DIS_CON,
+                               black_bg = F, blur_method = NULL,
+                               plot_method = "single",
+                               grp_nm = "HBV_correct_before_PCD_white")
+
+
+geneset_df <- read.table(file = "./inputdata/Gene_Geneset/Human//Geneset/GO/Human_GO_BP_Detect_viral_geneset.txt",
+                         sep = "\t",row.names = NULL,header = T,na.strings = "")
+colnames(geneset_df) <- gsub("GOBP_","",colnames(geneset_df))
+geneset_df <- geneset_df[c(1,2,8)]
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+names(geneset_list)
+STID_obj <- SpotDetect_Geneset(STID_obj,
+                               geneset_list = geneset_list,
+                               score_method = "AddModuleScore", n_iter = 5, nbin = 24,
+                               PosThres_prob = 0.75, PosThres_score = 0,
+                               pt_size = 1, 
+                               col = COLOR_DIS_CON,
+                               black_bg = F, blur_method = NULL,
+                               plot_method = "single",
+                               grp_nm = "HBV_correct_before_GO_bacterial_white")
+saveRDS(STID_obj,file = "./rds/STID_obj_HBV_SpotDetect.rds")
+
+
+## 2.6 Ld: human ####
+#> gene
+# 关注40i
+STID_obj <- SpotDetect_Gene(STID_obj,
+                            features = host_genes,
+                            feature_colnm = NULL,
+                            PosThres_prob = 0, PosThres_count = 5, # old: 4
+                            vmax = "p95",
+                            black_bg = F,pt_size = 3.5,
+                            blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
+                            plot_method = "single",
+                            grp_nm = "Ld_correct_before_host_gene_white")
+
+#> geneset
+geneset_df <- read.table(file = "./inputdata/Gene_Geneset/Human//Geneset/Human_PCD_geneset.txt",
+                         sep = "\t",row.names = NULL,header = T,na.strings = "")
+# geneset_df <- geneset_df[c(1,5,10,15)]
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+names(geneset_list)
+STID_obj <- SpotDetect_Geneset(STID_obj,
+                               geneset_list = geneset_list,
+                               score_method = "AddModuleScore", n_iter = 5, nbin = 24,seed = 10,
+                               PosThres_prob = 0.75, PosThres_score = 0,
+                               pt_size = 3.5,
+                               col = COLOR_DIS_CON,
+                               black_bg = F, blur_method = NULL,
+                               plot_method = "single",
+                               grp_nm = "Ld_correct_before_PCD_white")
+
+
+geneset_df <- read.table(file = "./inputdata/Gene_Geneset/Human//Geneset/KEGG/Human_KEGG_Detect_parasitic_geneset.txt",
+                         sep = "\t",row.names = NULL,header = T,na.strings = "")
+colnames(geneset_df) <- gsub("GOBP_","",colnames(geneset_df))
+# geneset_df <- geneset_df[c(1,2,8)]
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+names(geneset_list)
+STID_obj <- SpotDetect_Geneset(STID_obj,
+                               geneset_list = geneset_list,
+                               score_method = "AddModuleScore", n_iter = 5, nbin = 24,
+                               PosThres_prob = 0.75, PosThres_score = 0,
+                               pt_size = 3.5, 
+                               col = COLOR_DIS_CON,
+                               black_bg = F, blur_method = NULL,
+                               plot_method = "single",
+                               grp_nm = "Ld_correct_before_KEGG_bacterial_white")
+saveRDS(STID_obj,file = "./rds/STID_obj_Ld_SpotDetect.rds")
+
+
+## 2.7 TB: human ####
+options("parallel_workers" = 1)
+
+#> 关注：H01203D5: N-18
+high_exp_genes <- GetTopGenes(STID_obj, top_n = 2, pattern = "^Rv",
+                              grp_by_samp = F, grp_by_celltype = F,
+                              assay_id = "Spatial", layer_id = "counts")
+STID_obj <- GetGeneStat(STID_obj = STID_obj, features = high_exp_genes,prefix = "top10_gene",func = "sum") %>%
+  AddMetaColumn(STID_obj = STID_obj,
+                add_data = ., # data.frame
+                meta_key = "raw", # string
+                igrnore_rownm = FALSE)
+STID_obj <- GetGeneStat(STID_obj = STID_obj, features = pathogen_genes,prefix = "all_gene",func = "sum") %>%
+  AddMetaColumn(STID_obj = STID_obj,
+                add_data = ., # data.frame
+                meta_key = "raw",
+                igrnore_rownm = FALSE)
+
+#> gene
+STID_obj <- SpotDetect_Gene(STID_obj,
+                            # loop_id = "N_18",
+                            features = high_exp_genes,
+                            feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
+                            PosThres_prob = 0, PosThres_count = 2,  # old: 1
+                            col = COLOR_DIS_CON,
+                            black_bg = F,pt_size = 0.35,
+                            # blur_method = "isoblur",
+                            blur_method = NULL,
+                            blur_n = 1,blur_sigma = 0.5,
+                            plot_method = "single",
+                            grp_nm = "TB_human_before_all_gene_white")
+STID_obj <- SpotDetect_Gene(STID_obj,
+                            # loop_id = "N_18",
+                            features = host_genes,
+                            # feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
+                            PosThres_prob = 0, PosThres_count = 1,  # old: 0
+                            col = COLOR_DIS_CON,
+                            black_bg = F,pt_size = 0.35,
+                            blur_method = NULL, blur_n = 1,blur_sigma = 0.5,
+                            plot_method = "single",
+                            grp_nm = "TB_human_before_host_gene_white")
+
+#> geneset
+geneset_df <- read.table(file = "./inputdata/Gene_Geneset/Human/Geneset/Human_PCD_geneset.txt",
+                         sep = "\t",row.names = NULL,header = T,na.strings = "")
+geneset_df <- geneset_df[1]
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+names(geneset_list)
+STID_obj <- SpotDetect_Geneset(STID_obj,
+                               # loop_id = "N_18",
+                               geneset_list = geneset_list,
+                               score_method = "AddModuleScore", n_iter = 5, nbin = 24,seed = 100,
+                               PosThres_prob = 0.75, PosThres_score = 0,
+                               pt_size = 0.35,
+                               col = COLOR_DIS_CON,
+                               black_bg = F, blur_method = NULL,
+                               plot_method = "single",
+                               grp_nm = "TB_human_before_PCD_white")
+
+geneset_df <- read.table(file = "./inputdata/Gene_Geneset/Human/Geneset/KEGG/Human_KEGG_Detect_bacterial_geneset.txt",
+                         sep = "\t",row.names = NULL,header = T,na.strings = "")
+geneset_df <- geneset_df[11]
+geneset_list <- lapply(geneset_df, function(x) na.omit(x))
+names(geneset_list)
+STID_obj <- SpotDetect_Geneset(STID_obj,
+                               # loop_id = "N_18",
+                               geneset_list = geneset_list,
+                               score_method = "AddModuleScore", n_iter = 5, nbin = 24,
+                               PosThres_prob = 0.75, PosThres_score = 0,
+                               pt_size = 0.35,
+                               col = COLOR_DIS_CON,
+                               black_bg = F, blur_method = NULL,
+                               plot_method = "single",
+                               grp_nm = "TB_human_before_KEGG_bacterial_white")
+saveRDS(STID_obj,file = "./rds/STID_obj_TB_human_SpotDetect.rds")
 
 
 #### 三、Figure 3 ####
@@ -1162,6 +1478,7 @@ dev.off()
 
 
 #> DBSCAN concave
+# 测试Concave用
 if(0){
   # test
   STID_obj_detect <- NicheDetect_STS(STID_obj = STID_obj_detect, meta_key = "M1_SpotDetect_Gene_JEV_correct_before_all_gene_white",
@@ -1228,7 +1545,8 @@ dev.off()
 # do not need NicheExpand
 
 
-#### 四、Figure S2 ####
+
+#### 四、Figures S4, S5 and S6 ####
 ### 1.NicheDetect_STS ####
 ## 1.1 Tbb：microbe ####
 STID_obj
@@ -1273,18 +1591,19 @@ Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = c("Tb927.6.4280","Chil3
                   loop_id = "Inf_d45pi", col = c("#F81B02FF"  ,"#FCB11C" ) ,
                   facet_grpnm = "group",meta_key = "M2_NicheDetect_STS_DBSCAN_Tbb_microbe")
 dev.off()
-pdf("./photo/Z_other/20260408_Figure3_result/Tbb/Tbb_microbe_DistLine_Exp_PCD.pdf",width = 4.5,height = 2.8)
-Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Necroptosis"),
-                  loop_id = "Inf_d45pi", col = "#3B95C4FF",
-                  facet_grpnm = "group",meta_key = list(c("M1_SpotDetect_Geneset_Tbb_correct_before_PCD_white",
-                                                          "M2_NicheDetect_STS_DBSCAN_Tbb_microbe")))
-dev.off()
 pdf("./photo/Z_other/20260408_Figure3_result/Tbb/Tbb_microbe_DistLine_Exp_geneset.pdf",width = 4.5,height = 2.8)
 Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Chagas.disease"),
                   loop_id = "Inf_d45pi", col = "#3B95C4FF",
                   facet_grpnm = "group",meta_key = list(c("M1_SpotDetect_Geneset_Tbb_correct_before_KEGG_parasite_white",
                                                           "M2_NicheDetect_STS_DBSCAN_Tbb_microbe")))
 dev.off()
+pdf("./photo/Z_other/20260408_Figure3_result/Tbb/Tbb_microbe_DistLine_Exp_PCD.pdf",width = 4.5,height = 2.8)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Necroptosis"),
+                  loop_id = "Inf_d45pi", col = "#3B95C4FF",
+                  facet_grpnm = "group",meta_key = list(c("M1_SpotDetect_Geneset_Tbb_correct_before_PCD_white",
+                                                          "M2_NicheDetect_STS_DBSCAN_Tbb_microbe")))
+dev.off()
+
 
 
 ## 1.2 Tbb：host ####
@@ -1329,18 +1648,19 @@ Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = c("Tb927.6.4280","Chil3
                   loop_id = "Inf_d45pi", col = c("#F81B02FF"  ,"#FCB11C" ) ,
                   facet_grpnm = "group",meta_key = "M2_NicheDetect_STS_DBSCAN_Tbb_host")
 dev.off()
-pdf("./photo/Z_other/20260408_Figure3_result/Tbb/Tbb_host_DistLine_Exp_PCD.pdf",width = 4.5,height = 2.8)
-Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Necroptosis"),
-                  loop_id = "Inf_d45pi", col = "#3B95C4FF",
-                  facet_grpnm = "group",meta_key = list(c("M1_SpotDetect_Geneset_Tbb_correct_before_PCD_white",
-                                                          "M2_NicheDetect_STS_DBSCAN_Tbb_host")))
-dev.off()
 pdf("./photo/Z_other/20260408_Figure3_result/Tbb/Tbb_host_DistLine_Exp_geneset.pdf",width = 4.5,height = 2.8)
 Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Chagas.disease"),
                   loop_id = "Inf_d45pi", col = "#3B95C4FF",
                   facet_grpnm = "group",meta_key = list(c("M1_SpotDetect_Geneset_Tbb_correct_before_KEGG_parasite_white",
                                                           "M2_NicheDetect_STS_DBSCAN_Tbb_host")))
 dev.off()
+pdf("./photo/Z_other/20260408_Figure3_result/Tbb/Tbb_host_DistLine_Exp_PCD.pdf",width = 4.5,height = 2.8)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Necroptosis"),
+                  loop_id = "Inf_d45pi", col = "#3B95C4FF",
+                  facet_grpnm = "group",meta_key = list(c("M1_SpotDetect_Geneset_Tbb_correct_before_PCD_white",
+                                                          "M2_NicheDetect_STS_DBSCAN_Tbb_host")))
+dev.off()
+
 
 
 #> CompareNiche
@@ -1403,13 +1723,13 @@ Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = host_genes, feature_col
                   loop_id = "A3", col = c("#3B95C4FF"  ,"#3B95C4FF" ) ,
                   facet_grpnm = "orig.ident",meta_key = "M2_NicheDetect_STS_DBSCAN_kp_host")
 dev.off()
-pdf("./photo/Z_other/20260408_Figure3_result/Kp/Kp_host_DistLine_Exp_PCD.pdf",width = 6,height = 2.8)
+pdf("./photo/Z_other/20260408_Figure3_result/Kp/Kp_host_DistLine_Exp_geneset.pdf",width = 6,height = 2.8)
 Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("ANTIBACTERIAL_HUMORAL_RESPONSE"),
                   loop_id = "A3", col = c("#3B95C4FF","#3B95C4FF"),
                   facet_grpnm = "orig.ident",meta_key = list(c("M1_SpotDetect_Geneset_Kp_correct_before_GO_bacterial_white",
                                                                "M2_NicheDetect_STS_DBSCAN_kp_host")))
 dev.off()
-pdf("./photo/Z_other/20260408_Figure3_result/Kp/Kp_host_DistLine_Exp_geneset.pdf",width = 4.5,height = 5)
+pdf("./photo/Z_other/20260408_Figure3_result/Kp/Kp_host_DistLine_Exp_PCD.pdf",width = 4.5,height = 5)
 Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Apoptosis","Necroptosis"),
                   loop_id = "A3", col = c("#3B95C4FF","#3B95C4FF"),
                   facet_grpnm = "orig.ident",meta_key = list(c("M1_SpotDetect_Geneset_Kp_correct_before_PCD_white",
@@ -1467,13 +1787,13 @@ Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = "Ly6a", feature_colnm =
                   facet_grpnm = "sample",
                   meta_key = "M2_NicheDetect_STS_DBSCAN_Lang_host")
 dev.off()
-pdf("./photo/Z_other/20260408_Figure3_result/Lang/Lang_host_DistLine_Exp_PCD.pdf",width = 5.2,height = 2.8)
+pdf("./photo/Z_other/20260408_Figure3_result/Lang/Lang_host_DistLine_Exp_geneset.pdf",width = 5.2,height = 2.8)
 Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("RESPONSE_TO_VIRUS"),
                   loop_id = "T1L_D7", col = c("#3B95C4FF","#3B95C4FF"),
                   facet_grpnm = "sample",meta_key = list(c("M2_NicheDetect_STS_DBSCAN_Lang_host",
                                                            "M1_SpotDetect_Geneset_Lang_correct_before_GO_viral_white")))
 dev.off()
-pdf("./photo/Z_other/20260408_Figure3_result/Lang/Lang_host_DistLine_Exp_geneset.pdf",width = 4.5,height = 2.8)
+pdf("./photo/Z_other/20260408_Figure3_result/Lang/Lang_host_DistLine_Exp_PCD.pdf",width = 4.5,height = 2.8)
 Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Necroptosis"),
                   loop_id = "T1L_D7", col = c("#3B95C4FF","#3B95C4FF"),
                   facet_grpnm = "sample",meta_key = list(c("M1_SpotDetect_Geneset_Lang_correct_before_PCD_white",
@@ -1483,6 +1803,7 @@ saveRDS(STID_obj_detect,file = "./rds/STID_obj_detect_Lang.rds")
 
 
 ## 1.5 Lang & CE: NicheDetect_STS (Spot) ####
+# 测试spot用，最终未使用
 if(0){
   # test
   STID_obj_detect %>% print
@@ -1516,7 +1837,585 @@ if(0){
 }
 
 
-#### 五、Figure 4 + Figure S3 ####
+## 1.6 TB_human: Microbe  ####
+STID_obj %>% print()
+meta_data <- GetMetaData(
+  STID_obj,
+  meta_key = "M1_SpotDetect_Gene_TB_human_before_all_gene_white"
+)[[1]]
+STID_obj_detect <- NicheDetect_STS(STID_obj = STID_obj, meta_key = "M1_SpotDetect_Gene_TB_human_before_all_gene_white",
+                                   loop_id = "N_18",
+                                   density_thres = 0.9,
+                                   spatial_scale_method = "region", region_detect_method = "convex", update_spots = F,
+                                   ROI_size = NULL, k_kNNdist = 4,
+                                   pos_colnm = "Label_all_gene_nCount(sum)", # !!!
+                                   description = NULL,grp_nm = "TB_human_DBSCAN", dir_nm = "M2_NicheDetect_STS")
+STID_obj_detect %>% print()
+detect_meta <- GetMetaData(STID_obj_detect, meta_key = "M2_NicheDetect_STS_TB_human_DBSCAN",
+                           add_coord = F)[[1]]
+
+# > plot
+# SEVEN_DARK <- c("#AFBF41FF" ,"#50C49FFF"  ,"#FCB11C" ,"#F81B02FF" ,"#FC7715FF","#3B95C4FF" ,"#B560D4FF") # 7色，深色1，常用
+# SEVEN_LIGHT <- c("#BBBFA1", "#B2C4BE", "#FCDB9A","#F88A7E", "#FCC093",  "#9DB7C4", "#D1CAD4") # 7色，淡色3，折线图
+SEVEN_DARK <- c("#FCB11C" ) 
+SEVEN_LIGHT <- c("#FCDB9A")
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_microbe_edge_raw.pdf",width = 12,height = 10)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "ROI_region",
+             facet_grpnm = "sample", datatype = "discrete",
+             col = list(dis = c("grey95","#FFC4E1","#244D7F","#EB1E2C"),con = NULL),
+             pt_size = 1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_microbe_region_raw.pdf",width = 12,height = 10)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "All_ROI_label2",
+             facet_grpnm = "sample", datatype = "discrete",
+             col = list(dis = c(SEVEN_LIGHT,SEVEN_DARK),con = NULL),
+             pt_size = 1.1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+
+
+# > Plot_DistLine_Exp
+STID_obj_detect %>% print()
+tmp <- GetMetaData(STID_obj_detect,
+                   meta_key = list(c("M1_SpotDetect_Geneset_TB_human_before_PCD_white")))[[1]]
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_microbe_DistLine_Exp_host.pdf",width = 4.8,height = 6)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = c("Rvnr02","IGKC"), feature_colnm = "all_gene_nCount(sum)",
+                  loop_id = "N_18", col = c("#F81B02FF"  ,"#3B95C4FF","#F81B02FF" ) ,
+                  meta_key = list(c("M1_SpotDetect_Gene_TB_human_before_all_gene_white",
+                                    "M2_NicheDetect_STS_TB_human_DBSCAN")))
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_microbe_DistLine_Exp_geneset.pdf",width = 4.5,height = 3)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Tuberculosis"),
+                  loop_id = "N_18", col = "#3B95C4FF",exp_scale = F,
+                  meta_key = list(c("M1_SpotDetect_Geneset_TB_human_before_KEGG_bacterial_white",
+                                    "M2_NicheDetect_STS_TB_human_DBSCAN")))
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_microbe_DistLine_Exp_PCD.pdf",width = 4.5, height = 3)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Apoptosis"),
+                  loop_id = "N_18", col = "#3B95C4FF",
+                  meta_key = list(c("M1_SpotDetect_Geneset_TB_human_before_PCD_white",
+                                    "M2_NicheDetect_STS_TB_human_DBSCAN")))
+dev.off()
+
+
+## 1.7 TB_human: host  ####
+STID_obj_detect %>% print()
+meta_data <- GetMetaData(
+  STID_obj_detect,
+  meta_key = "M1_SpotDetect_Geneset_TB_human_before_KEGG_bacterial_white"
+)[[1]]
+colnames(meta_data)
+STID_obj_detect <- NicheDetect_STS(STID_obj = STID_obj_detect, meta_key = "M1_SpotDetect_Geneset_TB_human_before_KEGG_bacterial_white",
+                                   loop_id = "N_18",
+                                   spatial_scale_method = "region", region_detect_method = "convex", update_spots = F,
+                                   density_thres = 1, k_kNNdist = 6,minPts = 6,
+                                   ROI_size = 200,
+                                   pos_colnm = "Label_Tuberculosis", # !!!
+                                   description = NULL,grp_nm = "TB_human_host_DBSCAN", dir_nm = "M2_NicheDetect_STS")
+STID_obj_detect %>% print()
+detect_meta <- GetMetaData(STID_obj_detect, meta_key = "M2_NicheDetect_STS_TB_human_host_DBSCAN",
+                           add_coord = F)[[1]]
+
+
+# > plot
+SEVEN_DARK <- c("#F81B02FF","#FCB11C")
+SEVEN_LIGHT <- c("#F88A7E","#FCDB9A")
+# SEVEN_DARK <- c("#B560D4FF" ,"#FC7715FF" ,"#FCB11C" ,"#AFBF41FF" ,"#50C49FFF" ,"#3B95C4FF" ,"#F81B02FF")
+# SEVEN_LIGHT <- c("#D1CAD4", "#FCC093", "#FCDB9A", "#BBBFA1", "#B2C4BE", "#9DB7C4", "#F88A7E")
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_host_edge_raw.pdf",width = 12,height = 10)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "ROI_region",
+             facet_grpnm = "sample", datatype = "discrete",
+             col = list(dis = c("grey95","#FFC4E1","#244D7F","#EB1E2C"),con = NULL),
+             pt_size = 1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_host_region_raw.pdf",width = 12,height = 10)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "All_ROI_label2",
+             facet_grpnm = "sample", datatype = "discrete",
+             col = list(dis = c(SEVEN_LIGHT,SEVEN_DARK),con = NULL),
+             pt_size = 1.1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+
+
+# > Plot_DistLine_Exp
+STID_obj_detect %>% print()
+tmp <- GetMetaData(STID_obj_detect,
+                   meta_key = list(c("M1_SpotDetect_Geneset_TB_human_before_PCD_white")))[[1]]
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_host_DistLine_Exp_host.pdf",width = 4.8,height = 6)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = c("Rvnr02","IGKC"), feature_colnm = "all_gene_nCount(sum)",
+                  loop_id = "N_18", col = c("#F81B02FF"  ,"#3B95C4FF","#F81B02FF" ) ,
+                  meta_key = list(c("M1_SpotDetect_Gene_TB_human_before_all_gene_white",
+                                    "M2_NicheDetect_STS_TB_human_host_DBSCAN")))
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_host_DistLine_Exp_geneset.pdf",width = 4.5,height = 3)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Tuberculosis"),
+                  loop_id = "N_18", col = "#3B95C4FF",exp_scale = F,
+                  meta_key = list(c("M1_SpotDetect_Geneset_TB_human_before_KEGG_bacterial_white",
+                                    "M2_NicheDetect_STS_TB_human_host_DBSCAN")))
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_host_DistLine_Exp_PCD.pdf",width = 4.5, height = 3)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Apoptosis"),
+                  loop_id = "N_18", col = "#3B95C4FF",
+                  meta_key = list(c("M1_SpotDetect_Geneset_TB_human_before_PCD_white",
+                                    "M2_NicheDetect_STS_TB_human_host_DBSCAN")))
+dev.off()
+
+#> CompareNiche
+STID_obj_detect
+pdf("./photo/Z_other/20260726_FigureS5_result/TB_human/TB_CompareNiche_microbe_host.pdf",width = 5,height = 8)
+CompareNiche(STID_obj = STID_obj_detect,
+             meta_key1 = "M2_NicheDetect_STS_TB_human_DBSCAN",
+             meta_key2 = "M2_NicheDetect_STS_TB_human_host_DBSCAN")
+dev.off()
+saveRDS(STID_obj_detect,"./rds/STID_obj_detect_TB_human.rds")
+
+
+## 1.8 HBV: host ####
+STID_obj %>% print()
+meta_data <- GetMetaData(
+  STID_obj,
+  meta_key = "M1_SpotDetect_Geneset_HBV_correct_before_GO_bacterial_white"
+)[[1]]
+colnames(meta_data)
+STID_obj_detect <- NicheDetect_STS(STID_obj = STID_obj, 
+                                   meta_key = "M1_SpotDetect_Geneset_HBV_correct_before_GO_bacterial_white",
+                                   # loop_id = "CHB_4",
+                                   ROI_size = 100,
+                                   spatial_scale_method = "region", region_detect_method = "convex", update_spots = F,
+                                   pos_colnm = "Label_RESPONSE_TO_VIRUS",density_thres = 0.7,
+                                   description = NULL,grp_nm = "DBSCAN_HBV_host", dir_nm = "M2_NicheDetect_STS")
+STID_obj_detect
+detect_meta <- GetMetaData(STID_obj_detect, meta_key = "M2_NicheDetect_STS_DBSCAN_HBV_host",
+                           add_coord = F)[[1]] %>% 
+  filter(sample == "CHB_4")
+SEVEN_DARK = c("#F81B02FF"  ,"#FCB11C"  ,"#50C49FFF" ,"#3B95C4FF" ,"#B560D4FF")
+SEVEN_LIGHT = c("#F88A7E", "#FCDB9A", "#B2C4BE", "#9DB7C4", "#D1CAD4")
+detect_meta <- detect_meta %>%
+  filter(sample == "CHB_4")
+pdf("./photo/Z_other/20260726_FigureS5_result/HBV/HBV_host_edge_raw.pdf",width = 4.5,height = 4)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y", group_by = "ROI_region",
+             facet_grpnm = "sample", datatype = "discrete",
+             col = list(dis = c("grey95","#FFC4E1","#244D7F","#EB1E2C"),con = NULL),
+             pt_size = 1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/HBV/HBV_host_region_raw.pdf",width = 4.5,height = 4)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "All_ROI_label2",
+             facet_grpnm = "sample", datatype = "discrete",
+             col = list(dis = c(SEVEN_LIGHT,SEVEN_DARK),con = NULL),
+             pt_size = 1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+
+#> Plot_DistLine_Exp
+STID_obj_detect %>% print()
+host_genes
+tmp <- GetMetaData(STID_obj_detect,
+                   meta_key = list(c("M2_NicheDetect_STS_DBSCAN_HBV_host")))[[1]]
+pdf("./photo/Z_other/20260726_FigureS5_result/HBV/HBV_host_DistLine_Exp_host.pdf",width = 4.5, height = 4)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = "CXCL10", feature_colnm = NULL,
+                  loop_id = "CHB_4", col = c("#3B95C4FF" ) ,
+                  facet_grpnm = "sample",meta_key = "M2_NicheDetect_STS_DBSCAN_HBV_host")
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/HBV/HBV_host_DistLine_Exp_geneset.pdf",width = 5.5,height = 4)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("RESPONSE_TO_VIRUS"),
+                  loop_id = "CHB_4", col = c("#3B95C4FF"),
+                  facet_grpnm = "sample",meta_key = list(c("M1_SpotDetect_Geneset_HBV_correct_before_GO_bacterial_white",
+                                                               "M2_NicheDetect_STS_DBSCAN_HBV_host")))
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/HBV/HBV_host_DistLine_Exp_PCD.pdf",width = 4.8,height = 4)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Necroptosis"),
+                  loop_id = "CHB_4", col = c("#3B95C4FF"),
+                  facet_grpnm = "sample",meta_key = list(c("M1_SpotDetect_Geneset_HBV_correct_before_PCD_white",
+                                                               "M2_NicheDetect_STS_DBSCAN_HBV_host")))
+dev.off()
+# saveRDS(STID_obj_detect,file = "./rds/STID_obj_detect_HBV_host.rds")
+
+
+## 1.9 Ld: host ####
+STID_obj %>% print()
+meta_data <- GetMetaData(
+  STID_obj,
+  meta_key = "M1_SpotDetect_Geneset_Ld_correct_before_GO_bacterial_white"
+)[[1]]
+colnames(meta_data)
+STID_obj_detect <- NicheDetect_STS(STID_obj = STID_obj, meta_key = "M1_SpotDetect_Gene_Ld_correct_before_host_gene_white",
+                                   spatial_scale_method = "region", region_detect_method = "convex", 
+                                   update_spots = F,
+                                   pos_colnm = "Label_IDO1",density_thres = 1,
+                                   description = NULL,grp_nm = "DBSCAN_Ld_host", dir_nm = "M2_NicheDetect_STS")
+STID_obj_detect
+detect_meta <- GetMetaData(STID_obj_detect, meta_key = "M2_NicheDetect_STS_DBSCAN_Ld_host",
+                           add_coord = F)[[1]]
+SEVEN_DARK = c("#FCB11C")
+SEVEN_LIGHT = c( "#FCDB9A")
+detect_meta <- detect_meta %>%
+  filter(orig.ident == "40i")
+pdf("./photo/Z_other/20260726_FigureS5_result/Ld/Ld_host_edge_raw.pdf",width = 2.5,height = 2.5)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y", group_by = "ROI_region",
+             facet_grpnm = "orig.ident", datatype = "discrete",
+             col = list(dis = c("grey95","#FFC4E1","#244D7F","#EB1E2C"),con = NULL),
+             pt_size = 1.5,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/Ld/Ld_host_region_raw.pdf",width = 2.5,height = 2.5)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "All_ROI_label2",
+             facet_grpnm = "orig.ident", datatype = "discrete",
+             col = list(dis = c(SEVEN_LIGHT,SEVEN_DARK),con = NULL),
+             pt_size = 1.5,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+
+#> Plot_DistLine_Exp
+STID_obj_detect %>% print()
+tmp <- GetMetaData(STID_obj_detect,
+                   meta_key = list(c("M1_SpotDetect_Geneset_Ld_correct_before_GO_bacterial_white")))[[1]]
+colnames(tmp)
+pdf("./photo/Z_other/20260726_FigureS5_result/Ld/Ld_host_DistLine_Exp_host.pdf",width = 4.5, height = 4)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = "IDO1", feature_colnm = NULL,
+                  loop_id = "40i", col = c("#3B95C4FF"  ) ,
+                  facet_grpnm = "orig.ident",meta_key = "M2_NicheDetect_STS_DBSCAN_Ld_host")
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/Ld/Ld_host_DistLine_Exp_geneset.pdf",width = 5,,height = 4)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Leishmaniasis"),
+                  loop_id = "40i", col = c("#3B95C4FF","#3B95C4FF"),
+                  facet_grpnm = "orig.ident",meta_key = list(c("M1_SpotDetect_Geneset_Ld_correct_before_GO_bacterial_white",
+                                                               "M2_NicheDetect_STS_DBSCAN_Ld_host")))
+dev.off()
+pdf("./photo/Z_other/20260726_FigureS5_result/Ld/Ld_host_DistLine_Exp_PCD.pdf",width = 5,height = 4)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Apoptosis"),
+                  loop_id = "40i", col = c("#3B95C4FF"),
+                  facet_grpnm = "orig.ident",meta_key = list(c("M1_SpotDetect_Geneset_Ld_correct_before_PCD_white",
+                                                               "M2_NicheDetect_STS_DBSCAN_Ld_host")))
+dev.off()
+saveRDS(STID_obj_detect,file = "./rds/STID_obj_detect_Ld_host.rds")
+
+
+#### 五、Figure S7 ####
+# JEV cellbin, bin35 and bin200
+
+### 1.statistics ####
+STID_obj_cellbin %>% print()
+STID_obj_bin35 %>% print()
+STID_obj_bin100 %>% print()
+STID_obj_bin200 %>% print()
+pathogen_genes <- c("NS5","C","NS3","NS1","E","Prm","NS4aAlt","NS4bAlt","NS2a","NS2b") 
+ncol(STID_obj_cellbin);ncol(STID_obj_bin35);ncol(STID_obj_bin100);ncol(STID_obj_bin200) # Number of spatial units, n
+
+
+pathogen_genes <- c(
+  "NS5", "C", "NS3", "NS1", "E",
+  "Prm", "NS4aAlt", "NS4bAlt", "NS2a", "NS2b"
+)
+calculate_resolution_metrics <- function(object, resolution, assay = DefaultAssay(object)) {
+  counts_mat <- tryCatch(LayerData(object = object, assay = assay, layer = "counts"),
+                         error = function(e) GetAssayData(object = object, assay = assay, slot = "counts"))
+  pathogen_genes_present <- intersect(pathogen_genes, rownames(counts_mat))
+  
+  if (length(pathogen_genes_present) == 0) {
+    warning(resolution, ": none of the specified pathogen genes were found.")
+    pathogen_umi_per_unit <- rep(0, ncol(counts_mat))
+    pathogen_genes_per_unit <- rep(0, ncol(counts_mat))
+  } else {
+    pathogen_counts <- counts_mat[pathogen_genes_present, , drop = FALSE]
+    pathogen_umi_per_unit <- Matrix::colSums(pathogen_counts)
+    pathogen_genes_per_unit <- Matrix::colSums(pathogen_counts > 0)
+  }
+  
+  pathogen_positive <- pathogen_umi_per_unit > 0
+  
+  data.frame(
+    Resolution = resolution,
+    `Number of spatial units, n` = ncol(counts_mat),
+    `Number of pathogen-positive spatial units, n` = sum(pathogen_positive),
+    `Percentage of pathogen-positive spatial units` = mean(pathogen_positive) * 100,
+    `Median total UMI count per spatial unit` = median(Matrix::colSums(counts_mat), na.rm = TRUE),
+    `Median number of detected genes per spatial unit` = median(Matrix::colSums(counts_mat > 0), na.rm = TRUE),
+    `Mean pathogen-derived UMI count per spatial unit` = mean(pathogen_umi_per_unit, na.rm = TRUE),
+    `Mean number of detected pathogen genes per spatial unit` = mean(pathogen_genes_per_unit, na.rm = TRUE),
+    `Mean pathogen-derived UMI count per pathogen-positive spatial unit` = if (any(pathogen_positive)) mean(pathogen_umi_per_unit[pathogen_positive]) else NA_real_,
+    `Mean number of detected pathogen genes per pathogen-positive spatial unit` = if (any(pathogen_positive)) mean(pathogen_genes_per_unit[pathogen_positive]) else NA_real_,
+    `Median pathogen-derived UMI count per pathogen-positive spatial unit` = if (any(pathogen_positive)) median(pathogen_umi_per_unit[pathogen_positive]) else NA_real_,
+    `Median number of detected pathogen genes per pathogen-positive spatial unit` = if (any(pathogen_positive)) median(pathogen_genes_per_unit[pathogen_positive]) else NA_real_,
+    check.names = FALSE
+  )
+}
+resolution_metrics <- bind_rows(
+  calculate_resolution_metrics(STID_obj_cellbin, "CellBin"),
+  calculate_resolution_metrics(STID_obj_bin35, "bin35"),
+  calculate_resolution_metrics(STID_obj_bin100, "bin100"),
+  calculate_resolution_metrics(STID_obj_bin200, "bin200")
+) %>% t() %>% as.data.frame()
+
+
+### 2.ScanThreshold ####
+pathogen_genes2 <- c("NS5","C","NS3","NS1","E","Prm","NS4aAlt","NS4bAlt","NS2a","NS2b") 
+# pathogen_genes2 <- c("NS5") 
+threshold_res <- ScanThreshold(
+  STID_obj = STID_obj_cellbin,
+  pathogen_features = pathogen_genes2,
+  turning_transform = "zscore",
+  # threshold_range = 1:100,
+  loop_id = "LoopAllSamp",
+  meta_key = "raw",
+  assay_id = "Spatial",
+  layer_id = "counts",
+  grp_nm = "JEV_cellbin",
+  dir_nm = "M1_ScanThreshold"
+)
+threshold_res <- ScanThreshold(
+  STID_obj = STID_obj_bin35,
+  pathogen_features = pathogen_genes2,
+  turning_transform = "zscore",
+  # threshold_range = 1:100,
+  loop_id = "LoopAllSamp",
+  meta_key = "raw",
+  assay_id = "Spatial",
+  layer_id = "counts",
+  grp_nm = "JEV_bin35",
+  dir_nm = "M1_ScanThreshold"
+)
+threshold_res <- ScanThreshold(
+  STID_obj = STID_obj_bin100,
+  pathogen_features = pathogen_genes2,
+  turning_transform = "zscore",
+  # threshold_range = 1:100,
+  loop_id = "LoopAllSamp",
+  meta_key = "raw",
+  assay_id = "Spatial",
+  layer_id = "counts",
+  grp_nm = "JEV_bin100",
+  dir_nm = "M1_ScanThreshold"
+)
+threshold_res <- ScanThreshold(
+  STID_obj = STID_obj_bin200,
+  pathogen_features = pathogen_genes2,
+  turning_transform = "zscore",
+  # threshold_range = 1:100,
+  loop_id = "LoopAllSamp",
+  meta_key = "raw",
+  assay_id = "Spatial",
+  layer_id = "counts",
+  grp_nm = "JEV_bin200",
+  dir_nm = "M1_ScanThreshold"
+)
+
+
+### 3.SpotDetect_Gene ####
+STID_obj_bin35 # 这个数据之前是有过的SpotDetect_Gene/Geneset的信息的
+host_genes <- c("Ccl5","Irf7")
+options("parallel_workers" = 1)
+
+## 3.1 cellbin ####
+#> gene
+options("parallel_workers" = 1)
+pathogen_genes <- c("NS5","C","NS3","NS1","E","Prm","NS4aAlt","NS4bAlt","NS2a","NS2b")
+STID_obj_cellbin <- GetGeneStat(STID_obj = STID_obj_cellbin, features = pathogen_genes,prefix = "all_gene",func = "sum") %>%
+  AddMetaColumn(STID_obj = STID_obj_cellbin,
+                add_data = ., # data.frame
+                meta_key = "raw", # string
+                igrnore_rownm = FALSE)
+pathogen_genes <- c("NS5") # save time
+STID_obj_cellbin <- SpotDetect_Gene(STID_obj_cellbin,
+                            features = pathogen_genes,
+                            feature_colnm = grep("all_gene",colnames(STID_obj_cellbin@meta.data),value = T),
+                            PosThres_prob = 0.75,
+                            # PosThres_count = 5,
+                            col = COLOR_DIS_CON,
+                            black_bg = F,pt_size = 0.2,
+                            # blur_method = "isoblur",
+                            blur_method = NULL,
+                            blur_n = 1,blur_sigma = 0.5,
+                            plot_method = "single",
+                            grp_nm = "JEV_cellbin_correct_before_all_gene_white")
+
+
+
+## 3.2 bin35 ####
+#> gene
+pathogen_genes <- c("NS5","C","NS3","NS1","E","Prm","NS4aAlt","NS4bAlt","NS2a","NS2b")
+STID_obj_bin35 <- GetGeneStat(STID_obj = STID_obj_bin35, features = pathogen_genes,prefix = "all_gene",func = "sum") %>%
+  AddMetaColumn(STID_obj = STID_obj_bin35,
+                add_data = ., # data.frame
+                meta_key = "raw", # string
+                igrnore_rownm = FALSE)
+pathogen_genes <- c("NS5") # save time
+STID_obj_bin35 <- SpotDetect_Gene(STID_obj_bin35,
+                                    features = pathogen_genes,
+                                    feature_colnm = grep("all_gene",colnames(STID_obj_bin35@meta.data),value = T),
+                                    PosThres_prob = 0.75,
+                                  # PosThres_count = 5,
+                                    col = COLOR_DIS_CON,
+                                    black_bg = F,pt_size = 0.25,
+                                    # blur_method = "isoblur",
+                                    blur_method = NULL,
+                                    blur_n = 1,blur_sigma = 0.5,
+                                    plot_method = "single",
+                                    grp_nm = "JEV_bin35_correct_before_all_gene_white")
+
+gc()
+
+
+## 3.3 bin100 ####
+#> gene
+pathogen_genes <- c("NS5","C","NS3","NS1","E","Prm","NS4aAlt","NS4bAlt","NS2a","NS2b")
+STID_obj_bin100 <- GetGeneStat(STID_obj = STID_obj_bin100, features = pathogen_genes,prefix = "all_gene",func = "sum") %>%
+  AddMetaColumn(STID_obj = STID_obj_bin100,
+                add_data = ., # data.frame
+                meta_key = "raw", # string
+                igrnore_rownm = FALSE)
+pathogen_genes <- c("NS5") # save time
+STID_obj_bin100 <- SpotDetect_Gene(STID_obj_bin100,
+                                    features = pathogen_genes,
+                                    feature_colnm = grep("all_gene",colnames(STID_obj_bin100@meta.data),value = T),
+                                    # PosThres_prob = 0.75,
+                                   PosThres_count = 10,  # old: 9
+                                    col = COLOR_DIS_CON,
+                                    black_bg = F,pt_size = 0.75,
+                                    # blur_method = "isoblur",
+                                    blur_method = NULL,
+                                    blur_n = 1,blur_sigma = 0.5,
+                                    plot_method = "single",
+                                    grp_nm = "JEV_bin100_correct_before_all_gene_white")
+
+gc()
+
+
+## 3.4 bin200 ####
+#> gene
+pathogen_genes <- c("NS5","C","NS3","NS1","E","Prm","NS4aAlt","NS4bAlt","NS2a","NS2b")
+STID_obj_bin200 <- GetGeneStat(STID_obj = STID_obj_bin200, features = pathogen_genes,prefix = "all_gene",func = "sum") %>%
+  AddMetaColumn(STID_obj = STID_obj_bin200,
+                add_data = ., # data.frame
+                meta_key = "raw", # string
+                igrnore_rownm = FALSE)
+pathogen_genes <- c("NS5") # save time
+STID_obj_bin200 <- SpotDetect_Gene(STID_obj_bin200,
+                                    features = pathogen_genes,
+                                    feature_colnm = grep("all_gene",colnames(STID_obj_bin200@meta.data),value = T),
+                                    # PosThres_prob = 0.75,
+                                   PosThres_count = 19, # old: 18
+                                    col = COLOR_DIS_CON,
+                                    black_bg = F,pt_size = 1.5,
+                                    # blur_method = "isoblur",
+                                    blur_method = NULL,
+                                    blur_n = 1,blur_sigma = 0.5,
+                                    plot_method = "single",
+                                    grp_nm = "JEV_bin200_correct_before_all_gene_white")
+
+
+## 3.5 compare the number of positive spots ####
+meta_cellbin <- GetMetaData(STID_obj_cellbin, meta_key = "M1_SpotDetect_Gene_JEV_cellbin_correct_before_all_gene_white")[[1]]
+meta_bin35 <- GetMetaData(STID_obj_bin35, meta_key = "M1_SpotDetect_Gene_JEV_bin35_correct_before_all_gene_white")[[1]]
+meta_bin100 <- GetMetaData(STID_obj_bin100, meta_key = "M1_SpotDetect_Gene_JEV_bin100_correct_before_all_gene_white")[[1]]
+meta_bin200 <- GetMetaData(STID_obj_bin200, meta_key = "M1_SpotDetect_Gene_JEV_bin200_correct_before_all_gene_white")[[1]]
+table(meta_cellbin$`Label_all_gene_nCount(sum)`)
+table(meta_bin35$`Label_all_gene_nCount(sum)`)
+table(meta_bin100$`Label_all_gene_nCount(sum)`)
+table(meta_bin200$`Label_all_gene_nCount(sum)`)
+# 比例
+res_df <- data.frame(
+  grp = rep(c("cellbin","bin35","bin100","bin200"), each = 2),
+  label = rep(c("neg","pos"), times = 4),
+  value = c(
+    table(meta_cellbin$`Label_all_gene_nCount(sum)`),
+    table(meta_bin35$`Label_all_gene_nCount(sum)`),
+    table(meta_bin100$`Label_all_gene_nCount(sum)`),
+    table(meta_bin200$`Label_all_gene_nCount(sum)`)
+  )
+)
+res_df <- res_df %>% 
+  group_by(grp) %>%
+  mutate(ratio = value / sum(value))
+res_df
+
+
+
+### 4.NicheDetect_STS ####
+## 4.1 cellbin ####
+# JEV：microbe 
+STID_obj
+meta_data <- GetMetaData(
+  STID_obj,
+  meta_key = "M1_SpotDetect_Gene_JEV_correct_before_all_gene_white"
+)[[1]]
+
+#> DBSCAN
+STID_obj_detect <- NicheDetect_STS(STID_obj = STID_obj, meta_key = "M1_SpotDetect_Gene_JEV_correct_before_all_gene_white",
+                                   spatial_scale_method = "region", region_detect_method = "convex", update_spots = F,
+                                   ROI_size = NULL,, density_thres = 1, # 原始是1，后来改为0.9？其实就是1
+                                   pos_colnm = "Label_all_gene_nFeature(sum)",
+                                   description = NULL,grp_nm = "STS_JEV_microbe_region", dir_nm = "M2_NicheDetect_STS")
+STID_obj_detect
+detect_meta <- GetMetaData(STID_obj_detect, meta_key = "M2_NicheDetect_STS_STS_JEV_microbe_region",
+                           add_coord = F)[[1]]
+
+#> plot
+# SEVEN_DARK <- c("#F81B02FF" ,"#FC7715FF" ,"#FCB11C"  ,"#50C49FFF" ,"#3B95C4FF" ,"#B560D4FF")
+# SEVEN_LIGHT <- c("#F88A7E", "#FCC093", "#FCDB9A", "#BBBFA1", "#9DB7C4", "#D1CAD4")
+SEVEN_DARK <- c("#50C49FFF" ,"#FC7715FF" ,"#FCB11C"  ,"#F81B02FF" ,"#3B95C4FF" ,"#B560D4FF")
+SEVEN_LIGHT <- c("#BBBFA1",  "#FCC093", "#FCDB9A","#F88A7E", "#9DB7C4", "#D1CAD4")
+
+pdf("./photo/Z_other/20260408_Figure3_result/JEV/JEV_microbe_edge_raw.pdf",width = 15,height = 15)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "ROI_region",
+             facet_grpnm = "new_samp",
+             datatype = "discrete",
+             col = list(dis = c("grey95","#FFC4E1","#244D7F","#EB1E2C"),con = NULL),
+             pt_size = 1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+pdf("./photo/Z_other/20260408_Figure3_result/JEV/JEV_microbe_region_raw.pdf",width = 15,height = 15)
+Plot_Spatial(plot_data = detect_meta,x_colnm = "x",y_colnm = "y",group_by = "All_ROI_label2",
+             facet_grpnm = "new_samp",
+             datatype = "discrete",
+             col = list(dis = c(SEVEN_LIGHT,SEVEN_DARK),con = NULL),
+             pt_size = 1.1,vmin = NULL, vmax = "p99",
+             title = NULL, subtitle = NULL,black_bg = F)
+dev.off()
+
+#> Plot_DistLine_Exp
+STID_obj_detect %>% print()
+tmp <- GetMetaData(STID_obj_detect,
+                   meta_key = list(c("M2_NicheDetect_STS_STS_JEV_microbe_region")))[[1]]
+pdf("./photo/Z_other/20260408_Figure3_result/JEV/JEV_microbe_DistLine_Exp_host.pdf",width = 4.8,height = 6)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = c("NS5","Ccl2"), feature_colnm = "all_gene_nFeature(sum)",
+                  loop_id = "D5_1", col = c("#F81B02FF"  ,"#3B95C4FF","#F81B02FF" ) ,
+                  facet_grpnm = "grp",meta_key = list(c("M1_SpotDetect_Gene_JEV_correct_before_all_gene_white",
+                                                        "M2_NicheDetect_STS_STS_JEV_microbe_region")))
+dev.off()
+pdf("./photo/Z_other/20260408_Figure3_result/JEV/JEV_microbe_DistLine_Exp_geneset.pdf",width = 5,height = 2.8)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("RESPONSE_TO_VIRUS"),
+                  loop_id = "D5_1", col = "#3B95C4FF",
+                  facet_grpnm = "grp",meta_key = list(c("M1_SpotDetect_Geneset_JEV_correct_before_GO_viral_white",
+                                                        "M2_NicheDetect_STS_STS_JEV_microbe_region")))
+dev.off()
+pdf("./photo/Z_other/20260408_Figure3_result/JEV/JEV_microbe_DistLine_Exp_PCD.pdf",width = 4.5,height = 2.8)
+Plot_DistLine_Exp(STID_obj = STID_obj_detect, features = NULL, feature_colnm = c("Necroptosis"),
+                  loop_id = "D5_1", col = "#3B95C4FF",
+                  facet_grpnm = "grp",meta_key = list(c("M1_SpotDetect_Geneset_JEV_correct_before_PCD_white",
+                                                        "M2_NicheDetect_STS_STS_JEV_microbe_region")))
+dev.off()
+
+
+## 4.2 bin35 ####
+
+
+
+## 4.3 bin100 ####
+
+
+
+
+## 4.4 bin200 ####
+
+
+
+
+
+
+#### 六、Figures 4 and S8 ####
 # AE infection model
 if(0){
   table(STID_obj_expand@meta.data$anno)
@@ -1747,6 +2646,7 @@ tmp <- CalSampCoLoc(STID_obj = STID_obj_SS,
                     # group_use = c(" Hepatocytes","Infla Heps","Fibroblasts","Spp1+ MoMFs","MoKCs","Neutrophils","B/plasma cells"),
                     loop_id = "DPI_4_2",
                     method = "squidpy",
+                    # squidpy_params = c(vmin = NULL, vmax = NULL),
                     return_data = TRUE)
 
 #> Plot_SpatialCoLoc
@@ -1864,13 +2764,12 @@ nrow(STID_obj_SS)
 #> CalSampDEGs
 STID_obj_SS
 SS_DEGs <- CalSampDEGs(STID_obj = STID_obj_SS,
-                       niche_key = "Niche",
+                       niche_key = "Niche", # DEGs in niche
                        assay_id = "Spatial",
                        layer_id = "counts",
                        loop_id = "LoopAllSamp",
                        padj_thres = 0.05,
                        logfc_thres = 1, # log2(1.5)不好
-                       adjust_method = "BH",
                        col = col_lasso2,
                        group_by = "anno",
                        group_value = c("Infla Heps","Fibroblasts","Neutrophils","MoKCs"), # "Spp1+ MoMFs"不显著
@@ -1915,7 +2814,7 @@ if(0){
 STID_obj_SS <- SpotDetect_Gene(STID_obj_SS,
                                features = c("Cxcl3","Ccl3","Cxcr2","Ccr1","Ccr5","Il36g","Cstdc6","L3mbtl1","Tsx","Scube2"),
                                feature_colnm = NULL,
-                               PosThres_prob = 0, PosThres_count = 3, # D4_2为3，D15_2为10
+                               PosThres_prob = 0, PosThres_count = 4, # D4_2为3，D15_2为10, # old: 3
                                # col = c("grey95","red"),
                                col = COLOR_DIS_CON,
                                # col = c("grey95","#6A1B9A"),
@@ -2176,7 +3075,7 @@ GeneEnrichment( STID_obj = STID_obj_SS,
                 grp_nm = "PPI_gene")
 
 
-#### 六、Figure S4 ####
+#### 七、Figure S9 ####
 # JE infection model
 STID_obj_detect %>% print()
 {
@@ -2407,7 +3306,6 @@ SS_DEGs_microbe <- CalSampDEGs(STID_obj = STID_obj_SS,
                                loop_id = "LoopAllSamp",
                                padj_thres = 0.05,
                                logfc_thres = 1, # log2(1.5)不好
-                               adjust_method = "BH",
                                col = col_lasso,
                                group_by = "new_cell",
                                group_value = c("Dendritic cells","Monocytes","NK cells","Oligodendrocytes"),
@@ -2423,7 +3321,6 @@ SS_DEGs_host <- CalSampDEGs(STID_obj = STID_obj_SS,
                             loop_id = "LoopAllSamp",
                             padj_thres = 0.05,
                             logfc_thres = 1, # log2(1.5)不好
-                            adjust_method = "BH",
                             col = col_lasso,
                             group_by = "new_cell",
                             group_value = c("Dendritic cells","Monocytes","NK cells","Oligodendrocytes"),
@@ -2522,7 +3419,7 @@ Plot_NicheCellComm(
 )
 
 
-### 七、Figure 5 + Figure S5 ####
+### 八、Figures 5, S10 and S11 ####
 # load STID_obj_SS_CE.rds
 col_lasso <- c(
   "HsPCs" = "#E41A1C",
@@ -2649,13 +3546,12 @@ MS_DEGs <- CalSampDEGs(STID_obj = STID_obj_MS,
                        loop_id = "Comparative_2_4", #
                        samp_grp_index = T,
                        logfc_thres = 2,
-                       # niche_key = "Niche", # "Niche"时DEGs很少
+                       niche_key = "Niche", # old: no "Niche"
                        # meta_key = "coord",
                        group_by = "anno",
                        group_value = c("Neutrophils","Spp1+ MoMFs","Fibroblasts", "B/plasma cells"),
                        assay_id = "Spatial",
                        padj_thres = 0.05,
-                       adjust_method = "BH",
                        col = col_lasso,
                        remove_genes = c(grep("^Gm",rownames(STID_obj_SS),value = T),
                                         grep("^EmuJ",rownames(STID_obj_SS),value = T)),
@@ -2756,7 +3652,7 @@ STID_obj <- GetGeneStat(STID_obj = STID_obj, features = pathogen_genes,prefix = 
 STID_obj <- SpotDetect_Gene(STID_obj,
                             features = pathogen_genes,
                             feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
-                            PosThres_prob = 0, PosThres_count = 1,
+                            PosThres_prob = 0, PosThres_count = 2,  # old: 1
                             # col = c("#3D3576","#92D74D"),
                             # col = c("#8DBDDC","#FD9F8F"),
                             col = COLOR_DIS_CON,
@@ -2771,7 +3667,7 @@ STID_obj <- SpotDetect_Gene(STID_obj,
                             # features = c("Ccl5","Irf7"),
                             features = host_genes,
                             feature_colnm = grep("all_gene",colnames(STID_obj@meta.data),value = T),
-                            PosThres_prob = 0, PosThres_count = 4,
+                            PosThres_prob = 0, PosThres_count = 5,  # old: 4
                             # col = c("grey95","red"),
                             col = COLOR_DIS_CON,
                             # col = c("grey95","#6A1B9A"),

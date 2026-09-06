@@ -80,7 +80,8 @@ algorithms including AddModuleScore, AUCell, UCell, and basic statistics.</p>
 <span>  assay_id <span class="op">=</span> <span class="st">"Spatial"</span>,</span>
 <span>  layer_id <span class="op">=</span> <span class="st">"data"</span>,</span>
 <span>  PosThres_prob <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  PosThres_score <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  PosThres_score <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  PosThres_operator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"&gt;="</span>, <span class="st">"&gt;"</span><span class="op">)</span>,</span>
 <span>  col <span class="op">=</span> <span class="va">COLOR_DIS_CON</span>,</span>
 <span>  pt_size <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>  vmin <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -144,7 +145,12 @@ algorithms including AddModuleScore, AUCell, UCell, and basic statistics.</p>
 
 <dt id="arg-posthres-score">PosThres_score<a class="anchor" aria-label="anchor" href="#arg-posthres-score"></a></dt>
 <dd><p>Numeric, absolute score threshold for positive detection
-(default: 0)</p></dd>
+(default: 1)</p></dd>
+
+
+<dt id="arg-posthres-operator">PosThres_operator<a class="anchor" aria-label="anchor" href="#arg-posthres-operator"></a></dt>
+<dd><p>Character, operator for threshold comparison - "&gt;=" or "&gt;"
+(default: "&gt;=")</p></dd>
 
 
 <dt id="arg-col">col<a class="anchor" aria-label="anchor" href="#arg-col"></a></dt>

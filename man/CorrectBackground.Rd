@@ -2,13 +2,18 @@
 % Please edit documentation in R/SpotDetect.R
 \name{CorrectBackground}
 \alias{CorrectBackground}
-\title{Correct background expression in spatial transcriptomics data}
+\title{Correct background expression}
 \usage{
 CorrectBackground(
   STID_obj = NULL,
   loop_id = "LoopAllSamp",
-  bg_samp_id = NULL,
+  meta_key = "raw",
   bg_features = NULL,
+  ctrl_samp_id = NULL,
+  bg_region_cell = NULL,
+  bg_region_lasso = FALSE,
+  group_by = NULL,
+  col = NULL,
   PosThres_prob = 0.95,
   adjust_UMI = TRUE,
   assay_id = "Spatial",
@@ -18,41 +23,63 @@ CorrectBackground(
 )
 }
 \arguments{
-\item{STID_obj}{An STID object containing spatial transcriptomics data}
+\item{STID_obj}{An \code{STID} object.}
 
-\item{loop_id}{Must be "LoopAllSamp" (default: "LoopAllSamp")}
+\item{loop_id}{Sample loop name. Currently should be \code{"LoopAllSamp"}.}
 
-\item{bg_samp_id}{Character vector specifying background sample IDs}
+\item{meta_key}{Metadata key used by \code{GetMetaData()}. Default is
+\code{"raw"}.}
 
-\item{bg_features}{Character vector specifying background features (genes) for correction}
+\item{bg_features}{Character vector of features to correct.}
 
-\item{PosThres_prob}{Numeric, probability threshold (0-1) for determining positive expression
-(default: 0.95)}
+\item{ctrl_samp_id}{Optional character vector of control sample IDs.}
 
-\item{adjust_UMI}{Logical, whether to adjust correction values by mean UMI (default: TRUE)}
+\item{bg_region_cell}{Optional data frame containing columns
+\code{sample_id} and \code{bg_cell}.}
 
-\item{assay_id}{Character, name of the assay to use (default: "Spatial")}
+\item{bg_region_lasso}{Logical. Whether to select background regions
+interactively using lasso selection.}
 
-\item{layer_id}{Character, name of the layer/data slot to use (default: "counts")}
+\item{group_by}{Metadata column used to color spots during lasso selection.}
 
-\item{grp_nm}{Character, group name for output organization (default: NULL, uses timestamp)}
+\item{col}{Optional colors used for lasso visualization.}
 
-\item{dir_nm}{Character, directory name for output (default: "M1_CorrectBackground")}
+\item{PosThres_prob}{Quantile of nonzero counts used to estimate background
+expression. Must be in \code{(0, 1]}. Default is \code{0.95}.}
+
+\item{adjust_UMI}{Logical. Whether to scale control-sample correction values
+according to sample mean UMI. Default is \code{TRUE}.}
+
+\item{assay_id}{Assay name. Default is \code{"Spatial"}.}
+
+\item{layer_id}{Assay layer containing counts. Default is \code{"counts"}.}
+
+\item{grp_nm}{Output group name. If \code{NULL}, a name is generated
+automatically.}
+
+\item{dir_nm}{Output directory name. Default is
+\code{"M1_CorrectBackground"}.}
 }
 \value{
-Returns the modified STID object with corrected counts in the Spatial assay
+The input \code{STID} object with corrected counts stored in the
+specified assay and layer.
 }
 \description{
-This function corrects background expression in spatial transcriptomics data
-using specified background samples and features. It calculates background gene
-expression statistics and subtracts them from all samples.
+Correct background expression in spatial transcriptomics data using control
+samples, predefined background regions, or interactively selected regions.
+}
+\details{
+Background expression can be estimated from control samples, sample-specific
+background regions, or both. When both are provided, the larger correction
+value is used. Corrected counts below zero are set to zero and rounded to
+integers.
 }
 \examples{
 \dontrun{
 # Correct background using specified background samples and features
 STID_obj <- CorrectBackground(
   STID_obj = STID_object,
-  bg_samp_id = c("sample1", "sample2"),
+  ctrl_samp_id = c("sample1", "sample2"),
   bg_features = c("gene1", "gene2", "gene3"),
   PosThres_prob = 0.95,
   adjust_UMI = TRUE

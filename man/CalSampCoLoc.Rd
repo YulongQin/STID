@@ -14,7 +14,8 @@ CalSampCoLoc(
   features = NULL,
   feature_colnm = NULL,
   method = "mistyR",
-  mistyR_params = c(juxtaview_radius = 15, paraview_radius = 10),
+  mistyR_params = list(juxtaview_radius = 15, paraview_radius = 10),
+  squidpy_params = list(vmin = 0, vmax = NULL, enrichment_mode = "zscore"),
   return_data = TRUE,
   grp_nm = NULL,
   dir_nm = "M3_CalSampCoLoc"
@@ -39,9 +40,14 @@ CalSampCoLoc(
 
 \item{method}{Character, method for co-localization analysis - "mistyR" or "squidpy" (default: "mistyR")}
 
-\item{mistyR_params}{Numeric vector, parameters for MSTIDyR analysis (default: c(juxtaview_radius = 15, paraview_radius = 10))
+\item{mistyR_params}{list, parameters for MSTIDyR analysis (default: list(juxtaview_radius = 15, paraview_radius = 10))
 - juxtaview_radius: radius for juxtaview in spatial units
 - paraview_radius: radius for paraview in spatial units}
+
+\item{squidpy_params}{list, parameters for Squidpy analysis (default: list(vmin = 0, vmax = NULL, enrichment_mode = "zscore"))
+- vmin: minimum value for colormap
+- vmax: maximum value for colormap
+- enrichment_mode: mode for enrichment calculation ("zscore", "count")}
 
 \item{return_data}{Logical, whether to return the results list (default: TRUE)}
 

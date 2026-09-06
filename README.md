@@ -47,15 +47,15 @@ Graphical abstract
 
 ### Key Functionalities
 
-| Function Category      | Supported Methods                             |
-|:-----------------------|:----------------------------------------------|
-| Data conversion        | `h5ad2rds`, `rds2h5ad`                        |
-| Preprocessing          | `Seurat_pipeline`, `anno_SingleR`             |
-| Background correction  | `CorrectBackground`                           |
-| Spot detection         | `SpotDetect_Gene`, `SpotDetect_Geneset`       |
-| Niche identification   | `NicheDetect_Lasso`, `NicheDetect_STS`, etc.  |
-| Single-Sample analysis | `CalSampComp`, `CalSampDEGs`, etc.            |
-| Multi-Sample analysis  | `CalSampPathoTrack`, `CalSampGeneTrend`, etc. |
+| Function Category | Supported Methods |
+|:---|:---|
+| Data conversion | `h5ad2rds`, `rds2h5ad` |
+| Preprocessing | `Seurat_pipeline`, `anno_SingleR` |
+| Background correction | `CorrectBackground` |
+| Spot detection | `ScanThreshold`, `SpotDetect_Gene`, `SpotDetect_Geneset` |
+| Niche identification | `NicheDetect_Lasso`, `NicheDetect_STS`, etc. |
+| Single-Sample analysis | `CalSampComp`, `CalSampDEGs`, etc. |
+| Multi-Sample analysis | `CalSampPathoTrack`, `CalSampGeneTrend`, etc. |
 
 ## Installation
 

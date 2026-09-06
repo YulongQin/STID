@@ -1,28 +1,49 @@
 
 
+#' @include SingleSampAnalysis.R
+NULL
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # CorrectBackground
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Correct background expression in spatial transcriptomics data
+#' Correct background expression
 #'
-#' This function corrects background expression in spatial transcriptomics data
-#' using specified background samples and features. It calculates background gene
-#' expression statistics and subtracts them from all samples.
+#' Correct background expression in spatial transcriptomics data using control
+#' samples, predefined background regions, or interactively selected regions.
 #'
-#' @param STID_obj An STID object containing spatial transcriptomics data
-#' @param loop_id Must be "LoopAllSamp" (default: "LoopAllSamp")
-#' @param bg_samp_id Character vector specifying background sample IDs
-#' @param bg_features Character vector specifying background features (genes) for correction
-#' @param PosThres_prob Numeric, probability threshold (0-1) for determining positive expression
-#'        (default: 0.95)
-#' @param adjust_UMI Logical, whether to adjust correction values by mean UMI (default: TRUE)
-#' @param assay_id Character, name of the assay to use (default: "Spatial")
-#' @param layer_id Character, name of the layer/data slot to use (default: "counts")
-#' @param grp_nm Character, group name for output organization (default: NULL, uses timestamp)
-#' @param dir_nm Character, directory name for output (default: "M1_CorrectBackground")
+#' @param STID_obj An \code{STID} object.
+#' @param loop_id Sample loop name. Currently should be \code{"LoopAllSamp"}.
+#' @param meta_key Metadata key used by \code{GetMetaData()}. Default is
+#' \code{"raw"}.
+#' @param bg_features Character vector of features to correct.
+#' @param ctrl_samp_id Optional character vector of control sample IDs.
+#' @param bg_region_cell Optional data frame containing columns
+#' \code{sample_id} and \code{bg_cell}.
+#' @param bg_region_lasso Logical. Whether to select background regions
+#' interactively using lasso selection.
+#' @param group_by Metadata column used to color spots during lasso selection.
+#' @param col Optional colors used for lasso visualization.
+#' @param PosThres_prob Quantile of nonzero counts used to estimate background
+#' expression. Must be in \code{(0, 1]}. Default is \code{0.95}.
+#' @param adjust_UMI Logical. Whether to scale control-sample correction values
+#' according to sample mean UMI. Default is \code{TRUE}.
+#' @param assay_id Assay name. Default is \code{"Spatial"}.
+#' @param layer_id Assay layer containing counts. Default is \code{"counts"}.
+#' @param grp_nm Output group name. If \code{NULL}, a name is generated
+#' automatically.
+#' @param dir_nm Output directory name. Default is
+#' \code{"M1_CorrectBackground"}.
 #'
-#' @return Returns the modified STID object with corrected counts in the Spatial assay
+#' @details
+#' Background expression can be estimated from control samples, sample-specific
+#' background regions, or both. When both are provided, the larger correction
+#' value is used. Corrected counts below zero are set to zero and rounded to
+#' integers.
+#'
+#' @return The input \code{STID} object with corrected counts stored in the
+#' specified assay and layer.
 #'
 #' @import Seurat
 #' @import ggplot2
@@ -40,7 +61,7 @@
 #' # Correct background using specified background samples and features
 #' STID_obj <- CorrectBackground(
 #'   STID_obj = STID_object,
-#'   bg_samp_id = c("sample1", "sample2"),
+#'   ctrl_samp_id = c("sample1", "sample2"),
 #'   bg_features = c("gene1", "gene2", "gene3"),
 #'   PosThres_prob = 0.95,
 #'   adjust_UMI = TRUE
@@ -48,7 +69,13 @@
 #' }
 CorrectBackground <- function(STID_obj = NULL,
                              loop_id = "LoopAllSamp", # must be LoopAllSamp
-                             bg_samp_id = NULL, bg_features = NULL,
+                             meta_key = "raw",
+                             bg_features = NULL,
+                             ctrl_samp_id = NULL,
+                             bg_region_cell = NULL, # dataframe: sample_id bg_cell
+                             bg_region_lasso = FALSE,
+                             group_by = NULL,
+                             col = NULL,
                              PosThres_prob = 0.95, adjust_UMI = TRUE,
                              assay_id = "Spatial", layer_id = "counts",
                              grp_nm = NULL, dir_nm = "M1_CorrectBackground"
@@ -65,14 +92,10 @@ CorrectBackground <- function(STID_obj = NULL,
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_at_least_one_null(bg_samp_id,bg_features)
+  .check_not_any_null(bg_features)
   loop_single <- .check_loop_single(STID_obj = STID_obj,loop_id = loop_id, mode = 1)
 
   #>
-  if(!all(bg_samp_id %in% c(loop_single))){
-    clog_error(paste0("bg_samp_id must be in: ", paste(loop_single, collapse = ", ")))
-  }
-  clog_normal(paste0("Your bg_samp_id: ", paste(bg_samp_id, collapse = ", ")))
   if(PosThres_prob <= 0 | PosThres_prob >1){
     clog_error("PosThres_prob must be between 0 and 1")
   }
@@ -99,72 +122,236 @@ CorrectBackground <- function(STID_obj = NULL,
     valid_features <- bg_features
   }
   len_feat <- length(valid_features)
+  if(len_feat == 0){
+    clog_error("No valid features for background correction")
+  }
   clog_normal(paste0("Number of background features for correction: ", len_feat))
 
-  # >>> calculate mean UMI
-  clog_step("Calculate mean UMI of background samples and all samples")
-  samp_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "samp_colnm")[[1]]
-  meta_data <- STID_obj@meta.data
-  count_assay <- GetAssayData(STID_obj, assay = assay_id, layer = layer_id )
-  meta_data$nCount_RNA <- Matrix::colSums(count_assay)
-  # meta_data$nFeature_RNA <- Matrix::colSums(GetAssayData(object = STID_obj, layer = "counts") > 0)
-  mean_UMI_samp <- meta_data %>%
-    group_by(!!sym(samp_colnm)) %>%
-    summarise(mean_UMI = mean(nCount_RNA, na.rm = T)) %>%
-    as.data.frame() %>%
-    `row.names<-`(.[[samp_colnm]])
-  mean_UMI_C <- mean_UMI_samp %>%
-    filter(!!sym(samp_colnm) %in% bg_samp_id) %>%
-    summarise(mean_UMI_C = mean(mean_UMI, na.rm = T)) %>%
-    pull(mean_UMI_C)
-  mean_UMI_all <- mean(mean_UMI_samp$mean_UMI, na.rm = T)
-  clog_normal(paste0("Mean UMI of background samples: ", round(mean_UMI_C,2)))
-  clog_normal(paste0("Mean UMI of all samples: ", round(mean_UMI_all,2)))
 
-  # >>>
-  clog_step("Calculate background gene expression statistics")
-  res_df_C <- as.data.frame(matrix(NA,nrow = length(valid_features),ncol = length(bg_samp_id)))
-  colnames(res_df_C) <- bg_samp_id
-  rownames(res_df_C) <- valid_features
-  for(i in 1:length(bg_samp_id)){
-    # i = 1
-    i_single <- bg_samp_id[i]
-    clog_loop(paste0("Processing background sample: ", i_single," (",i,"/",length(bg_samp_id),")"))
-    i_samp_meta_data <- meta_data[meta_data[[samp_colnm]] == i_single, ]
-    i_samp_cells <- rownames(i_samp_meta_data)
-    i_count_assay <- count_assay[valid_features,i_samp_cells, drop = FALSE]
-    # table((rownames(i_count_assay) == valid_features))
-    clog_normal(paste0("Dimension of count matrix: ", paste(dim(i_count_assay), collapse = " x ")))
-
-    # >
-    bg_gene_stat_df <- as.data.frame(matrix(NA,nrow = length(valid_features),ncol = 5))
-    colnames(bg_gene_stat_df) <- c("nonzero_95","nonzero_95_adjust","nonzero_num","nonzero_ratio","nonzero_count")
-    rownames(bg_gene_stat_df) <- valid_features
-    bg_gene_stat_df$nonzero_95 <- apply(i_count_assay, 1, function(x) {
-      quantile(x[x>0], probs = PosThres_prob , na.rm = T)
-    })
-    bg_gene_stat_df$nonzero_95_adjust <- bg_gene_stat_df$nonzero_95 * (mean_UMI_all / mean_UMI_C)
-    bg_gene_stat_df$nonzero_num <- rowSums(i_count_assay>0)
-    bg_gene_stat_df$nonzero_ratio <- bg_gene_stat_df$nonzero_num / ncol(i_count_assay)
-    bg_gene_stat_df$nonzero_count <- rowSums(i_count_assay)
-    bg_gene_stat_df <- bg_gene_stat_df %>%
-      mutate(across(everything(), ~ replace_na(., 0)))
-    fwrite(bg_gene_stat_df, file = paste0(output_dir_bg,i_single,"_bg_gene_stat_(CorrectBackground).txt"),
-           sep = "\t", quote = F,col.names = T,row.names = T,na = "NA")
-    if(adjust_UMI){
-      res_df_C[,i] <- bg_gene_stat_df$nonzero_95_adjust
+  # >>> control sample mode and bg region mode
+  if(!is.null(ctrl_samp_id)){
+    if(bg_region_lasso | !is.null(bg_region_cell)){
+      mode <- "all"
     }else{
-      res_df_C[,i] <- bg_gene_stat_df$nonzero_95
+      mode <- "ctrl_samp"
+    }
+  }else{
+    if(bg_region_lasso | !is.null(bg_region_cell)){
+      mode <- "bg_region"
+    }else{
+      clog_error("Please specify either ctrl_samp_id, bg_region_cell, or bg_region_lasso for background correction")
     }
   }
-  res_df_C  <- rowMeans(res_df_C, na.rm = T)
-  names(res_df_C) <- valid_features
+  clog_normal(paste0("Background correction mode: ", mode))
 
-  # >>> Start correct background
+  #>
+  meta_data <- GetMetaData(STID_obj = STID_obj, meta_key = meta_key)[[1]]
+  samp_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "samp_colnm")[[1]]
+  x_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "x_colnm")[[1]]
+  y_colnm <- GetInfo(STID_obj, info_key = "data_info",sub_key = "y_colnm")[[1]]
+  count_assay <- GetAssayData(STID_obj, assay = assay_id, layer = layer_id )
+  if(mode %in% c("ctrl_samp","all")){
+    clog_step("Control sample mode: using specified background samples for correction")
+
+    #> check
+    if(!all(ctrl_samp_id %in% c(loop_single))){
+      clog_error(paste0("ctrl_samp_id must be in: ", paste(loop_single, collapse = ", ")))
+    }
+    clog_normal(paste0("Your ctrl_samp_id: ", paste(ctrl_samp_id, collapse = ", ")))
+
+    #> calculate mean UMI
+    clog_normal("Calculate mean UMI of background samples and all samples")
+    meta_data$nCount_RNA <- Matrix::colSums(count_assay)
+    # meta_data$nFeature_RNA <- Matrix::colSums(GetAssayData(object = STID_obj, layer = "counts") > 0)
+    mean_UMI_samp <- meta_data %>%
+      group_by(!!sym(samp_colnm)) %>%
+      summarise(mean_UMI = mean(nCount_RNA, na.rm = T)) %>%
+      as.data.frame() %>%
+      `row.names<-`(.[[samp_colnm]])
+    mean_UMI_C <- mean_UMI_samp %>%
+      filter(!!sym(samp_colnm) %in% ctrl_samp_id) %>%
+      summarise(mean_UMI_C = mean(mean_UMI, na.rm = T)) %>%
+      pull(mean_UMI_C)
+    mean_UMI_all <- mean(mean_UMI_samp$mean_UMI, na.rm = T)
+    clog_normal(paste0("Mean UMI of background samples: ", round(mean_UMI_C,2)))
+    clog_normal(paste0("Mean UMI of all samples: ", round(mean_UMI_all,2)))
+
+
+    #> control sample gene expression
+    clog_step("Calculate control sample gene expression statistics")
+    res_df_C <- as.data.frame(matrix(NA,nrow = length(valid_features),ncol = length(ctrl_samp_id)))
+    colnames(res_df_C) <- ctrl_samp_id
+    rownames(res_df_C) <- valid_features
+    for(i in 1:length(ctrl_samp_id)){
+      # i = 1
+      i_single <- ctrl_samp_id[i]
+      clog_loop(paste0("Processing control sample: ", i_single," (",i,"/",length(ctrl_samp_id),")"))
+      i_samp_meta_data <- meta_data[meta_data[[samp_colnm]] == i_single, ]
+      i_samp_cells <- rownames(i_samp_meta_data)
+      i_count_assay <- count_assay[valid_features,i_samp_cells, drop = FALSE]
+      # table((rownames(i_count_assay) == valid_features))
+      clog_normal(paste0("Dimension of count matrix: ", paste(dim(i_count_assay), collapse = " x ")))
+
+      #>
+      bg_gene_stat_df <- as.data.frame(matrix(NA,nrow = length(valid_features),ncol = 5))
+      colnames(bg_gene_stat_df) <- c("nonzero_95","nonzero_95_adjust","nonzero_num","nonzero_ratio","nonzero_count")
+      rownames(bg_gene_stat_df) <- valid_features
+      bg_gene_stat_df$nonzero_95 <- apply(i_count_assay, 1, function(x) {
+        quantile(x[x>0], probs = PosThres_prob , na.rm = T)
+      })
+      bg_gene_stat_df$nonzero_95_adjust <- bg_gene_stat_df$nonzero_95 * (mean_UMI_all / mean_UMI_C)
+      bg_gene_stat_df$nonzero_num <- rowSums(i_count_assay>0)
+      bg_gene_stat_df$nonzero_ratio <- bg_gene_stat_df$nonzero_num / ncol(i_count_assay)
+      bg_gene_stat_df$nonzero_count <- rowSums(i_count_assay)
+      bg_gene_stat_df <- bg_gene_stat_df %>%
+        mutate(across(everything(), ~ replace_na(., 0)))
+      fwrite(bg_gene_stat_df, file = paste0(output_dir_bg,i_single,"_ctrl_samp_gene_stat_(CorrectBackground).txt"),
+             sep = "\t", quote = F,col.names = T,row.names = T,na = "NA")
+      if(adjust_UMI){
+        res_df_C[,i] <- bg_gene_stat_df$nonzero_95_adjust
+      }else{
+        res_df_C[,i] <- bg_gene_stat_df$nonzero_95
+      }
+    }
+    res_df_C  <- rowMeans(res_df_C, na.rm = T)
+    names(res_df_C) <- valid_features
+  }
+  if(mode %in% c("bg_region","all")){
+    if(bg_region_lasso){
+      clog_step("Background region mode: using lasso-defined background regions for correction")
+      n <- 1
+      BgCells_list <- list()
+
+      #>
+      if(is.null(col)){
+        if(meta_data[[group_by]] %>% is.numeric()){
+          col <- c("#440154FF", "#3B528BFF", "#21908CFF", "#5DC863FF", "#FDE725FF")
+        }else{
+          col <- COLOR_LIST$PALETTE_WHITE_BG
+        }
+      }
+      for(i in seq_along(loop_single)){
+        i_single <- loop_single[i]
+        i_meta_data <- meta_data %>% filter(!!sym(samp_colnm) == i_single)
+
+        #>
+        clog_loop(paste0("Processing samp_id: ", i_single, " (", n, "/", length(loop_single), ")"))
+        n <- n+1
+        i_now_time <- format(Sys.time(), "%Y%m%d_%H%M%S")
+        file_prefix <- paste0("BgRegion_Lasso_",i_single)
+        output_dir_lasso <- paste0(output_dir,"/lasso/")
+        photo_dir_lasso <- paste0(photo_dir,"/lasso/")
+        i_output_dir <- paste0(output_dir_lasso,"/",i_single,"/")
+        i_photo_dir <- paste0(photo_dir_lasso,"/",i_single,"/")
+        dir.create(i_output_dir,recursive = TRUE,showWarnings = FALSE)
+        dir.create(i_photo_dir,recursive = TRUE,showWarnings = FALSE)
+        clog_normal("Start interactive lasso selection...")
+        print(
+          .NicheDetect_lasso_shiny(meta_data = i_meta_data, samp_id = paste0(i_single," (", i, "/", length(loop_single), ")"),
+                                   group_by = group_by,x_colnm = x_colnm, y_colnm = y_colnm,
+                                   col = col,
+                                   file_prefix =  file_prefix ,output_dir = i_output_dir, photo_dir = i_photo_dir)
+        )
+        clog_normal("Interactive lasso selection finished.")
+
+        # >
+        ROI_meta_path <- paste0(i_output_dir,"/",file_prefix,"_points.txt")
+        if(!file.exists(ROI_meta_path)){
+          clog_warn(paste0("The ROI meta file not found for samp_id: ", i_single))
+          clog_warn("Skip this samp and  continue to the next samp.")
+          BgCells_list[[i_single]] <- i_meta_data
+          next
+        }
+        clog_normal(paste0("Read ROI meta data from: ", ROI_meta_path))
+        ROI_meta <- read.table(ROI_meta_path,
+                               row.names = 1,header = TRUE,sep = "\t",stringsAsFactors = FALSE)
+
+        clog_normal(paste0("The Results of Point in hull detection:"))
+        print(
+          table(ROI_meta["ROI_label"])
+        )
+        if(max(ROI_meta$ROI_count,na.rm = TRUE) >1){
+          clog_warn("Detected points belong to multiple ROIs, these points will be removed in final results.")
+        }
+        res_meta_data <- ROI_meta %>%
+          filter(ROI_count <2)
+        BgCells_list[[i_single]] <- rownames(res_meta_data)
+      }
+
+    }else if(!is.null(bg_region_cell)){
+      clog_step("Background region mode: using specified background regions for correction")
+      if(inherits(bg_region_cell, "data.frame")){
+        if(all(c("sample_id","bg_cell") %in% colnames(bg_region_cell))){
+          #> check sample_id
+          bg_samp_ids <- unique(bg_region_cell$sample_id)
+          if(!all(bg_samp_ids%in% loop_single)){
+            clog_error(paste0("bg_region_cell$sample_id must be in: ", paste(loop_single, collapse = ", ")))
+          }
+          #> check bg_cell
+          for(i in 1:length(bg_samp_ids)){
+            i_samp <- bg_samp_ids[i]
+            i_cells <- bg_region_cell$bg_cell[bg_region_cell$sample_id == i_samp]
+            if(!all(i_cells %in% rownames(meta_data))){
+              clog_error(paste0("bg_region_cell$bg_cell for sample ", i_samp, " must be in rownames of meta_data"))
+            }
+          }
+        }else{
+          clog_error("bg_region_cell must have columns: sample_id, bg_cell")
+        }
+      }
+      BgCells_list <- bg_region_cell[c("bg_cell","sample_id")] %>%
+        unstack() %>% as.list()
+
+    }
+
+    #> bg gene expression statistics
+    clog_step("Calculate bg region gene expression statistics")
+    res_df_bg <- as.data.frame(matrix(NA,nrow = length(valid_features),ncol = length(loop_single)))
+    colnames(res_df_bg) <- loop_single
+    rownames(res_df_bg) <- valid_features
+    for(i in 1:length(loop_single)){
+      # i = 1
+      i_single <- loop_single[i]
+      clog_loop(paste0("Processing sample: ", i_single," (",i,"/",length(loop_single),")"))
+      i_bg_cells <- BgCells_list[[i_single]]
+      i_count_assay <- count_assay[valid_features,i_bg_cells, drop = FALSE]
+      # table((rownames(i_count_assay) == valid_features))
+      clog_normal(paste0("Dimension of count matrix: ", paste(dim(i_count_assay), collapse = " x ")))
+
+      #>
+      bg_gene_stat_df <- as.data.frame(matrix(NA,nrow = length(valid_features),ncol = 4))
+      colnames(bg_gene_stat_df) <- c("nonzero_95","nonzero_num","nonzero_ratio","nonzero_count")
+      rownames(bg_gene_stat_df) <- valid_features
+      bg_gene_stat_df$nonzero_95 <- apply(i_count_assay, 1, function(x) {
+        quantile(x[x>0], probs = PosThres_prob , na.rm = T)
+      })
+      bg_gene_stat_df$nonzero_num <- rowSums(i_count_assay>0)
+      bg_gene_stat_df$nonzero_ratio <- bg_gene_stat_df$nonzero_num / ncol(i_count_assay)
+      bg_gene_stat_df$nonzero_count <- rowSums(i_count_assay)
+      bg_gene_stat_df <- bg_gene_stat_df %>%
+        mutate(across(everything(), ~ replace_na(., 0)))
+      fwrite(bg_gene_stat_df, file = paste0(output_dir_bg,i_single,"_bg_gene_stat_(CorrectBackground).txt"),
+             sep = "\t", quote = F,col.names = T,row.names = T,na = "NA")
+      res_df_bg[,i] <- bg_gene_stat_df$nonzero_95
+    }
+    # res_df_bg  <- rowMeans(res_df_bg, na.rm = T)
+    # names(res_df_bg) <- valid_features
+  }
+  if(mode == "all"){
+    if(length(res_df_C) != nrow(res_df_bg)){
+      clog_error("Length of res_df_C and res_df_bg do not match")
+    }
+    if(any(rownames(res_df_bg) != names(res_df_C))){
+      clog_error("Row names of res_df_bg and names of res_df_C do not match")
+    }
+  }
+
+  #>>> Start correct background
   clog_step("Start correct background expression for all samples")
   corrected_objects <- list()
   plot_histgram_list <- list()
   plot_barplot_list <- list()
+  n_plot <- 0
   for(i in 1:length(loop_single)){
     i_single <- loop_single[i]
     clog_loop(paste0("Processing sample: ", i_single," (",i,"/",length(loop_single),")"))
@@ -172,23 +359,44 @@ CorrectBackground <- function(STID_obj = NULL,
     assay_pathogen_before <- i_count_assay[valid_features, , drop = FALSE]
     clog_normal(paste0("Dimension of count matrix: ", paste(dim(i_count_assay), collapse = " x ")))
     clog_normal(paste0("Number of common genes for background correction: ", length(valid_features)))
-    i_mean_UMI <- mean_UMI_samp[i_single, "mean_UMI"]
-    clog_normal(paste0("Mean UMI for ", i_single, ": ", round(i_mean_UMI, 2)))
-    clog_normal(paste0("Mean UMI for all samples: ", round(mean_UMI_all, 2)))
+
+    if(mode %in% c("ctrl_samp","all")){
+      i_mean_UMI <- mean_UMI_samp[i_single, "mean_UMI"]
+      clog_normal(paste0("Mean UMI for ", i_single, ": ", round(i_mean_UMI, 2)))
+      clog_normal(paste0("Mean UMI for all samples: ", round(mean_UMI_all, 2)))
+    }
+
     correction_vec <- rep(0, nrow(i_count_assay))
     names(correction_vec) <- rownames(i_count_assay)
-    correction_vec[names(res_df_C)] <- res_df_C
-    clog_normal(paste0("Max correction value before scaling: ", round(max(correction_vec, na.rm = TRUE), 2)))
-    if(adjust_UMI){
-      clog_normal("Adjust correction values by mean UMI")
-      scaled_correction <- (correction_vec / mean_UMI_all) * i_mean_UMI
-    }else{
-      clog_normal("No adjust correction values by mean UMI")
+
+    if(mode == "ctrl_samp"){
+      correction_vec[names(res_df_C)] <- res_df_C
+      if(adjust_UMI){
+        clog_normal("Adjust correction values by mean UMI")
+        scaled_correction <- (correction_vec / mean_UMI_all) * i_mean_UMI
+      }else{
+        clog_normal("No adjust correction values by mean UMI")
+        scaled_correction <- correction_vec
+      }
+    }else if(mode == "bg_region"){
+      correction_vec[rownames(res_df_bg)] <- res_df_bg[,i]
       scaled_correction <- correction_vec
+    }else if(mode == "all"){
+      if(adjust_UMI){
+        clog_normal("Adjust correction values by mean UMI")
+        ctrl_correction  <- (res_df_C / mean_UMI_all) * i_mean_UMI
+      }else{
+        clog_normal("No adjust correction values by mean UMI")
+        ctrl_correction <- res_df_C
+      }
+      correction_vec[names(res_df_C )] <- pmax(res_df_C , res_df_bg[,i], na.rm = TRUE)
+      scaled_correction <- correction_vec
+      scaled_correction[names(ctrl_correction )] <- pmax(ctrl_correction , res_df_bg[,i], na.rm = TRUE)
     }
+    clog_normal(paste0("Max correction value before scaling: ", round(max(correction_vec, na.rm = TRUE), 2)))
     clog_normal(paste0("Max correction value after scaling: ", round(max(scaled_correction, na.rm = TRUE), 2)))
 
-    # >
+    #>
     mat <- as(i_count_assay, "dgCMatrix")
     non_zero_values <- mat@x
     row_indices_1based <- mat@i + 1
@@ -214,6 +422,11 @@ CorrectBackground <- function(STID_obj = NULL,
         values_to = "count"
       ) %>%
       mutate( grp = factor(grp, levels = c("TotalCount_before","TotalCount_after")))
+    if(nrow(plot_data) == 0){
+      clog_warn(paste0("No non-zero counts for sample: ", i_single))
+      next
+    }
+    n_plot <- n_plot + 1
     p1 <- ggplot(plot_data, aes( x = count, fill = grp,color = grp)) +
       # geom_density( alpha = 0.5,bw = 10,trim = T)
       geom_histogram(aes(y = after_stat(count)), bins = 20, alpha = 0.8,color = "grey95",linewidth = 0.25) +
@@ -236,7 +449,7 @@ CorrectBackground <- function(STID_obj = NULL,
             strip.background = element_rect(fill="grey95"))
     ggsave(p1, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_histogram_(CorrectBackground).pdf"),
            width = 6, height = 7,limitsize = FALSE)
-    plot_histgram_list[[i]] <- p1
+    plot_histgram_list[[n_plot]] <- p1
 
     #> plot count ratio
     stat_pathogen_ratio <- data.frame(
@@ -266,7 +479,7 @@ CorrectBackground <- function(STID_obj = NULL,
             strip.background = element_rect(fill="grey95"))
     ggsave(p2, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_totalcount_barplot_(CorrectBackground).pdf"),
            width = 2, height = 4,limitsize = FALSE)
-    plot_barplot_list[[(2*i-1)]] <- p2
+    plot_barplot_list[[(2*n_plot-1)]] <- p2
 
     #> plot spot ratio
     pathogen_spot_ratio <- data.frame(
@@ -296,15 +509,16 @@ CorrectBackground <- function(STID_obj = NULL,
             strip.background = element_rect(fill="grey95"))
     ggsave(p3, filename = paste0(photo_dir_correct,i_single,"_BgCorrect_PosSpotNum_barplot_(CorrectBackground).pdf"),
            width = 2, height = 4,limitsize = FALSE)
-    plot_barplot_list[[2*i]] <- p3
+    plot_barplot_list[[2*n_plot]] <- p3
   }
+
   p_histgram_all <- wrap_plots(
     plot_histgram_list,
-    ncol = 3,
+    ncol = 3
   )
   p_barplot_all <- wrap_plots(
     plot_barplot_list,
-    ncol = 6,
+    ncol = 6
   )
   ggsave(p_histgram_all, filename = paste0(photo_dir,"All_samp_BgCorrect_histogram_(CorrectBackground).pdf"),
          width = 18, height = 7*ceiling(length(loop_single)/3),limitsize = FALSE)
@@ -314,9 +528,9 @@ CorrectBackground <- function(STID_obj = NULL,
   # >>> Save corrected data
   clog_step("Save background corrected data")
   corrected_count_assay <- do.call(cbind, corrected_objects)
-  STID_obj@assays[["Spatial"]]["counts"] <- corrected_count_assay
+  STID_obj@assays[[assay_id]][layer_id] <- corrected_count_assay
 
-  # >>>
+  #>
   .save_function_params("CorrectBackground", envir = environment(),
                         file = paste0(output_dir,"Log_function_params_(CorrectBackground).log") )
   clog_end()
@@ -325,6 +539,1750 @@ CorrectBackground <- function(STID_obj = NULL,
   return(STID_obj)
 }
 
+
+#' Scan pathogen count thresholds before SpotDetect_Geneset
+#'
+#' This function calculates total pathogen counts and detected pathogen gene
+#' numbers for each spot using a specified pathogen gene vector. It generates
+#' pathogen count distribution curves, pathogen gene number distribution curves,
+#' and positive spot number curves under different count thresholds.
+#'
+#' @param STID_obj An STID object containing spatial transcriptomics data
+#' @param pathogen_features Character vector of pathogen gene names
+#' @param threshold_range Optional numeric vector of thresholds to scan. Default
+#'        is NULL, in which case thresholds are generated automatically from
+#'        positive-spot pathogen counts.
+#' @param threshold_quantile Numeric value in (0, 1]. The corresponding quantile
+#'        of Pathogen_Count > 0 spots is used as the automatic upper scan limit
+#'        (default: 0.99). If this value exceeds max(threshold_range), the
+#'        quantile-based automatic range replaces threshold_range.
+#' @param threshold_n Integer, target number of evenly spaced threshold candidates
+#'        when a quantile-based automatic range is generated (default: 100).
+#'        The final scan is always limited to at most 200 points.
+#' @param loop_id Character, sample grouping identifier (default: "LoopAllSamp")
+#' @param meta_key Character, metadata key used by GetMetaData (default: "raw")
+#' @param assay_id Character, name of the assay to use (default: "Spatial")
+#' @param layer_id Character, name of the layer/data slot to use (default: "counts")
+#' @param detect_turning_point Logical, whether to identify and mark the main
+#'        turning point separately in each facet of the three line plots
+#'        (default: TRUE). The turning point separates the curve into an early
+#'        rapidly changing segment and a later slowly changing segment.
+#' @param turning_min_points Integer, minimum number of observations required
+#'        in each side of the two-segment regression, including the shared
+#'        turning point (default: 3).
+#' @param detect_curvature Logical, whether to identify and mark a second turning
+#'        point using normalized smoothing-spline curvature (default: TRUE).
+#' @param curvature_min_points Integer, minimum number of observations retained
+#'        on each side when excluding unstable curve endpoints (default: 3).
+#' @param curvature_spar Numeric smoothing parameter passed to smooth.spline;
+#'        larger values produce a smoother curve (default: 0.6).
+#' @param turning_transform Character transformation used only for internal
+#'        turning-point and curvature calculations. One of "none", "log2",
+#'        or "zscore" (default: "none"). "log2" applies log2(x + 1) to
+#'        the x-axis expression/threshold values before analysis; "zscore"
+#'        applies (x - mean(x)) / sd(x). The selected point is mapped back by
+#'        its original row index, so plots, reported x/y values and vertical-line
+#'        positions remain in the original coordinate system.
+#' @param grp_nm Character, group name for output organization (default: NULL)
+#' @param dir_nm Character, directory name for output (default: "M1_ScanThreshold")
+#'
+#' @return A list containing:
+#'         \item{valid_features}{Valid pathogen genes found in STID_obj}
+#'         \item{scan_threshold_range}{Final threshold values used by both turning-point methods}
+#'         \item{threshold_scan_info}{Threshold source, quantile and point-count metadata}
+#'         \item{threshold_quantile_value}{Calculated positive-spot quantile threshold}
+#'         \item{threshold_source}{Whether the final range came from user input or the quantile rule}
+#'         \item{spot_count}{Pathogen counts and detected gene numbers for each spot}
+#'         \item{count_distribution}{Spot distribution for pathogen counts}
+#'         \item{gene_distribution}{Spot distribution for detected pathogen gene numbers}
+#'         \item{threshold_stat}{Positive spot statistics under each threshold}
+#'         \item{turning_point}{Turning points from two-segment linear regression}
+#'         \item{curvature_turning_point}{Turning points from curvature recognition}
+#'         \item{turning_point_all}{Combined turning points from both methods}
+#'         \item{turning_transform}{Transformation used only during turning-point calculations}
+#'         \item{plot_count}{Pathogen count distribution plot}
+#'         \item{plot_count_hist}{Pathogen count histogram with positive-spot quantile markers}
+#'         \item{plot_gene}{Pathogen gene number distribution plot}
+#'         \item{plot_threshold}{Positive spot number threshold scan plot}
+#'
+#' @import Seurat
+#' @import Matrix
+#' @import ggplot2
+#' @import dplyr
+#' @importFrom data.table fwrite
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' threshold_res <- ScanThreshold(
+#'   STID_obj = STID_object,
+#'   pathogen_features = pathogen_gene_vec,
+#'   threshold_range = NULL,
+#'   threshold_quantile = 0.99,
+#'   threshold_n = 100,
+#'   turning_transform = "log2",
+#'   assay_id = "Spatial",
+#'   layer_id = "counts"
+#' )
+#' }
+ScanThreshold <- function(
+    STID_obj = NULL, pathogen_features = NULL,
+    loop_id = "LoopAllSamp", meta_key = "raw",
+    assay_id = "Spatial", layer_id = "counts",
+    threshold_range = NULL,
+    threshold_quantile = 0.99, threshold_n = 100,
+    detect_turning_point = TRUE, turning_min_points = 3,
+    detect_curvature = TRUE, curvature_min_points = 3,
+    curvature_spar = 0.6,
+    turning_transform = c("none", "log2", "zscore"),
+    grp_nm = NULL, dir_nm = "M1_ScanThreshold"
+){
+  on.exit(while(sink.number() > 0){sink()}, add = TRUE)
+
+  # >>> Start pipeline
+  tmp_file <- tempfile()
+  sink(tmp_file,split = TRUE)
+  clog_start()
+
+  # >>> Check input patameter
+  clog_check( )
+  if (!inherits(STID_obj, "STID")) {
+    clog_error("Input object is not an STID object.")
+  }
+  .check_not_any_null(pathogen_features)
+  if(!is.character(pathogen_features)){
+    clog_error("pathogen_features must be a character vector")
+  }
+  if(!is.null(threshold_range)){
+    if(!is.numeric(threshold_range) | length(threshold_range) == 0){
+      clog_error("threshold_range must be NULL or a non-empty numeric vector")
+    }
+    if(any(!is.finite(threshold_range)) | any(threshold_range < 0)){
+      clog_error("threshold_range must contain finite values >= 0")
+    }
+    threshold_range <- sort(unique(as.numeric(threshold_range)))
+  }
+  if(!is.numeric(threshold_quantile) | length(threshold_quantile) != 1 |
+     is.na(threshold_quantile) | !is.finite(threshold_quantile) |
+     threshold_quantile <= 0 | threshold_quantile > 1){
+    clog_error("threshold_quantile must be a single numeric value in (0, 1]")
+  }
+  if(!is.numeric(threshold_n) | length(threshold_n) != 1 |
+     is.na(threshold_n) | !is.finite(threshold_n) |
+     threshold_n < 2 | threshold_n != round(threshold_n)){
+    clog_error("threshold_n must be a single integer >= 2")
+  }
+  if(!is.logical(detect_turning_point) | length(detect_turning_point) != 1 | is.na(detect_turning_point)){
+    clog_error("detect_turning_point must be TRUE or FALSE")
+  }
+  if(!is.numeric(turning_min_points) | length(turning_min_points) != 1 |
+     is.na(turning_min_points) | !is.finite(turning_min_points) |
+     turning_min_points < 2 | turning_min_points != round(turning_min_points)){
+    clog_error("turning_min_points must be a single integer >= 2")
+  }
+  if(!is.logical(detect_curvature) | length(detect_curvature) != 1 | is.na(detect_curvature)){
+    clog_error("detect_curvature must be TRUE or FALSE")
+  }
+  if(!is.numeric(curvature_min_points) | length(curvature_min_points) != 1 |
+     is.na(curvature_min_points) | !is.finite(curvature_min_points) |
+     curvature_min_points < 2 | curvature_min_points != round(curvature_min_points)){
+    clog_error("curvature_min_points must be a single integer >= 2")
+  }
+  if(!is.numeric(curvature_spar) | length(curvature_spar) != 1 |
+     is.na(curvature_spar) | !is.finite(curvature_spar) |
+     curvature_spar < 0 | curvature_spar > 1){
+    clog_error("curvature_spar must be a single numeric value between 0 and 1")
+  }
+  turning_transform <- match.arg(turning_transform)
+  turning_min_points <- as.integer(turning_min_points)
+  curvature_min_points <- as.integer(curvature_min_points)
+  threshold_n <- as.integer(threshold_n)
+  clog_normal(paste0("Turning-point calculation transform: ", turning_transform))
+  loop_single <- .check_loop_single( STID_obj = STID_obj, loop_id = loop_id, mode = 1 )
+  # >>> End check
+
+  # >>> dir
+  dir_list <- .create_directory(grp_nm,dir_nm)
+  output_dir <- dir_list$output_dir
+  photo_dir <- dir_list$photo_dir
+  grp_nm <- dir_list$grp_nm
+
+  # >>> Start calculate pathogen counts
+  clog_step("Start calculate pathogen counts for all spots")
+  pathogen_features <- unique( pathogen_features[nzchar(pathogen_features) & !is.na(pathogen_features)] )
+  valid_features <- .check_features_exist( STID_obj, pathogen_features )
+  len_feat <- length(valid_features)
+  if(len_feat == 0){
+    clog_error("No valid pathogen features found in STID_obj")
+  }
+  clog_normal( paste0( "Number of pathogen features: ", len_feat ) )
+  #>
+  meta_data <- GetMetaData( STID_obj = STID_obj, meta_key = meta_key )[[1]]
+  samp_colnm <- GetInfo( STID_obj, info_key = "data_info", sub_key = "samp_colnm" )[[1]]
+  count_assay <- GetAssayData( STID_obj, assay = assay_id, layer = layer_id )
+
+  # >>> Match spots between assay and metadata
+  common_spots <- intersect( colnames(count_assay), rownames(meta_data) )
+  if(length(common_spots) == 0){
+    clog_error( "No common spots found between assay data and meta data" )
+  }
+  if(length(common_spots) < ncol(count_assay)){
+    clog_warn(
+      paste0(
+        ncol(count_assay) - length(common_spots),
+        " spots in assay data are not found in meta data and will be removed"
+      )
+    )
+  }
+  meta_data <- meta_data[ common_spots, , drop = FALSE ]
+  keep_spots <- rownames(meta_data)[ meta_data[[samp_colnm]] %in% loop_single ]
+  meta_data <- meta_data[ keep_spots, , drop = FALSE ]
+  count_assay <- count_assay[ valid_features, keep_spots, drop = FALSE ]
+  clog_normal( paste0( "Dimension of pathogen count matrix: ", paste(dim(count_assay), collapse = " x ") ) )
+
+  # >>> Calculate pathogen counts and gene numbers per spot
+  clog_step("Calculate pathogen counts and detected gene numbers per spot")
+  pathogen_count <- Matrix::colSums( count_assay )
+  pathogen_gene_num <- Matrix::colSums( count_assay > 0 )
+  spot_count_df <- data.frame(
+    Spot_id = names(pathogen_count),
+    sample_id = meta_data[ names(pathogen_count), samp_colnm ],
+    Pathogen_Count = as.numeric( pathogen_count ),
+    Pathogen_GeneNum = as.numeric( pathogen_gene_num ),
+    stringsAsFactors = FALSE
+  )
+  fwrite(
+    spot_count_df,
+    file = paste0( output_dir, "Spot_PathogenStat_(ScanThreshold).txt" ),
+    sep = "\t",
+    quote = F,
+    col.names = T,
+    row.names = F,
+    na = "NA"
+  )
+
+  # >>> Determine the final threshold scan range
+  #
+  # Automatic mode uses the requested positive-spot quantile as the upper scan
+  # limit and threshold_n evenly spaced candidate values. When a user-provided
+  # threshold_range exists, the automatic range replaces it only when the
+  # quantile threshold is larger than max(threshold_range).
+  #
+  # At most 200 threshold values are retained. If more than 200 candidates are
+  # present, the two endpoints are always retained and 198 internal points are
+  # randomly sampled with a fixed local seed. The caller's global RNG state is
+  # restored afterwards, so this step is reproducible and has no RNG side effect.
+  positive_threshold_value <- spot_count_df$Pathogen_Count[
+    is.finite(spot_count_df$Pathogen_Count) &
+      spot_count_df$Pathogen_Count > 0
+  ]
+
+  threshold_quantile_value <- NA_real_
+  if(length(positive_threshold_value) > 0){
+    threshold_quantile_value <- ceiling(
+      as.numeric(
+        stats::quantile(
+          positive_threshold_value,
+          probs = threshold_quantile,
+          na.rm = TRUE,
+          names = FALSE,
+          type = 7
+        )
+      )
+    )
+    threshold_quantile_value <- max(1, threshold_quantile_value)
+  }
+
+  .make_quantile_threshold_range <- function(
+    max_value,
+    n_point,
+    min_value = 1
+  ){
+    min_value <- max(0, as.numeric(min_value))
+    max_value <- max(min_value, ceiling(as.numeric(max_value)))
+    n_point <- max(2L, as.integer(n_point))
+
+    # For a short integer range, retain every threshold. Otherwise create the
+    # requested number of evenly spaced integer candidates.
+    integer_span <- floor(max_value) - ceiling(min_value) + 1
+    if(is.finite(integer_span) && integer_span > 0 && integer_span <= n_point){
+      res <- seq(from = ceiling(min_value), to = floor(max_value), by = 1)
+    }else{
+      res <- round(seq(from = min_value, to = max_value, length.out = n_point))
+    }
+
+    sort(unique(as.numeric(c(min_value, res, max_value))))
+  }
+
+  .limit_threshold_points <- function(
+    x,
+    max_points = 200L,
+    random_seed = 123L
+  ){
+    x <- sort(unique(as.numeric(x[is.finite(x) & x >= 0])))
+    if(length(x) <= max_points){
+      return(x)
+    }
+
+    if(max_points < 2L){
+      return(x[1])
+    }
+
+    interior_index <- seq.int(2L, length(x) - 1L)
+    sample_size <- max_points - 2L
+
+    seed_exists <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    if(seed_exists){
+      old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    }
+
+    set.seed(random_seed)
+    sampled_index <- sample(interior_index, size = sample_size, replace = FALSE)
+
+    if(seed_exists){
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    }else if(exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)){
+      rm(".Random.seed", envir = .GlobalEnv)
+    }
+
+    sort(unique(x[c(1L, sampled_index, length(x))]))
+  }
+
+  if(is.null(threshold_range)){
+    if(!is.finite(threshold_quantile_value)){
+      clog_error(
+        paste0(
+          "threshold_range is NULL, but no positive Pathogen_Count values are ",
+          "available to calculate threshold_quantile"
+        )
+      )
+    }
+
+    threshold_range <- .make_quantile_threshold_range(
+      max_value = threshold_quantile_value,
+      n_point = threshold_n,
+      min_value = 1
+    )
+    threshold_source <- "positive_spot_quantile"
+  }else{
+    input_threshold_range <- threshold_range
+    if(is.finite(threshold_quantile_value) &&
+       threshold_quantile_value > max(input_threshold_range)){
+      threshold_range <- .make_quantile_threshold_range(
+        max_value = threshold_quantile_value,
+        n_point = threshold_n,
+        min_value = min(input_threshold_range)
+      )
+      threshold_source <- "positive_spot_quantile_exceeds_input_range"
+    }else{
+      threshold_range <- input_threshold_range
+      threshold_source <- "user_threshold_range"
+    }
+  }
+
+  threshold_point_num_before_limit <- length(threshold_range)
+  threshold_range <- .limit_threshold_points(
+    threshold_range,
+    max_points = 200L,
+    random_seed = 123L
+  )
+  threshold_point_num_after_limit <- length(threshold_range)
+
+  if(threshold_point_num_before_limit > 200L){
+    clog_warn(
+      paste0(
+        "Threshold candidates exceed 200 (n = ",
+        threshold_point_num_before_limit,
+        "). Retain the two endpoints and randomly sample internal points to ",
+        "produce 200 scan thresholds."
+      )
+    )
+  }
+
+  clog_normal(
+    paste0(
+      "Positive-spot threshold quantile (", threshold_quantile, "): ",
+      ifelse(
+        is.finite(threshold_quantile_value),
+        threshold_quantile_value,
+        "NA"
+      )
+    )
+  )
+  clog_normal(paste0("Threshold scan source: ", threshold_source))
+  clog_normal(
+    paste0(
+      "Final threshold_range (", threshold_point_num_after_limit, " points): ",
+      paste(threshold_range, collapse = ", "),
+      " (Pathogen_Count >= threshold will be retained)"
+    )
+  )
+
+  threshold_scan_info <- data.frame(
+    threshold_order = seq_along(threshold_range),
+    threshold = threshold_range,
+    threshold_source = threshold_source,
+    threshold_quantile = threshold_quantile,
+    threshold_quantile_value = threshold_quantile_value,
+    threshold_n = threshold_n,
+    point_num_before_limit = threshold_point_num_before_limit,
+    point_num_after_limit = threshold_point_num_after_limit,
+    stringsAsFactors = FALSE
+  )
+  fwrite(
+    threshold_scan_info,
+    file = paste0(output_dir, "Threshold_scan_range_(ScanThreshold).txt"),
+    sep = "\t",
+    quote = F,
+    col.names = T,
+    row.names = F,
+    na = "NA"
+  )
+
+  # >>> Common setting
+  max_scan_value <- max(threshold_range)
+  scan_levels <- c( as.character(threshold_range), paste0(">", max_scan_value) )
+  scan_sample <- c( "All", loop_single )
+
+  # Avoid drawing hundreds of overlapping x-axis labels while retaining all
+  # scan points for fitting and plotting.
+  scan_axis_index <- unique(
+    round(
+      seq(
+        from = 1,
+        to = length(scan_levels),
+        length.out = min(20L, length(scan_levels))
+      )
+    )
+  )
+  scan_axis_breaks <- scan_levels[scan_axis_index]
+  threshold_axis_breaks <- pretty(range(threshold_range), n = 10)
+  threshold_axis_breaks <- threshold_axis_breaks[
+    threshold_axis_breaks >= min(threshold_range) &
+      threshold_axis_breaks <= max(threshold_range)
+  ]
+  threshold_axis_breaks <- sort(
+    unique(c(min(threshold_range), threshold_axis_breaks, max(threshold_range)))
+  )
+
+  #>>> Pathogen count distribution
+  clog_step("Calculate pathogen count frequency distribution")
+  count_distribution_list <- vector( "list", length(scan_sample) )
+  for(i in seq_along(scan_sample)){
+    i_single <- scan_sample[i]
+    if(i_single == "All"){
+      i_value <- spot_count_df$Pathogen_Count
+    }else{
+      i_value <- spot_count_df$Pathogen_Count[ spot_count_df$sample_id == i_single ]
+    }
+
+    #> exclude zero pathogen counts
+    i_value_pos <- i_value[ i_value > 0 & !is.na(i_value) ]
+    i_total_spot_num <- length(i_value)
+    i_positive_spot_num <- length( i_value_pos )
+
+    #> frequencies at the selected scan thresholds
+    i_count_num <- sapply(
+      threshold_range,
+      function(x){
+        sum(i_value_pos == x)
+      }
+    )
+
+    #> aggregated overflow category above the maximum scan threshold
+    i_count_num <- c( i_count_num, sum(i_value_pos > max_scan_value) )
+    count_distribution_list[[i]] <- data.frame(
+      sample_id = i_single,
+      Pathogen_Count = factor( scan_levels, levels = scan_levels ),
+      spot_num = as.numeric( i_count_num ),
+      total_spot_num = i_total_spot_num,
+      positive_spot_num = i_positive_spot_num,
+      stringsAsFactors = FALSE
+    ) %>%
+      mutate(
+        spot_ratio = ifelse( total_spot_num > 0, spot_num / total_spot_num, NA_real_ ),
+        positive_spot_ratio = ifelse( positive_spot_num > 0, spot_num / positive_spot_num, NA_real_ )
+      )
+  }
+  count_distribution <- bind_rows( count_distribution_list )
+  count_distribution$sample_id <- factor( count_distribution$sample_id, levels = scan_sample )
+  count_distribution$Pathogen_Count <- factor( count_distribution$Pathogen_Count, levels = scan_levels )
+  fwrite(
+    count_distribution,
+    file = paste0( output_dir, "PathogenCount_distribution_(ScanThreshold).txt" ),
+    sep = "\t",
+    quote = F,
+    col.names = T,
+    row.names = F,
+    na = "NA"
+  )
+
+  #>>> Pathogen gene number distribution
+  clog_step("Calculate pathogen gene number frequency distribution")
+  gene_distribution_list <- vector( "list", length(scan_sample) )
+  for(i in seq_along(scan_sample)){
+    i_single <- scan_sample[i]
+    if(i_single == "All"){
+      i_value <- spot_count_df$Pathogen_GeneNum
+    }else{
+      i_value <- spot_count_df$Pathogen_GeneNum[ spot_count_df$sample_id == i_single ]
+    }
+
+    #> exclude spots without pathogen genes
+    i_value_pos <- i_value[ i_value > 0 & !is.na(i_value) ]
+    i_total_spot_num <- length( i_value )
+    i_positive_spot_num <- length( i_value_pos )
+
+    #> frequencies at the selected scan thresholds
+    i_gene_num <- sapply(
+      threshold_range,
+      function(x){
+        sum(i_value_pos == x)
+      }
+    )
+
+    #> aggregated overflow category above the maximum scan threshold
+    i_gene_num <- c( i_gene_num, sum(i_value_pos > max_scan_value) )
+    gene_distribution_list[[i]] <- data.frame(
+      sample_id = i_single,
+      Pathogen_GeneNum = factor( scan_levels, levels = scan_levels ),
+      spot_num = as.numeric( i_gene_num ),
+      total_spot_num = i_total_spot_num,
+      positive_spot_num = i_positive_spot_num,
+      stringsAsFactors = FALSE
+    ) %>%
+      mutate(
+        spot_ratio = ifelse( total_spot_num > 0, spot_num / total_spot_num, NA_real_ ),
+        positive_spot_ratio = ifelse( positive_spot_num > 0, spot_num / positive_spot_num, NA_real_ )
+      )
+  }
+  gene_distribution <- bind_rows( gene_distribution_list )
+  gene_distribution$sample_id <- factor( gene_distribution$sample_id, levels = scan_sample )
+  gene_distribution$Pathogen_GeneNum <- factor( gene_distribution$Pathogen_GeneNum, levels = scan_levels )
+  fwrite(
+    gene_distribution,
+    file = paste0( output_dir, "PathogenGeneNum_distribution_(ScanThreshold).txt" ),
+    sep = "\t",
+    quote = F,
+    col.names = T,
+    row.names = F,
+    na = "NA"
+  )
+
+  #>>> Threshold scan
+  clog_step("Start threshold scan")
+  threshold_stat_list <- vector( "list", length(scan_sample) )
+  for(i in seq_along(scan_sample)){
+    i_single <- scan_sample[i]
+    if(i_single == "All"){
+      i_count <- spot_count_df$Pathogen_Count
+    }else{
+      i_count <- spot_count_df$Pathogen_Count[ spot_count_df$sample_id == i_single ]
+    }
+    i_total_spot_num <- length( i_count )
+    threshold_stat_list[[i]] <- data.frame(
+      sample_id = i_single,
+      threshold = threshold_range,
+      total_spot_num = i_total_spot_num,
+      pos_spot_num = sapply(
+        threshold_range,
+        function(x){
+          sum( i_count >= x, na.rm = T )
+        }
+      ),
+      stringsAsFactors = FALSE
+    ) %>%
+      mutate( pos_spot_ratio = ifelse( total_spot_num > 0, pos_spot_num / total_spot_num, NA_real_ ) )
+  }
+  threshold_stat <- bind_rows( threshold_stat_list )
+  threshold_stat$sample_id <- factor( threshold_stat$sample_id, levels = scan_sample )
+  fwrite(
+    threshold_stat,
+    file = paste0( output_dir, "Threshold_PosSpot_stat_(ScanThreshold).txt" ),
+    sep = "\t",
+    quote = F,
+    col.names = T,
+    row.names = F,
+    na = "NA"
+  )
+
+  # >>> Transform x only for turning-point calculations
+  #
+  # The original x/y vectors are preserved. The methods select an original row
+  # index, so the reported x position is mapped back exactly to the original
+  # coordinate system rather than being obtained through an approximate inverse.
+  .transform_turning_x <- function(x_value, method = "none"){
+    method <- match.arg(method, c("none", "log2", "zscore"))
+
+    if(any(!is.finite(x_value))){
+      return(rep(NA_real_, length(x_value)))
+    }
+
+    if(method == "none"){
+      x_work <- x_value
+      x_range <- diff(range(x_work, na.rm = TRUE))
+      if(!is.finite(x_range) || x_range <= 0){
+        return(rep(NA_real_, length(x_value)))
+      }
+      return((x_work - min(x_work, na.rm = TRUE)) / x_range)
+    }
+
+    if(method == "log2"){
+      if(any(x_value < 0)){
+        return(rep(NA_real_, length(x_value)))
+      }
+      x_work <- log2(x_value + 1)
+      x_range <- diff(range(x_work, na.rm = TRUE))
+      if(!is.finite(x_range) || x_range <= 0){
+        return(rep(NA_real_, length(x_value)))
+      }
+      return((x_work - min(x_work, na.rm = TRUE)) / x_range)
+    }
+
+    x_sd <- stats::sd(x_value, na.rm = TRUE)
+    if(!is.finite(x_sd) || x_sd <= sqrt(.Machine$double.eps)){
+      return(rep(NA_real_, length(x_value)))
+    }
+    (x_value - mean(x_value, na.rm = TRUE)) / x_sd
+  }
+
+  # >>> Identify turning points using two complementary methods
+  #
+  # Method 1: two-segment linear regression. Each candidate point is used as the
+  # shared boundary of two linear segments after x and y are normalized to [0, 1].
+  # The point with the minimum total SSE is selected, with preference for a curve
+  # that changes from a steep decline to a flatter tail.
+  .find_segmented_turning_point <- function(
+    plot_data, x_col, y_col,
+    x_label_col = NULL,
+    sample_col = "sample_id",
+    min_segment_points = 3,
+    prefer_flattening = TRUE,
+    x_transform = "none"
+  ){
+    sample_vec <- unique(as.character(plot_data[[sample_col]]))
+
+    res <- lapply(sample_vec, function(i_sample){
+      i_data <- plot_data[
+        as.character(plot_data[[sample_col]]) == i_sample,
+        , drop = FALSE
+      ]
+
+      x_value <- as.numeric(i_data[[x_col]])
+      y_value <- as.numeric(i_data[[y_col]])
+      if(is.null(x_label_col)){
+        x_label <- format(x_value, trim = TRUE, scientific = FALSE)
+      }else{
+        x_label <- as.character(i_data[[x_label_col]])
+      }
+
+      keep_idx <- is.finite(x_value) & is.finite(y_value)
+      x_value <- x_value[keep_idx]
+      y_value <- y_value[keep_idx]
+      x_label <- x_label[keep_idx]
+
+      order_idx <- order(x_value)
+      x_value <- x_value[order_idx]
+      y_value <- y_value[order_idx]
+      x_label <- x_label[order_idx]
+
+      empty_res <- data.frame(
+        sample_id = i_sample,
+        x_value = NA_real_,
+        x_label = NA_character_,
+        y_value = NA_real_,
+        x_analysis_value = NA_real_,
+        analysis_transform = x_transform,
+        total_sse = NA_real_,
+        slope_before = NA_real_,
+        slope_after = NA_real_,
+        slope_change = NA_real_,
+        stringsAsFactors = FALSE
+      )
+
+      n_point <- length(x_value)
+      if(n_point < (2 * min_segment_points - 1) ||
+         length(unique(x_value)) < (2 * min_segment_points - 1)){
+        return(empty_res)
+      }
+
+      y_range <- diff(range(y_value, na.rm = TRUE))
+      if(!is.finite(y_range) || y_range <= sqrt(.Machine$double.eps)){
+        return(empty_res)
+      }
+
+      x_analysis <- .transform_turning_x(x_value, method = x_transform)
+      if(any(!is.finite(x_analysis)) ||
+         length(unique(x_analysis)) < (2 * min_segment_points - 1)){
+        return(empty_res)
+      }
+      y_norm <- (y_value - min(y_value, na.rm = TRUE)) / y_range
+
+      candidate_idx <- seq.int(
+        from = min_segment_points,
+        to = n_point - min_segment_points + 1
+      )
+
+      candidate_res <- lapply(candidate_idx, function(k){
+        before_idx <- seq_len(k)
+        after_idx <- k:n_point
+
+        fit_before <- tryCatch(
+          stats::lm(y_norm[before_idx] ~ x_analysis[before_idx]),
+          error = function(e) NULL
+        )
+        fit_after <- tryCatch(
+          stats::lm(y_norm[after_idx] ~ x_analysis[after_idx]),
+          error = function(e) NULL
+        )
+
+        if(is.null(fit_before) || is.null(fit_after)){
+          return(NULL)
+        }
+
+        slope_before <- unname(stats::coef(fit_before)[2])
+        slope_after <- unname(stats::coef(fit_after)[2])
+        total_sse <- sum(stats::residuals(fit_before)^2, na.rm = TRUE) +
+          sum(stats::residuals(fit_after)^2, na.rm = TRUE)
+
+        if(!all(is.finite(c(total_sse, slope_before, slope_after)))){
+          return(NULL)
+        }
+
+        data.frame(
+          index = k,
+          total_sse = total_sse,
+          slope_before = slope_before,
+          slope_after = slope_after,
+          slope_change = abs(slope_after - slope_before),
+          stringsAsFactors = FALSE
+        )
+      })
+
+      candidate_res <- bind_rows(candidate_res)
+      if(nrow(candidate_res) == 0){
+        return(empty_res)
+      }
+
+      candidate_use <- candidate_res
+      if(prefer_flattening){
+        flattening_res <- candidate_res %>%
+          filter(
+            slope_before < slope_after,
+            abs(slope_before) > abs(slope_after)
+          )
+        if(nrow(flattening_res) > 0){
+          candidate_use <- flattening_res
+        }
+      }
+
+      min_sse <- min(candidate_use$total_sse, na.rm = TRUE)
+      sse_tolerance <- max(1e-12, abs(min_sse) * 1e-8)
+      best_pool <- candidate_use %>%
+        filter(total_sse <= min_sse + sse_tolerance) %>%
+        arrange(desc(slope_change), index)
+
+      best_row <- best_pool[1, , drop = FALSE]
+      best_idx <- best_row$index[1]
+
+      data.frame(
+        sample_id = i_sample,
+        x_value = x_value[best_idx],
+        x_label = x_label[best_idx],
+        y_value = y_value[best_idx],
+        x_analysis_value = x_analysis[best_idx],
+        analysis_transform = x_transform,
+        total_sse = best_row$total_sse[1],
+        slope_before = best_row$slope_before[1],
+        slope_after = best_row$slope_after[1],
+        slope_change = best_row$slope_change[1],
+        stringsAsFactors = FALSE
+      )
+    })
+
+    bind_rows(res) %>%
+      filter(
+        is.finite(x_value),
+        is.finite(y_value),
+        is.finite(total_sse)
+      )
+  }
+
+  # Method 2: curvature of a smoothing spline. y is normalized to [0, 1].
+  # x uses the selected internal analysis transformation: original min-max scale,
+  # log2(x + 1) followed by min-max scaling, or z-score standardization.
+  # For y = f(x), curvature is |f''(x)| / (1 + f'(x)^2)^(3/2). Candidate points
+  # near both ends are excluded. For decreasing curves, points with f'(x) < 0
+  # and f''(x) > 0 are preferred because they represent rapid decline followed
+  # by flattening; if no such point exists, the maximum absolute curvature is used.
+  .find_curvature_turning_point <- function(
+    plot_data, x_col, y_col,
+    x_label_col = NULL,
+    sample_col = "sample_id",
+    min_edge_points = 3,
+    spar = 0.6,
+    prefer_flattening = TRUE,
+    x_transform = "none"
+  ){
+    sample_vec <- unique(as.character(plot_data[[sample_col]]))
+
+    res <- lapply(sample_vec, function(i_sample){
+      i_data <- plot_data[
+        as.character(plot_data[[sample_col]]) == i_sample,
+        , drop = FALSE
+      ]
+
+      x_value <- as.numeric(i_data[[x_col]])
+      y_value <- as.numeric(i_data[[y_col]])
+      if(is.null(x_label_col)){
+        x_label <- format(x_value, trim = TRUE, scientific = FALSE)
+      }else{
+        x_label <- as.character(i_data[[x_label_col]])
+      }
+
+      keep_idx <- is.finite(x_value) & is.finite(y_value)
+      x_value <- x_value[keep_idx]
+      y_value <- y_value[keep_idx]
+      x_label <- x_label[keep_idx]
+
+      order_idx <- order(x_value)
+      x_value <- x_value[order_idx]
+      y_value <- y_value[order_idx]
+      x_label <- x_label[order_idx]
+
+      empty_res <- data.frame(
+        sample_id = i_sample,
+        x_value = NA_real_,
+        x_label = NA_character_,
+        y_value = NA_real_,
+        x_analysis_value = NA_real_,
+        analysis_transform = x_transform,
+        smooth_y = NA_real_,
+        curvature = NA_real_,
+        first_derivative = NA_real_,
+        second_derivative = NA_real_,
+        spar = spar,
+        stringsAsFactors = FALSE
+      )
+
+      n_point <- length(x_value)
+      if(n_point < (2 * min_edge_points - 1) ||
+         length(unique(x_value)) < (2 * min_edge_points - 1)){
+        return(empty_res)
+      }
+
+      y_range <- diff(range(y_value, na.rm = TRUE))
+      if(!is.finite(y_range) || y_range <= sqrt(.Machine$double.eps)){
+        return(empty_res)
+      }
+
+      x_analysis <- .transform_turning_x(x_value, method = x_transform)
+      if(any(!is.finite(x_analysis)) ||
+         length(unique(x_analysis)) < (2 * min_edge_points - 1)){
+        return(empty_res)
+      }
+      y_norm <- (y_value - min(y_value, na.rm = TRUE)) / y_range
+
+      spline_fit <- tryCatch(
+        stats::smooth.spline(
+          x = x_analysis,
+          y = y_norm,
+          spar = spar,
+          all.knots = TRUE
+        ),
+        error = function(e) NULL
+      )
+      if(is.null(spline_fit)){
+        return(empty_res)
+      }
+
+      smooth_y_norm <- tryCatch(
+        stats::predict(spline_fit, x = x_analysis, deriv = 0)$y,
+        error = function(e) rep(NA_real_, n_point)
+      )
+      first_derivative <- tryCatch(
+        stats::predict(spline_fit, x = x_analysis, deriv = 1)$y,
+        error = function(e) rep(NA_real_, n_point)
+      )
+      second_derivative <- tryCatch(
+        stats::predict(spline_fit, x = x_analysis, deriv = 2)$y,
+        error = function(e) rep(NA_real_, n_point)
+      )
+
+      curvature <- abs(second_derivative) /
+        (1 + first_derivative^2)^(3/2)
+
+      candidate_idx <- seq.int(
+        from = min_edge_points,
+        to = n_point - min_edge_points + 1
+      )
+      candidate_res <- data.frame(
+        index = candidate_idx,
+        curvature = curvature[candidate_idx],
+        first_derivative = first_derivative[candidate_idx],
+        second_derivative = second_derivative[candidate_idx],
+        stringsAsFactors = FALSE
+      ) %>%
+        filter(
+          is.finite(curvature),
+          is.finite(first_derivative),
+          is.finite(second_derivative)
+        )
+
+      if(nrow(candidate_res) == 0){
+        return(empty_res)
+      }
+
+      candidate_use <- candidate_res
+      if(prefer_flattening){
+        flattening_res <- candidate_res %>%
+          filter(
+            first_derivative < 0,
+            second_derivative > 0
+          )
+        if(nrow(flattening_res) > 0){
+          candidate_use <- flattening_res
+        }
+      }
+
+      max_curvature <- max(candidate_use$curvature, na.rm = TRUE)
+      curvature_tolerance <- max(1e-12, abs(max_curvature) * 1e-8)
+
+      # Use base-R row indexing instead of slice(). In environments where
+      # Bioconductor packages are loaded, another S4 generic named slice can
+      # mask dplyr::slice and attempt to construct an unsupported list Rle.
+      best_pool <- candidate_use[
+        candidate_use$curvature >= max_curvature - curvature_tolerance,
+        , drop = FALSE
+      ]
+      if(nrow(best_pool) == 0){
+        return(empty_res)
+      }
+      best_pool <- best_pool[order(best_pool$index), , drop = FALSE]
+      best_row <- best_pool[1, , drop = FALSE]
+      best_idx <- best_row$index[1]
+
+      data.frame(
+        sample_id = i_sample,
+        x_value = x_value[best_idx],
+        x_label = x_label[best_idx],
+        y_value = y_value[best_idx],
+        x_analysis_value = x_analysis[best_idx],
+        analysis_transform = x_transform,
+        smooth_y = smooth_y_norm[best_idx] * y_range + min(y_value, na.rm = TRUE),
+        curvature = best_row$curvature[1],
+        first_derivative = best_row$first_derivative[1],
+        second_derivative = best_row$second_derivative[1],
+        spar = spar,
+        stringsAsFactors = FALSE
+      )
+    })
+
+    bind_rows(res) %>%
+      filter(
+        is.finite(x_value),
+        is.finite(y_value),
+        is.finite(curvature)
+      )
+  }
+
+  count_turning_input <- count_distribution %>%
+    filter(as.character(Pathogen_Count) != paste0(">", max_scan_value)) %>%
+    mutate(turning_x = suppressWarnings(as.numeric(as.character(Pathogen_Count))))
+  gene_turning_input <- gene_distribution %>%
+    filter(as.character(Pathogen_GeneNum) != paste0(">", max_scan_value)) %>%
+    mutate(turning_x = suppressWarnings(as.numeric(as.character(Pathogen_GeneNum))))
+
+  count_turning_point <- data.frame()
+  gene_turning_point <- data.frame()
+  threshold_turning_point <- data.frame()
+  count_curvature_point <- data.frame()
+  gene_curvature_point <- data.frame()
+  threshold_curvature_point <- data.frame()
+  segmented_turning_point_stat <- data.frame()
+  curvature_turning_point_stat <- data.frame()
+  turning_point_stat <- data.frame()
+
+  if(detect_turning_point){
+    clog_step(paste0("Identify turning points using two-segment linear regression; x transform: ", turning_transform))
+
+    count_turning_point <- .find_segmented_turning_point(
+      plot_data = count_turning_input,
+      x_col = "turning_x",
+      y_col = "spot_num",
+      x_label_col = "Pathogen_Count",
+      min_segment_points = turning_min_points,
+      prefer_flattening = TRUE,
+      x_transform = turning_transform
+    ) %>%
+      mutate(
+        sample_id = factor(sample_id, levels = scan_sample),
+        Pathogen_Count = factor(x_label, levels = scan_levels),
+        xintercept = match(x_label, scan_levels)
+      )
+
+    gene_turning_point <- .find_segmented_turning_point(
+      plot_data = gene_turning_input,
+      x_col = "turning_x",
+      y_col = "spot_num",
+      x_label_col = "Pathogen_GeneNum",
+      min_segment_points = turning_min_points,
+      prefer_flattening = TRUE,
+      x_transform = turning_transform
+    ) %>%
+      mutate(
+        sample_id = factor(sample_id, levels = scan_sample),
+        Pathogen_GeneNum = factor(x_label, levels = scan_levels),
+        xintercept = match(x_label, scan_levels)
+      )
+
+    threshold_turning_point <- .find_segmented_turning_point(
+      plot_data = threshold_stat,
+      x_col = "threshold",
+      y_col = "pos_spot_num",
+      x_label_col = "threshold",
+      min_segment_points = turning_min_points,
+      prefer_flattening = TRUE,
+      x_transform = turning_transform
+    ) %>%
+      mutate(
+        sample_id = factor(sample_id, levels = scan_sample),
+        threshold = x_value,
+        xintercept = x_value
+      )
+
+    segmented_turning_point_stat <- bind_rows(
+      count_turning_point %>%
+        transmute(
+          curve = "PathogenCount_distribution",
+          sample_id = as.character(sample_id),
+          turning_x = x_label,
+          turning_y = y_value,
+          analysis_x = x_analysis_value,
+          analysis_transform = analysis_transform,
+          method = "two_segment_linear_regression",
+          total_sse = total_sse,
+          slope_before = slope_before,
+          slope_after = slope_after,
+          slope_change = slope_change
+        ),
+      gene_turning_point %>%
+        transmute(
+          curve = "PathogenGeneNum_distribution",
+          sample_id = as.character(sample_id),
+          turning_x = x_label,
+          turning_y = y_value,
+          analysis_x = x_analysis_value,
+          analysis_transform = analysis_transform,
+          method = "two_segment_linear_regression",
+          total_sse = total_sse,
+          slope_before = slope_before,
+          slope_after = slope_after,
+          slope_change = slope_change
+        ),
+      threshold_turning_point %>%
+        transmute(
+          curve = "PosSpotNum_threshold_curve",
+          sample_id = as.character(sample_id),
+          turning_x = format(x_value, trim = TRUE, scientific = FALSE),
+          turning_y = y_value,
+          analysis_x = x_analysis_value,
+          analysis_transform = analysis_transform,
+          method = "two_segment_linear_regression",
+          total_sse = total_sse,
+          slope_before = slope_before,
+          slope_after = slope_after,
+          slope_change = slope_change
+        )
+    )
+
+    fwrite(
+      segmented_turning_point_stat,
+      file = paste0(output_dir, "TurningPoint_segmented_regression_(ScanThreshold).txt"),
+      sep = "\t",
+      quote = F,
+      col.names = T,
+      row.names = F,
+      na = "NA"
+    )
+  }
+
+  if(detect_curvature){
+    clog_step(paste0("Identify turning points using smoothing-spline curvature; x transform: ", turning_transform))
+
+    count_curvature_point <- .find_curvature_turning_point(
+      plot_data = count_turning_input,
+      x_col = "turning_x",
+      y_col = "spot_num",
+      x_label_col = "Pathogen_Count",
+      min_edge_points = curvature_min_points,
+      spar = curvature_spar,
+      prefer_flattening = TRUE,
+      x_transform = turning_transform
+    ) %>%
+      mutate(
+        sample_id = factor(sample_id, levels = scan_sample),
+        Pathogen_Count = factor(x_label, levels = scan_levels),
+        xintercept = match(x_label, scan_levels)
+      )
+
+    gene_curvature_point <- .find_curvature_turning_point(
+      plot_data = gene_turning_input,
+      x_col = "turning_x",
+      y_col = "spot_num",
+      x_label_col = "Pathogen_GeneNum",
+      min_edge_points = curvature_min_points,
+      spar = curvature_spar,
+      prefer_flattening = TRUE,
+      x_transform = turning_transform
+    ) %>%
+      mutate(
+        sample_id = factor(sample_id, levels = scan_sample),
+        Pathogen_GeneNum = factor(x_label, levels = scan_levels),
+        xintercept = match(x_label, scan_levels)
+      )
+
+    threshold_curvature_point <- .find_curvature_turning_point(
+      plot_data = threshold_stat,
+      x_col = "threshold",
+      y_col = "pos_spot_num",
+      x_label_col = "threshold",
+      min_edge_points = curvature_min_points,
+      spar = curvature_spar,
+      prefer_flattening = TRUE,
+      x_transform = turning_transform
+    ) %>%
+      mutate(
+        sample_id = factor(sample_id, levels = scan_sample),
+        threshold = x_value,
+        xintercept = x_value
+      )
+
+    curvature_turning_point_stat <- bind_rows(
+      count_curvature_point %>%
+        transmute(
+          curve = "PathogenCount_distribution",
+          sample_id = as.character(sample_id),
+          turning_x = x_label,
+          turning_y = y_value,
+          analysis_x = x_analysis_value,
+          analysis_transform = analysis_transform,
+          method = "smoothing_spline_curvature",
+          smooth_y = smooth_y,
+          curvature = curvature,
+          first_derivative = first_derivative,
+          second_derivative = second_derivative,
+          spar = spar
+        ),
+      gene_curvature_point %>%
+        transmute(
+          curve = "PathogenGeneNum_distribution",
+          sample_id = as.character(sample_id),
+          turning_x = x_label,
+          turning_y = y_value,
+          analysis_x = x_analysis_value,
+          analysis_transform = analysis_transform,
+          method = "smoothing_spline_curvature",
+          smooth_y = smooth_y,
+          curvature = curvature,
+          first_derivative = first_derivative,
+          second_derivative = second_derivative,
+          spar = spar
+        ),
+      threshold_curvature_point %>%
+        transmute(
+          curve = "PosSpotNum_threshold_curve",
+          sample_id = as.character(sample_id),
+          turning_x = format(x_value, trim = TRUE, scientific = FALSE),
+          turning_y = y_value,
+          analysis_x = x_analysis_value,
+          analysis_transform = analysis_transform,
+          method = "smoothing_spline_curvature",
+          smooth_y = smooth_y,
+          curvature = curvature,
+          first_derivative = first_derivative,
+          second_derivative = second_derivative,
+          spar = spar
+        )
+    )
+
+    fwrite(
+      curvature_turning_point_stat,
+      file = paste0(output_dir, "TurningPoint_curvature_(ScanThreshold).txt"),
+      sep = "\t",
+      quote = F,
+      col.names = T,
+      row.names = F,
+      na = "NA"
+    )
+  }
+
+  turning_point_stat <- bind_rows(
+    segmented_turning_point_stat,
+    curvature_turning_point_stat
+  )
+  if(nrow(turning_point_stat) > 0){
+    fwrite(
+      turning_point_stat,
+      file = paste0(output_dir, "TurningPoint_all_methods_(ScanThreshold).txt"),
+      sep = "\t",
+      quote = F,
+      col.names = T,
+      row.names = F,
+      na = "NA"
+    )
+  }
+
+  turning_method_levels <- c("Segmented regression", "Curvature")
+  turning_method_colors <- c(
+    "Segmented regression" = "#D73027",
+    "Curvature" = "#009E73"
+  )
+  turning_method_linetypes <- c(
+    "Segmented regression" = "dashed",
+    "Curvature" = "dotdash"
+  )
+
+  # >>> Prepare plot markers and labels
+  # Labels are placed at two fixed relative heights within each facet so that
+  # segmented-regression and curvature annotations remain readable even when
+  # their x positions are identical or very close.
+  .format_plot_value <- function(x, digits = 4, scientific = FALSE){
+    ifelse(
+      is.finite(x),
+      format(signif(x, digits), trim = TRUE, scientific = scientific),
+      "NA"
+    )
+  }
+
+  curvature_scale_label <- switch(
+    turning_transform,
+    none = "kappa(norm-x)",
+    log2 = "kappa(log2-x)",
+    zscore = "kappa(z-x)"
+  )
+
+  count_panel_stat <- count_distribution %>%
+    group_by(sample_id) %>%
+    summarise(
+      panel_y_max = max(spot_num, na.rm = TRUE),
+      panel_x_mid = (length(scan_levels) + 1) / 2,
+      .groups = "drop"
+    )
+
+  count_marker <- bind_rows(
+    if(nrow(count_turning_point) > 0){
+      count_turning_point %>%
+        transmute(
+          sample_id = sample_id,
+          Pathogen_Count = Pathogen_Count,
+          xintercept = xintercept,
+          y_value = y_value,
+          curvature = NA_real_,
+          method = "Segmented regression",
+          plot_label = paste0(
+            "Segmented\n",
+            "x = ", .format_plot_value(x_value),
+            ", y = ", .format_plot_value(y_value)
+          )
+        )
+    }else{
+      data.frame()
+    },
+    if(nrow(count_curvature_point) > 0){
+      count_curvature_point %>%
+        transmute(
+          sample_id = sample_id,
+          Pathogen_Count = Pathogen_Count,
+          xintercept = xintercept,
+          y_value = y_value,
+          curvature = curvature,
+          method = "Curvature",
+          plot_label = paste0(
+            "Curvature\n",
+            "x = ", .format_plot_value(x_value),
+            ", y = ", .format_plot_value(y_value),
+            "\n", curvature_scale_label, " = ", .format_plot_value(curvature, scientific = TRUE)
+          )
+        )
+    }else{
+      data.frame()
+    }
+  )
+  if(nrow(count_marker) > 0){
+    count_marker <- count_marker %>%
+      mutate(method = factor(method, levels = turning_method_levels)) %>%
+      left_join(count_panel_stat, by = "sample_id") %>%
+      mutate(
+        panel_y_max = pmax(panel_y_max, 1),
+        label_y = ifelse(
+          as.character(method) == "Segmented regression",
+          panel_y_max * 1.28,
+          panel_y_max * 1.02
+        ),
+        label_hjust = ifelse(xintercept <= panel_x_mid, 0, 1)
+      )
+  }
+
+  gene_panel_stat <- gene_distribution %>%
+    group_by(sample_id) %>%
+    summarise(
+      panel_y_max = max(spot_num, na.rm = TRUE),
+      panel_x_mid = (length(scan_levels) + 1) / 2,
+      .groups = "drop"
+    )
+
+  gene_marker <- bind_rows(
+    if(nrow(gene_turning_point) > 0){
+      gene_turning_point %>%
+        transmute(
+          sample_id = sample_id,
+          Pathogen_GeneNum = Pathogen_GeneNum,
+          xintercept = xintercept,
+          y_value = y_value,
+          curvature = NA_real_,
+          method = "Segmented regression",
+          plot_label = paste0(
+            "Segmented\n",
+            "x = ", .format_plot_value(x_value),
+            ", y = ", .format_plot_value(y_value)
+          )
+        )
+    }else{
+      data.frame()
+    },
+    if(nrow(gene_curvature_point) > 0){
+      gene_curvature_point %>%
+        transmute(
+          sample_id = sample_id,
+          Pathogen_GeneNum = Pathogen_GeneNum,
+          xintercept = xintercept,
+          y_value = y_value,
+          curvature = curvature,
+          method = "Curvature",
+          plot_label = paste0(
+            "Curvature\n",
+            "x = ", .format_plot_value(x_value),
+            ", y = ", .format_plot_value(y_value),
+            "\n", curvature_scale_label, " = ", .format_plot_value(curvature, scientific = TRUE)
+          )
+        )
+    }else{
+      data.frame()
+    }
+  )
+  if(nrow(gene_marker) > 0){
+    gene_marker <- gene_marker %>%
+      mutate(method = factor(method, levels = turning_method_levels)) %>%
+      left_join(gene_panel_stat, by = "sample_id") %>%
+      mutate(
+        panel_y_max = pmax(panel_y_max, 1),
+        label_y = ifelse(
+          as.character(method) == "Segmented regression",
+          panel_y_max * 1.28,
+          panel_y_max * 1.02
+        ),
+        label_hjust = ifelse(xintercept <= panel_x_mid, 0, 1)
+      )
+  }
+
+  threshold_panel_stat <- threshold_stat %>%
+    group_by(sample_id) %>%
+    summarise(
+      panel_y_max = max(pos_spot_num, na.rm = TRUE),
+      panel_x_mid = mean(range(threshold, na.rm = TRUE)),
+      .groups = "drop"
+    )
+
+  threshold_marker <- bind_rows(
+    if(nrow(threshold_turning_point) > 0){
+      threshold_turning_point %>%
+        transmute(
+          sample_id = sample_id,
+          threshold = threshold,
+          xintercept = xintercept,
+          y_value = y_value,
+          curvature = NA_real_,
+          method = "Segmented regression",
+          plot_label = paste0(
+            "Segmented\n",
+            "x = ", .format_plot_value(x_value),
+            ", y = ", .format_plot_value(y_value)
+          )
+        )
+    }else{
+      data.frame()
+    },
+    if(nrow(threshold_curvature_point) > 0){
+      threshold_curvature_point %>%
+        transmute(
+          sample_id = sample_id,
+          threshold = threshold,
+          xintercept = xintercept,
+          y_value = y_value,
+          curvature = curvature,
+          method = "Curvature",
+          plot_label = paste0(
+            "Curvature\n",
+            "x = ", .format_plot_value(x_value),
+            ", y = ", .format_plot_value(y_value),
+            "\n", curvature_scale_label, " = ", .format_plot_value(curvature, scientific = TRUE)
+          )
+        )
+    }else{
+      data.frame()
+    }
+  )
+  if(nrow(threshold_marker) > 0){
+    threshold_marker <- threshold_marker %>%
+      mutate(method = factor(method, levels = turning_method_levels)) %>%
+      left_join(threshold_panel_stat, by = "sample_id") %>%
+      mutate(
+        panel_y_max = pmax(panel_y_max, 1),
+        label_y = ifelse(
+          as.character(method) == "Segmented regression",
+          panel_y_max * 1.28,
+          panel_y_max * 1.02
+        ),
+        label_hjust = ifelse(xintercept <= panel_x_mid, 0, 1)
+      )
+  }
+
+  #>>> Plot pathogen count distribution
+  clog_step("Plot pathogen counts frequency distribution")
+  p_count <- ggplot( count_distribution, aes( x = Pathogen_Count, y = spot_num, group = 1 ) ) +
+    geom_line( linewidth = 0.9, color = "#2C7FB8" ) +
+    geom_point( size = 2, color = "#2C7FB8" ) +
+    facet_wrap( ~sample_id, ncol = 3, scales = "free_y" ) +
+    labs(
+      title = "Pathogen counts frequency distribution in spots",
+      subtitle = paste0( "Number of pathogen genes: ", len_feat ),
+      x = "Pathogen counts per spot",
+      y = "Number of spots"
+    ) +
+    theme_test() +
+    scale_x_discrete( breaks = scan_axis_breaks ) +
+    scale_y_continuous( expand = expansion( mult = c(0.05, 0.42) ) ) +
+    theme(
+      plot.title = element_text( hjust = 0.5 ),
+      plot.subtitle = element_text( hjust = 0.5 ),
+      axis.text.x = element_text( angle = 45, hjust = 1 ),
+      strip.background = element_rect( fill = "grey95" ),
+      plot.margin = margin(8, 18, 8, 8)
+    )
+  if(nrow(count_marker) > 0){
+    p_count <- p_count +
+      geom_vline(
+        data = count_marker,
+        aes(
+          xintercept = xintercept,
+          color = method,
+          linetype = method
+        ),
+        linewidth = 0.8,
+        inherit.aes = FALSE
+      ) +
+      geom_point(
+        data = count_marker,
+        aes(
+          x = Pathogen_Count,
+          y = y_value,
+          color = method
+        ),
+        shape = 21,
+        fill = "white",
+        size = 2.8,
+        stroke = 0.9,
+        inherit.aes = FALSE
+      ) +
+      geom_label(
+        data = count_marker,
+        aes(
+          x = Pathogen_Count,
+          y = label_y,
+          label = plot_label,
+          color = method,
+          hjust = label_hjust
+        ),
+        fill = "white",
+        size = 2.45,
+        linewidth = 0.25,
+        lineheight = 0.9,
+        vjust = 0.5,
+        show.legend = FALSE,
+        inherit.aes = FALSE
+      ) +
+      scale_color_manual(
+        name = "Turning-point method",
+        values = turning_method_colors
+      ) +
+      scale_linetype_manual(
+        name = "Turning-point method",
+        values = turning_method_linetypes
+      )
+  }
+  panel_num <- length( scan_sample )
+  if(panel_num < 3 ){
+    plot_width = panel_num * 3 + 4
+  }else{
+    plot_width = 10
+  }
+  ggsave(
+    p_count,
+    filename = paste0( photo_dir, "PathogenCount_distribution_(ScanThreshold).pdf" ),
+    width = plot_width,
+    height = 3.5*ceiling( panel_num/3 ) + 0.5,
+    limitsize = FALSE
+  )
+
+  #>>> Plot pathogen count histogram by sample using .Plot_histgram
+  clog_step("Plot pathogen count histogram by sample with positive-spot quantiles")
+
+  count_hist_data <- bind_rows(
+    #> all samples combined
+    spot_count_df %>%
+      transmute(
+        feature = "All",
+        exp_pos = Pathogen_Count,
+        basic_thres_value = 0
+      ),
+
+    #> each sample separately
+    spot_count_df %>%
+      transmute(
+        feature = as.character(sample_id),
+        exp_pos = Pathogen_Count,
+        basic_thres_value = 0
+      )
+  ) %>%
+    mutate(
+      feature = factor(feature, levels = scan_sample)
+    )
+
+  p_count_hist <- .Plot_histgram(
+    plot_data = count_hist_data,
+    samp_colnm = NULL,
+    col = "#99C5E3",
+    title = "Pathogen count distribution in spots",
+    subtitle = paste0(
+      "Quantiles are calculated separately from Pathogen_Count > 0 spots; ",
+      "total pathogen genes: ", len_feat
+    )
+  ) +
+    labs(
+      x = "Pathogen counts per spot",
+      y = "Spot number"
+    )
+
+  ggsave(
+    p_count_hist,
+    filename = paste0( photo_dir, "PathogenCount_histgram_(ScanThreshold).pdf" ),
+    width = ifelse(length(scan_sample) <= 4, 4 * length(scan_sample), 16),
+    height = 3.5 * ceiling(length(scan_sample) / 4) + 0.5,
+    limitsize = FALSE
+  )
+
+  #>>> Plot pathogen gene number distribution
+  clog_step("Plot pathogen gene number frequency distribution")
+  p_gene <- ggplot( gene_distribution, aes( x = Pathogen_GeneNum, y = spot_num, group = 1 ) ) +
+    geom_line( linewidth = 0.9, color = "#D95F02" ) +
+    geom_point( size = 2, color = "#D95F02" ) +
+    facet_wrap( ~sample_id, ncol = 3, scales = "free_y" ) +
+    labs(
+      title = "Pathogen gene number frequency distribution in spots",
+      subtitle = paste0( "Total pathogen genes: ", len_feat ),
+      x = "Number of detected pathogen genes per spot",
+      y = "Number of spots"
+    ) +
+    theme_test() +
+    scale_x_discrete( breaks = scan_axis_breaks ) +
+    scale_y_continuous( expand = expansion( mult = c(0.05, 0.42) ) ) +
+    theme(
+      plot.title = element_text( hjust = 0.5 ),
+      plot.subtitle = element_text( hjust = 0.5 ),
+      axis.text.x = element_text( angle = 45, hjust = 1 ),
+      strip.background = element_rect( fill = "grey95" ),
+      plot.margin = margin(8, 18, 8, 8)
+    )
+  if(nrow(gene_marker) > 0){
+    p_gene <- p_gene +
+      geom_vline(
+        data = gene_marker,
+        aes(
+          xintercept = xintercept,
+          color = method,
+          linetype = method
+        ),
+        linewidth = 0.8,
+        inherit.aes = FALSE
+      ) +
+      geom_point(
+        data = gene_marker,
+        aes(
+          x = Pathogen_GeneNum,
+          y = y_value,
+          color = method
+        ),
+        shape = 21,
+        fill = "white",
+        size = 2.8,
+        stroke = 0.9,
+        inherit.aes = FALSE
+      ) +
+      geom_label(
+        data = gene_marker,
+        aes(
+          x = Pathogen_GeneNum,
+          y = label_y,
+          label = plot_label,
+          color = method,
+          hjust = label_hjust
+        ),
+        fill = "white",
+        size = 2.45,
+        linewidth = 0.25,
+        lineheight = 0.9,
+        vjust = 0.5,
+        show.legend = FALSE,
+        inherit.aes = FALSE
+      ) +
+      scale_color_manual(
+        name = "Turning-point method",
+        values = turning_method_colors
+      ) +
+      scale_linetype_manual(
+        name = "Turning-point method",
+        values = turning_method_linetypes
+      )
+  }
+  ggsave(
+    p_gene,
+    filename = paste0( photo_dir, "PathogenGeneNum_distribution_(ScanThreshold).pdf" ),
+    width = plot_width,
+    height = 3.5*ceiling( panel_num/3 ) + 0.5,
+    limitsize = FALSE
+  )
+
+  #>>> Plot positive spots under different thresholds
+  clog_step( "Plot positive spot number under different thresholds" )
+  p_threshold <- ggplot( threshold_stat, aes( x = threshold, y = pos_spot_num, group = 1 ) ) +
+    geom_line( linewidth = 0.9, color = "#756BB1" ) +
+    geom_point( size = 2, color = "#756BB1" ) +
+    facet_wrap( ~sample_id, ncol = 3, scales = "free_y" ) +
+    labs(
+      title = "Positive spot number under different pathogen count thresholds",
+      subtitle = "Positive spot: Pathogen_Count >= threshold",
+      x = "Pathogen count threshold",
+      y = "Number of positive spots"
+    ) +
+    theme_test() +
+    scale_x_continuous( breaks = threshold_axis_breaks ) +
+    scale_y_continuous( expand = expansion( mult = c(0.05, 0.42) ) ) +
+    theme(
+      plot.title = element_text( hjust = 0.5 ),
+      plot.subtitle = element_text( hjust = 0.5 ),
+      axis.text.x = element_text( angle = 45, hjust = 1 ),
+      strip.background = element_rect( fill = "grey95" ),
+      plot.margin = margin(8, 18, 8, 8)
+    )
+  if(nrow(threshold_marker) > 0){
+    p_threshold <- p_threshold +
+      geom_vline(
+        data = threshold_marker,
+        aes(
+          xintercept = xintercept,
+          color = method,
+          linetype = method
+        ),
+        linewidth = 0.8,
+        inherit.aes = FALSE
+      ) +
+      geom_point(
+        data = threshold_marker,
+        aes(
+          x = threshold,
+          y = y_value,
+          color = method
+        ),
+        shape = 21,
+        fill = "white",
+        size = 2.8,
+        stroke = 0.9,
+        inherit.aes = FALSE
+      ) +
+      geom_label(
+        data = threshold_marker,
+        aes(
+          x = threshold,
+          y = label_y,
+          label = plot_label,
+          color = method,
+          hjust = label_hjust
+        ),
+        fill = "white",
+        size = 2.45,
+        linewidth = 0.25,
+        lineheight = 0.9,
+        vjust = 0.5,
+        show.legend = FALSE,
+        inherit.aes = FALSE
+      ) +
+      scale_color_manual(
+        name = "Turning-point method",
+        values = turning_method_colors
+      ) +
+      scale_linetype_manual(
+        name = "Turning-point method",
+        values = turning_method_linetypes
+      )
+  }
+  ggsave(
+    p_threshold,
+    filename = paste0( photo_dir, "PosSpotNum_threshold_curve_(ScanThreshold).pdf" ),
+    width = plot_width,
+    height = 3.5*ceiling( panel_num/3 ) + 0.5,
+    limitsize = FALSE
+  )
+
+  # >>> Final
+  res_list <- list(
+    valid_features = valid_features,
+    scan_threshold_range = threshold_range,
+    threshold_scan_info = threshold_scan_info,
+    threshold_quantile_value = threshold_quantile_value,
+    threshold_source = threshold_source,
+    spot_count = spot_count_df,
+    count_distribution = count_distribution,
+    gene_distribution = gene_distribution,
+    threshold_stat = threshold_stat,
+    turning_point = segmented_turning_point_stat,
+    segmented_turning_point = segmented_turning_point_stat,
+    curvature_turning_point = curvature_turning_point_stat,
+    turning_point_all = turning_point_stat,
+    turning_transform = turning_transform,
+    count_turning_point = count_turning_point,
+    gene_turning_point = gene_turning_point,
+    threshold_turning_point = threshold_turning_point,
+    count_curvature_point = count_curvature_point,
+    gene_curvature_point = gene_curvature_point,
+    threshold_curvature_point = threshold_curvature_point,
+    plot_count = p_count,
+    plot_count_hist = p_count_hist,
+    plot_gene = p_gene,
+    plot_threshold = p_threshold
+  )
+  .save_function_params(
+    "ScanThreshold",
+    envir = environment(),
+    file = paste0( output_dir, "Log_function_params_(ScanThreshold).log" )
+  )
+  clog_end()
+  sink()
+  file.rename( tmp_file, paste0( output_dir, "Log_termial_output_(ScanThreshold).log" ) ) %>%
+    invisible()
+  return( res_list )
+}
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -346,8 +2304,9 @@ CorrectBackground <- function(STID_obj = NULL,
 #' @param PosThres_prob Numeric, probability threshold (0-1) for positive detection
 #'        (default: 0)
 #' @param PosThres_count Numeric, absolute count threshold for positive detection
-#'        (default: 0)
-#' @param PosThres_gene Numeric, gene number threshold (default: 1)
+#'        (default: 1)
+#' @param PosThres_operator Character, operator for threshold comparison - ">=" or ">"
+#'        (default: ">=")
 #' @param col Color palette for visualization (default: COLOR_DIS_CON)
 #' @param pt_size Numeric, point size in spatial plots (default: 0.5)
 #' @param vmin Numeric or character, minimum value for color scale (default: NULL)
@@ -389,7 +2348,7 @@ CorrectBackground <- function(STID_obj = NULL,
 SpotDetect_Gene <- function(
     STID_obj = NULL, features = NULL, feature_colnm = NULL,
     loop_id= "LoopAllSamp", assay_id = "Spatial", layer_id = "counts",
-    PosThres_prob = 0, PosThres_count = 0, PosThres_gene = 1,
+    PosThres_prob = 0, PosThres_count = 1, PosThres_operator = c(">=", ">"),
     col = COLOR_DIS_CON, pt_size = 0.5, vmin = NULL, vmax = "p99",
     black_bg = FALSE, plot_method = "merge",
     blur_method = NULL, blur_n = 1, blur_sigma = 0.25,
@@ -408,7 +2367,7 @@ SpotDetect_Gene <- function(
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_at_least_one_null(feature_colnm,features)
+  .check_not_all_null(feature_colnm,features)
   match.arg(plot_method, .STID_globals$plot_methods)
 
   #>
@@ -419,9 +2378,11 @@ SpotDetect_Gene <- function(
   if(PosThres_count <0){
     clog_error("PosThres_count must be >=0")
   }
+  PosThres_operator <- match.arg(PosThres_operator)
+  PosThres_compare <- if(PosThres_operator == ">=") `>=` else `>`
   basic_thres_value <- 0
-  clog_normal(paste0("Your PosThres_prob: ", PosThres_prob, " (greater than the value will be retained)"))
-  clog_normal(paste0("Your PosThres_count: ", PosThres_count, " (greater than the value will be retained)"))
+  clog_normal(paste0("Your PosThres_prob: ", PosThres_prob, " (Expression ", PosThres_operator, " the final threshold will be retained)"))
+  clog_normal(paste0("Your PosThres_count: ", PosThres_count, " (Expression ", PosThres_operator, " the final threshold will be retained)"))
   # >>> End check
 
   # >>> dir
@@ -503,7 +2464,7 @@ SpotDetect_Gene <- function(
     mutate(PosThres_prob_value = if(unique(PosThres_prob) >0) quantile(Expression[Expression > basic_thres_value],PosThres_prob) else NA, # !!!
            max_thres_value = if(is.na(unique(PosThres_prob_value))) PosThres_count else ifelse(PosThres_prob_value >= PosThres_count, PosThres_prob_value, PosThres_count),
            max_thres_value = ifelse(max_thres_value>basic_thres_value, max_thres_value, basic_thres_value),
-           exp_pos = ifelse(Expression > max_thres_value, Expression, basic_thres_value)) %>%
+           exp_pos = ifelse(PosThres_compare(Expression, max_thres_value), Expression, basic_thres_value)) %>% # controlled by PosThres_operator
     ungroup()
   Sap_GeneExp <- meta_data_longer %>%
     group_by(!!sym(samp_colnm), feature) %>%
@@ -518,15 +2479,15 @@ SpotDetect_Gene <- function(
       all_max = max(Expression,na.rm = T),
       basic_thres = unique(basic_thres_value),
       pos_thres = unique(max_thres_value),
-      pos_num = sum(Expression > max_thres_value,na.rm = T),
+      pos_num = sum(PosThres_compare(Expression, max_thres_value),na.rm = T),
       pos_ratio = pos_num / all_num ,
-      pos_mean = mean(Expression[Expression > max_thres_value],na.rm = T),
-      pos_sd = sd(Expression[Expression > max_thres_value],na.rm = T),
-      pos_Q5 = quantile(Expression[Expression > max_thres_value], 0.05,na.rm = T),
-      pos_Q25 = quantile(Expression[Expression > max_thres_value], 0.25,na.rm = T),
-      pos_Q50 = quantile(Expression[Expression > max_thres_value], 0.50,na.rm = T),
-      pos_Q75 = quantile(Expression[Expression > max_thres_value], 0.75,na.rm = T),
-      pos_Q95 = quantile(Expression[Expression > max_thres_value], 0.95,na.rm = T),
+      pos_mean = mean(Expression[PosThres_compare(Expression, max_thres_value)],na.rm = T), # # !!!, old: Expression > max_thres_value
+      pos_sd = sd(Expression[PosThres_compare(Expression, max_thres_value)],na.rm = T),
+      pos_Q5 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.05,na.rm = T),
+      pos_Q25 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.25,na.rm = T),
+      pos_Q50 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.50,na.rm = T),
+      pos_Q75 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.75,na.rm = T),
+      pos_Q95 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.95,na.rm = T),
     )
   fwrite(Sap_GeneExp, file = paste0(output_dir,"Sap_GeneExp_stat_(SpotDetect_Gene).txt"),
          sep = "\t", quote = F,col.names = T,row.names = F,na = "NA")
@@ -585,7 +2546,7 @@ SpotDetect_Gene <- function(
                            "; PosThres_count: ", round(j_PosThre_count,3),
                            "; PosThres_prob_value: ", round(j_PosThres_prob_value,3),
                            "; max_thres_value: ", j_max_thres_value %>% signif(3)))
-        subtitle_lable_pos <- paste0(subtitle_lable,"\n","Pos_Thres: ", round(j_max_thres_value,3))
+        subtitle_lable_pos <- paste0(subtitle_lable,"\n","Pos_Thres: >= ", round(j_max_thres_value,3))
 
         # >
         j_heat_gene <- j_meta_data_longer$Expression
@@ -593,7 +2554,7 @@ SpotDetect_Gene <- function(
         plot_SpaialPlot <- j_meta_data_longer %>%
           mutate(
             Expression = as.numeric(Expression),
-            Label = ifelse(Expression > max_thres_value, "pos","neg"),
+            Label = ifelse(PosThres_compare(Expression, max_thres_value), "pos","neg"), # controlled by PosThres_operator
             Label = factor(Label, levels = c("neg","pos"))
           )
         plot_SpaialPlot_list[[j]] <- plot_SpaialPlot
@@ -607,7 +2568,7 @@ SpotDetect_Gene <- function(
         i_meta2STID_Label[coord_Label] <- plot_SpaialPlot$Label %>%
           as.character()
 
-        # >
+        #>
         P_spatial_dis <- Plot_Spatial(plot_data = plot_SpaialPlot, x_colnm = x_colnm, y_colnm = y_colnm, group_by = "Label",
                                       facet_grpnm = NULL, datatype = "discrete",
                                       col = col,pt_size = pt_size, vmin = vmin, vmax = vmax,
@@ -657,7 +2618,7 @@ SpotDetect_Gene <- function(
       plot_SpaialPlot <- i_meta_data_longer %>%
         mutate(
           Expression = as.numeric(Expression),
-          Label = ifelse(Expression >max_thres_value, "pos","neg"),
+          Label = ifelse(PosThres_compare(Expression, max_thres_value), "pos","neg"), # controlled by PosThres_operator
           Label = factor(Label, levels = c("neg","pos"))
         )
       fwrite(plot_SpaialPlot, file = paste0(i_output_dir,i_single,"_allgene_PosInfo_(SpotDetect_Gene).txt"),
@@ -698,7 +2659,7 @@ SpotDetect_Gene <- function(
     plan(default_plan, workers = parallel_workers)
     clog_step(paste0("Start parallel processing sample with ", nbrOfWorkers(), " workers"))
     meta2STID_Label_list <- future_map(seq_along(loop_single), process_samp,
-                                      .progress=T, .options = furrr_options(seed = 123))
+                                       .progress=T, .options = furrr_options(seed = 123))
     names(meta2STID_Label_list) <- loop_single
     plan(sequential)
   }else{
@@ -715,12 +2676,12 @@ SpotDetect_Gene <- function(
     mutate(across(c(x,y,all_of(valid_features)), as.numeric))
   meta2STID <- meta2STID[rownames(meta_data), , drop = FALSE] # keep order
   STID_obj <- AddMetaData(STID_obj = STID_obj,
-                         meta_key = new_meta_key,
-                         add_data = meta2STID,
-                         dir_nm = dir_nm,
-                         grp_nm = grp_nm,
-                         asso_key = NULL,
-                         description = description)
+                          meta_key = new_meta_key,
+                          add_data = meta2STID,
+                          dir_nm = dir_nm,
+                          grp_nm = grp_nm,
+                          asso_key = NULL,
+                          description = description)
 
   # >>> Final
   .save_function_params("SpotDetect_Gene", envir = environment(), file = paste0(output_dir,"Log_function_params_(SpotDetect_Gene).log") )
@@ -754,7 +2715,9 @@ SpotDetect_Gene <- function(
 #' @param PosThres_prob Numeric, probability threshold (0-1) for positive detection
 #'        (default: 0)
 #' @param PosThres_score Numeric, absolute score threshold for positive detection
-#'        (default: 0)
+#'        (default: 1)
+#' @param PosThres_operator Character, operator for threshold comparison - ">=" or ">"
+#'        (default: ">=")
 #' @param col Color palette for visualization (default: COLOR_DIS_CON)
 #' @param pt_size Numeric, point size in spatial plots (default: 0.5)
 #' @param vmin Numeric or character, minimum value for color scale (default: NULL)
@@ -804,7 +2767,7 @@ SpotDetect_Geneset <- function(
     STID_obj = NULL, geneset_list = NULL,
     score_method = "AddModuleScore", n_iter = 5, nbin = 10, seed = 10,
     loop_id= "LoopAllSamp", assay_id = "Spatial", layer_id = "data",
-    PosThres_prob = 0, PosThres_score = 0,
+    PosThres_prob = 0, PosThres_score = 1, PosThres_operator = c(">=", ">"),
     col = COLOR_DIS_CON,
     pt_size = 0.5, vmin = NULL, vmax = "p99",
     black_bg = FALSE, plot_method = "merge",
@@ -824,7 +2787,7 @@ SpotDetect_Geneset <- function(
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(geneset_list)
+  .check_not_any_null(geneset_list)
   match.arg(score_method, .STID_globals$score_methods)
   match.arg(plot_method, .STID_globals$plot_methods)
   if(!is.list(geneset_list)){
@@ -839,8 +2802,10 @@ SpotDetect_Geneset <- function(
   if(PosThres_score <0){
     clog_error("PosThres_score must be >=0")
   }
-  clog_normal(paste0("Your PosThres_prob: ", PosThres_prob, " (greater than the value will be retained)"))
-  clog_normal(paste0("Your PosThres_score: ", PosThres_score, " (greater than the value will be retained)"))
+  PosThres_operator <- match.arg(PosThres_operator)
+  PosThres_compare <- if(PosThres_operator == ">=") `>=` else `>`
+  clog_normal(paste0("Your PosThres_prob: ", PosThres_prob, " (Expression ", PosThres_operator, " the final threshold will be retained)"))
+  clog_normal(paste0("Your PosThres_score: ", PosThres_score, " (Expression ", PosThres_operator, " the final threshold will be retained)"))
   # >>> End check
 
   # >>> dir
@@ -858,7 +2823,7 @@ SpotDetect_Geneset <- function(
   meta_data_raw <- STID_obj@meta.data
 
   if(score_method %in% c("AddModuleScore","UCell")){
-    if(score_method == "Ucell"){
+    if(score_method == "UCell"){
       clog_warn("UCell method is don't need n_iter, set n_iter to 1")
       n_iter <- 1
     }
@@ -875,7 +2840,7 @@ SpotDetect_Geneset <- function(
           slot = layer_id)@meta.data
       }else if(score_method == "AddModuleScore"){
         score_meta_data <- AddModuleScore(object = STID_obj, features = geneset_list, name = "Infect_geneset_123_",
-                                          nbin = 10, seed = seed_vec[i], assay = assay_id,layer = layer_id)@meta.data
+                                          nbin = nbin, seed = seed_vec[i], assay = assay_id,layer = layer_id)@meta.data
       }
       if(i ==1){
         score_df <- score_meta_data %>%
@@ -1011,7 +2976,7 @@ SpotDetect_Geneset <- function(
     mutate(PosThres_prob_value = if(unique(PosThres_prob) >0) quantile(Expression[Expression > basic_thres_value],PosThres_prob) else NA, # !!!
            max_thres_value = if(is.na(unique(PosThres_prob_value))) PosThres_score else ifelse(PosThres_prob_value >= PosThres_score, PosThres_prob_value, PosThres_score),
            max_thres_value = ifelse(max_thres_value>basic_thres_value, max_thres_value, basic_thres_value),
-           exp_pos = ifelse(Expression > max_thres_value, Expression, basic_thres_value)) %>%
+           exp_pos = ifelse(PosThres_compare(Expression, max_thres_value), Expression, basic_thres_value)) %>% # controlled by PosThres_operator
     ungroup()
   Sap_GeneExp <- meta_data_longer %>%
     group_by(!!sym(samp_colnm), feature) %>%
@@ -1026,15 +2991,15 @@ SpotDetect_Geneset <- function(
       all_max = max(Expression,na.rm = T),
       basic_thres = unique(basic_thres_value),
       pos_thres = unique(max_thres_value),
-      pos_num = sum(Expression > max_thres_value,na.rm = T),
+      pos_num = sum(PosThres_compare(Expression, max_thres_value),na.rm = T), # !!!, old: Expression > max_thres_value
       pos_ratio = pos_num / all_num ,
-      pos_mean = mean(Expression[Expression > max_thres_value],na.rm = T),
-      pos_sd = sd(Expression[Expression > max_thres_value],na.rm = T),
-      pos_Q5 = quantile(Expression[Expression > max_thres_value], 0.05,na.rm = T),
-      pos_Q25 = quantile(Expression[Expression > max_thres_value], 0.25,na.rm = T),
-      pos_Q50 = quantile(Expression[Expression > max_thres_value], 0.50,na.rm = T),
-      pos_Q75 = quantile(Expression[Expression > max_thres_value], 0.75,na.rm = T),
-      pos_Q95 = quantile(Expression[Expression > max_thres_value], 0.95,na.rm = T),
+      pos_mean = mean(Expression[PosThres_compare(Expression, max_thres_value)],na.rm = T),
+      pos_sd = sd(Expression[PosThres_compare(Expression, max_thres_value)],na.rm = T),
+      pos_Q5 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.05,na.rm = T),
+      pos_Q25 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.25,na.rm = T),
+      pos_Q50 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.50,na.rm = T),
+      pos_Q75 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.75,na.rm = T),
+      pos_Q95 = quantile(Expression[PosThres_compare(Expression, max_thres_value)], 0.95,na.rm = T),
     )
   fwrite(Sap_GeneExp, file = paste0(output_dir,"Sap_GeneSetScore_stat_(SpotDetect_Geneset).txt"),
          sep = "\t", quote = F,col.names = T,row.names = F,na = "NA")
@@ -1101,7 +3066,7 @@ SpotDetect_Geneset <- function(
                            "; PosThre_score: ", round(j_PosThre_score,3),
                            "; PosThres_prob_value: ", round(j_PosThres_prob_value,3),
                            "; max_thres_value: ", j_max_thres_value %>% signif(3)))
-        subtitle_lable_pos <- paste0(subtitle_lable,"\n","Pos_Thres: ", round(j_max_thres_value,3))
+        subtitle_lable_pos <- paste0(subtitle_lable,"\n","Pos_Thres: >= ", round(j_max_thres_value,3))
 
         # >
         j_heat_gene <- j_meta_data_longer$Expression
@@ -1109,7 +3074,7 @@ SpotDetect_Geneset <- function(
         plot_SpaialPlot <- j_meta_data_longer %>%
           mutate(
             Expression = as.numeric(Expression),
-            Label = ifelse(Expression > max_thres_value, "pos","neg"),
+            Label = ifelse(PosThres_compare(Expression, max_thres_value), "pos","neg"), # controlled by PosThres_operator
             Label = factor(Label, levels = c("neg","pos"))
           )
         plot_SpaialPlot_list[[j]] <- plot_SpaialPlot
@@ -1159,7 +3124,7 @@ SpotDetect_Geneset <- function(
       plot_SpaialPlot <- i_meta_data_longer %>%
         mutate(
           Expression = as.numeric(Expression),
-          Label = ifelse(Expression >max_thres_value, "pos","neg"),
+          Label = ifelse(PosThres_compare(Expression, max_thres_value), "pos","neg"),
           Label = factor(Label, levels = c("neg","pos"))
         )
       fwrite(plot_SpaialPlot, file = paste0(i_output_dir,i_single,"_allgene_PosInfo_(SpotDetect_Geneset).txt"),
@@ -1200,7 +3165,7 @@ SpotDetect_Geneset <- function(
     plan(default_plan, workers = parallel_workers)
     clog_step(paste0("Start parallel processing sample with ", nbrOfWorkers(), " workers"))
     meta2STID_Label_list <- future_map(seq_along(loop_single), process_samp,
-                                      .progress=T, .options = furrr_options(seed = 123))
+                                       .progress=T, .options = furrr_options(seed = 123))
     names(meta2STID_Label_list) <- loop_single
     plan(sequential)
   }else{
@@ -1217,12 +3182,12 @@ SpotDetect_Geneset <- function(
     mutate(across(c(x,y,all_of(valid_features)), as.numeric))
   meta2STID <- meta2STID[rownames(meta_data), , drop = FALSE] # keep order
   STID_obj <- AddMetaData(STID_obj = STID_obj,
-                         meta_key = new_meta_key,
-                         add_data = meta2STID,
-                         dir_nm = dir_nm,
-                         grp_nm = grp_nm,
-                         asso_key = NULL,
-                         description = description)
+                          meta_key = new_meta_key,
+                          add_data = meta2STID,
+                          dir_nm = dir_nm,
+                          grp_nm = grp_nm,
+                          asso_key = NULL,
+                          description = description)
   STID_obj@meta.data <- meta_data_raw
 
   # >>> Final
@@ -1282,35 +3247,39 @@ SpotDetect_Geneset <- function(
 #' }
 Plot_Spatial <- function(STID_obj = NULL,meta_key = NULL,plot_data = NULL,
                          x_colnm = NULL,y_colnm = NULL,group_by = NULL,
-                         facet_grpnm = NULL, datatype = "discrete",
+                         facet_grpnm = NULL, ncol = NULL, datatype = "discrete",
                          col = COLOR_DIS_CON, pt_size = 1.1,vmin = NULL, vmax = "p99",
                          title = NULL, subtitle = NULL,black_bg = FALSE){
 
   # >>> Check input patameter
-  # .check_at_least_one_null(STID_obj,plot_data)
+  # .check_not_all_null(STID_obj,plot_data)
   if(!is.null(STID_obj)){
-    if (!inherits(STID_obj, "STID")) {
-      clog_error("Input object is not an STID object.")
-    }
-    if(is.null(meta_key)){
-      meta_key <- "coord"
-    }
-    plot_data <- GetMetaData(STID_obj = STID_obj, meta_key = meta_key)[[1]]
-    data_info <- GetInfo(STID_obj, info_key = "data_info")
-    if(is.null(x_colnm)){
-      x_colnm <- data_info$x_colnm
-    }
-    if(is.null(y_colnm)){
-      y_colnm <- data_info$y_colnm
-    }
-    if(is.null(group_by)){
-      group_by <- data_info$celltype_colnm
-    }
-    if(is.null(facet_grpnm)){
-      facet_grpnm <- data_info$samp_colnm
+    if (inherits(STID_obj, "STID")) {
+      if(is.null(meta_key)){
+        meta_key <- "coord"
+      }
+      plot_data <- GetMetaData(STID_obj = STID_obj, meta_key = meta_key)[[1]]
+      data_info <- GetInfo(STID_obj, info_key = "data_info")
+      if(is.null(x_colnm)){
+        x_colnm <- data_info$x_colnm
+      }
+      if(is.null(y_colnm)){
+        y_colnm <- data_info$y_colnm
+      }
+      if(is.null(group_by)){
+        group_by <- data_info$celltype_colnm
+      }
+      if(is.null(facet_grpnm)){
+        facet_grpnm <- data_info$samp_colnm
+      }
+    }else if(inherits(STID_obj, "Seurat")) {
+      .check_not_any_null(x_colnm, y_colnm, group_by)
+      plot_data <- STID_obj@meta.data
+    }else{
+      clog_error("Input object is not an STID or Seurat object.")
     }
   }else{
-    .check_null_args(plot_data, x_colnm, y_colnm, group_by) # facet_grpnm can be NULL
+    .check_not_any_null(plot_data, x_colnm, y_colnm, group_by) # facet_grpnm can be NULL
     plot_data <- as.data.frame(plot_data)
   }
 
@@ -1381,7 +3350,9 @@ Plot_Spatial <- function(STID_obj = NULL,meta_key = NULL,plot_data = NULL,
   }
 
   if(!is.null(facet_grpnm)){
-    p1 <- p1 + facet_wrap(as.formula(paste0("~",facet_grpnm)), ncol = 4)
+    p1 <- p1 + facet_wrap(as.formula(paste0("~",facet_grpnm)),
+                          # scales = "free",
+                          ncol = ncol)
   }
 
   if(black_bg){
@@ -1599,13 +3570,13 @@ GetSapThreshold.STID <- function(
   # >>> Check input patameter
   clog_check( )
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(meta_key)
+  .check_not_any_null(meta_key)
   clog_normal(paste0("Your meta_key: ", paste0(meta_key, collapse = ", ")))
   # >>> End check
 
   # >>> Start main pipeline
   clog_step("Getting GetSapThreshold...")
-  meta_info <- GetMetaInfo(STID_obj_before)
+  meta_info <- GetMetaInfo(STID_obj)
   res_list <- list()
   for (i_key in meta_key){
     if(!i_key %in% rownames(meta_info)){
@@ -1808,7 +3779,7 @@ GetGeneStat <- function(STID_obj = NULL, pattern = NULL, features = NULL,
   # >>> Check input patameter
   clog_step("GetGeneStat")
   if (!is(STID_obj, "Seurat")) clog_error("STID_obj must be a Seurat or STID object")
-  .check_null_args(STID_obj,prefix)
+  .check_not_any_null(STID_obj,prefix)
   if(is.null(pattern) & is.null(features)) clog_error("pattern or features must be provided")
 
   if(func %in% c("sum","mean","median","max","min")){

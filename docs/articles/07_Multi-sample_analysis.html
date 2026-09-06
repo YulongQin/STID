@@ -390,10 +390,12 @@ example filters predicted genes and pathogen-derived features before
 testing host transcriptional differences.</p>
 <blockquote>
 <p><strong>Note:</strong> Set <code>loop_id</code>,
-<code>group_by</code>, <code>group_value</code>, <code>assay_id</code>,
-thresholds, gene filters, and <code>grp_nm</code> for the comparison and
-feature space. If the selected <code>niche_key</code> yields too few
-genes, use broader annotation groups or adjust the tested group set.</p>
+<code>niche_key</code>, <code>group_by</code>, <code>group_value</code>,
+<code>assay_id</code>, thresholds, gene filters, and <code>grp_nm</code>
+for the comparison and feature space. The updated article workflow
+performs this comparison within <code>niche_key = "Niche"</code>; set
+<code>niche_key = NULL</code> only when the intended comparison is
+across all selected spots.</p>
 </blockquote>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">MS_DEGs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CalSampDEGs.html">CalSampDEGs</a></span><span class="op">(</span></span>
@@ -402,6 +404,7 @@ genes, use broader annotation groups or adjust the tested group set.</p>
 <span>  loop_id <span class="op">=</span> <span class="st">"Comparative_2_4"</span>,</span>
 <span>  samp_grp_index <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  logfc_thres <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  niche_key <span class="op">=</span> <span class="st">"Niche"</span>,</span>
 <span>  group_by <span class="op">=</span> <span class="st">"anno"</span>,</span>
 <span>  group_value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Neutrophils"</span>, <span class="st">"Spp1+ MoMFs"</span>, <span class="st">"Fibroblasts"</span>, <span class="st">"B/plasma cells"</span><span class="op">)</span>,</span>
 <span>  assay_id <span class="op">=</span> <span class="st">"Spatial"</span>,</span>

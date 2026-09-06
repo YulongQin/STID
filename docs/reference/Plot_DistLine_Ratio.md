@@ -15,7 +15,6 @@ Plot_DistLine_Ratio(
   celltypes = NULL,
   coord_interval_ratio = NULL,
   linewidth = 1,
-  ncol = 4,
   col = COLOR_LIST[["PALETTE_WHITE_BG"]]
 )
 ```
@@ -53,10 +52,6 @@ Plot_DistLine_Ratio(
 - linewidth:
 
   Numeric, line width (default: 1)
-
-- ncol:
-
-  Integer, number of facet columns (default: 4)
 
 - col:
 

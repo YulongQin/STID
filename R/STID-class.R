@@ -346,7 +346,10 @@ setMethod("initialize", "STID", # 对STID使用seurat的函数，返回的是seu
 #' @param x_colnm Character, column name for x coordinates
 #' @param y_colnm Character, column name for y coordinates
 #' @param pathogen_genes Character vector, names of pathogen genes
-#' @param data_format Character, data format - "square_grid" or "hex_grid"
+#' @param data_format Character, spatial data format.
+#' One of "square_grid", "hex_grid", or "single_cell".
+#' For "single_cell", the default spatial unit, binsize,
+#' and coord_interval are 1 unless otherwise specified.
 #' @param data_platform Character, data platform - "StereoSeq", "Visium", "VisiumHD", "SlideSeq", or "unknown"
 #' @param binsize Numeric, bin size for spatial data
 #' @param coord_interval Numeric, coordinate coord_interval
@@ -402,7 +405,7 @@ setMethod("as.STID", "Seurat",
             if (!inherits(seurat_obj, "Seurat")) {
               clog_error("Input object is not a Seurat object.")
             }
-            .check_null_args(samp_colnm, samp_grp_colnm, host_org, pathogen_grp,
+            .check_not_any_null(samp_colnm, samp_grp_colnm, host_org, pathogen_grp,
                              pathogen_org, data_format, data_platform) # celltype_colnm/pathogen_genes can be NULL
             match.arg(host_org, choices = .STID_globals$supported_hosts, several.ok = FALSE)
             match.arg(pathogen_grp, choices = .STID_globals$supported_pathogens, several.ok = FALSE)
@@ -516,6 +519,13 @@ setMethod("as.STID", "Seurat",
                  pull(scale.factors_spot)
               coord_interval <- coord_interval/base_unit*100
               names(coord_interval) <- samp_id
+            }else if(data_format == "single_cell"){
+              if(is.null(binsize)){
+                clog_warn(paste0("You didn't specify binsize, using the default binsize for single_cell data: 1"))
+                binsize <- 1
+              }
+              coord_interval <- rep(1, length(samp_id))
+              names(coord_interval) <- samp_id
             }else{
               clog_error(paste0("The plat_format ", data_format, " of data_platform ", data_platform,
                                 " is not common in current STID analysis. Please check if your data_format and data_platform are correct."))
@@ -625,7 +635,7 @@ setMethod("as.STID", "Seurat",
 #'
 #' @noRd
 .add_coord2metadata <- function(STID_obj = NULL, meta_data = NULL,
-                                x_colnm = NULL, y_colnm = NULL, image_names = NULL) {
+                                x_colnm = "x", y_colnm = "y", image_names = NULL) {
   if(is.null(image_names)){
     clog_normal("You didn't specify image_names, using all images in the STID object")
     image_names <- names(STID_obj@images)
@@ -883,7 +893,7 @@ CreateSingleSampNiche.STID <- function(
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(niche_key, meta_key, ROI_type,pos_colnm)
+  .check_not_any_null(niche_key, meta_key, ROI_type,pos_colnm)
   if(!ROI_type %in% c("ROI","Spot","Unknown")){
     clog_error(paste0("ROI_type must be 'ROI','Spot' or 'Unknown', not '", ROI_type, "'"))
   }
@@ -1082,7 +1092,7 @@ CreateMultiSampNiche.STID <- function(
   if (!inherits(STID_obj, "STID")) {
     clog_error("Input object is not an STID object.")
   }
-  .check_null_args(compare_mode,niche_key)
+  .check_not_any_null(compare_mode,niche_key)
   match.arg(compare_mode, choices = c("Comparative", "Temporal"))
   now_time <- format(Sys.time(), "%Y%m%d_%H%M%S")
   valid_single <- GetInfo(STID_obj, info_key = "samp_info",sub_key = "samp_id")[[1]] # !!! must need
@@ -1255,7 +1265,7 @@ GetInfo.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(info_key)
+  .check_not_any_null(info_key)
   if(length(info_key) > 1){
     clog_error("The length of info_key is greater than 1")
   }
@@ -1363,7 +1373,7 @@ SetInfo.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(info_key,info_value)
+  .check_not_any_null(info_key,info_value)
 
   # >>> Start main pipeline
   clog_step("Setting info...")
@@ -1427,7 +1437,7 @@ AddInfo.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(info_key,info_value)
+  .check_not_any_null(info_key,info_value)
   if(info_key != "comment_info"){
     clog_warn("Adding info is only recommended for 'comment_info' meta_key")
   }
@@ -1502,7 +1512,7 @@ GetMetaData.STID <- function(
   # >>> Start pipeline
   # clog_step("Getting meta data...")
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(meta_key)
+  .check_not_any_null(meta_key)
 
   # >>> Start main pipeline
   meta_keys <- names(STID_obj@STID_analysis@meta_data_record$meta_data_list)
@@ -1695,7 +1705,7 @@ AddMetaData.STID <- function(
   # >>> Check input patameter
   clog_step("Adding meta data...")
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(meta_key,add_data)
+  .check_not_any_null(meta_key,add_data)
   clog_normal(paste0("Your meta_key: ", meta_key))
   # >>> End check
 
@@ -1820,7 +1830,7 @@ RemoveMetaData.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(meta_key)
+  .check_not_any_null(meta_key)
   clog_normal(paste0("Your meta_key: ", paste0(meta_key, collapse = ", ")))
 
   # >>> Start main pipeline
@@ -1881,7 +1891,7 @@ AddMetaColumn.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(add_data,meta_key)
+  .check_not_any_null(add_data,meta_key)
 
   # >>> Start main pipeline
   clog_step("Adding meta columns...")
@@ -1951,7 +1961,7 @@ RemoveMetaColumn.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(meta_key,remove_colnm)
+  .check_not_any_null(meta_key,remove_colnm)
 
   # >>> Start main pipeline
   clog_step("Removing meta columns...")
@@ -2025,7 +2035,7 @@ GetSSNicheInfo.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,niche_key)
+  .check_not_any_null(loop_id,niche_key)
   loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline
@@ -2084,7 +2094,7 @@ GetSSNicheCells.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,niche_key)
+  .check_not_any_null(loop_id,niche_key)
   loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline
@@ -2151,7 +2161,7 @@ AddSSNicheCells.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,meta_key,select_colnm,niche_key)
+  .check_not_any_null(loop_id,meta_key,select_colnm,niche_key)
   loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline
@@ -2223,7 +2233,7 @@ GetSSNicheGenes.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,niche_key)
+  .check_not_any_null(loop_id,niche_key)
   loop_single <- .check_loop_single(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline
@@ -2288,7 +2298,7 @@ AddSSNicheGenes.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(gene,add_colnm,loop_id,niche_key)
+  .check_not_any_null(gene,add_colnm,loop_id,niche_key)
   if(sum(duplicated(gene)) > 0){
     clog_error("gene contains duplicated gene names, please check.")
   }
@@ -2366,7 +2376,7 @@ GetMSNicheInfo.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,niche_key)
+  .check_not_any_null(loop_id,niche_key)
   loop_multi <- .check_loop_multi(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline
@@ -2425,7 +2435,7 @@ GetMSNicheCells.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,niche_key)
+  .check_not_any_null(loop_id,niche_key)
   loop_multi <- .check_loop_multi(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline
@@ -2492,7 +2502,7 @@ AddMSNicheCells.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,meta_key,select_colnm,niche_key)
+  .check_not_any_null(loop_id,meta_key,select_colnm,niche_key)
   loop_multi <- .check_loop_multi(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline
@@ -2564,7 +2574,7 @@ GetMSNicheGenes.STID <- function(
 
   # >>> Start pipeline
   if (!is(STID_obj, "STID")) clog_error("STID_obj must be an STID STID_obj")
-  .check_null_args(loop_id,niche_key)
+  .check_not_any_null(loop_id,niche_key)
   loop_multi <- .check_loop_multi(STID_obj = STID_obj, loop_id = loop_id)
 
   # >>> Start main pipeline

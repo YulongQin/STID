@@ -16,7 +16,7 @@
   : Add annotations to SingleSampNiche genes
 - [`anno_SingleR()`](https://yulongqin.github.io/STID/reference/anno_SingleR.md)
   : Annotate Cell Types Using SingleR
-- [`as.Seurat(`*`<STID>`*`)`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
+- [`as.Seurat.STID()`](https://yulongqin.github.io/STID/reference/as.Seurat.STID.md)
   : Convert STID object to Seurat object
 - [`as.STID()`](https://yulongqin.github.io/STID/reference/as.STID.md) :
   Convert Seurat object to STID object
@@ -63,7 +63,7 @@
 - [`configure_conda()`](https://yulongqin.github.io/STID/reference/configure_conda.md)
   : Configure Python Conda Environment
 - [`CorrectBackground()`](https://yulongqin.github.io/STID/reference/CorrectBackground.md)
-  : Correct background expression in spatial transcriptomics data
+  : Correct background expression
 - [`CreateMultiSampNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
   [`CreateMSNiche()`](https://yulongqin.github.io/STID/reference/CreateMultiSampNiche.md)
   : Create a MultiSampNiche object for cross-sample comparison
@@ -141,6 +141,8 @@
   : Remove columns from existing metadata
 - [`RemoveMetaData()`](https://yulongqin.github.io/STID/reference/RemoveMetaData.md)
   : Remove metadata from STID object
+- [`ScanThreshold()`](https://yulongqin.github.io/STID/reference/ScanThreshold.md)
+  : Scan pathogen count thresholds before SpotDetect_Geneset
 - [`SetInfo()`](https://yulongqin.github.io/STID/reference/SetInfo.md) :
   Set information in STID object
 - [`Seurat_pipeline()`](https://yulongqin.github.io/STID/reference/Seurat_pipeline.md)

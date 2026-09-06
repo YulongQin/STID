@@ -125,7 +125,7 @@ clog_error <- function(message, call. = TRUE){
 #' @keywords internal
 #'
 #' @noRd
-.check_null_args <- function(...) {
+.check_not_any_null <- function(...) {
   dots <- list(...)
   names <- as.character(substitute(list(...)))[-1]
   null_names <- names[vapply(seq_along(dots), function(i) is.null(dots[[i]]), TRUE)]
@@ -147,7 +147,7 @@ clog_error <- function(message, call. = TRUE){
 #' @keywords internal
 #'
 #' @noRd
-.check_at_least_one_null <- function(...) {
+.check_not_all_null <- function(...) {
   dots <- list(...)
   names <- as.character(substitute(list(...)))[-1]
   null_names <- names[vapply(seq_along(dots), function(i) is.null(dots[[i]]), TRUE)]
@@ -361,7 +361,7 @@ clog_error <- function(message, call. = TRUE){
 #' @keywords internal
 #' @noRd
 .create_directory <- function(grp_nm = NULL,dir_nm = NULL) {
-  .check_null_args(dir_nm)
+  .check_not_any_null(dir_nm)
   old_opt <- getOption("error")
   on.exit(options(error = old_opt), add = TRUE)
 
